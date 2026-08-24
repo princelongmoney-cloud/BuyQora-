@@ -8,7 +8,7 @@ index.html
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>BuyQora - Shop Everything You Love</title>
+  <title>BuyQora - Shop Everything You Love</title> <link rel="manifest" href="manifest.json">
   <style>
     * {
       box-sizing: border-box;
