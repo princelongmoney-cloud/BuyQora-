@@ -2,7 +2,18 @@
 BuyQora — Online marketplace
 index.html
 style.css
-index.html 
+index.html <script>
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("./service-worker.js")
+        .then(() => console.log("BuyQora app ready"))
+        .catch(error => console.error("Service Worker error:", error));
+    });
+  }
+</script>
+
+</body>
+</html>
 <!DOCTYPE html>
 <html lang="en">
 <head>
