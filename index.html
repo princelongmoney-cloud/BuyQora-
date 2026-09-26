@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BuyQora - Shop Everything You Love</title>
+
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: Arial, sans-serif;
+  background: #f7f7f7;
+  color: #222;
+}
+
+header {
+  background: #111;
+  color: white;
+  padding: 18px;
+  text-align: center;
+  position: relative;
+}
+
+header h1 {
+  font-size: 28px;
+}
+
+header p {
+  margin-top: 6px;
+  color: #ddd;
+}
+
+.account-bar {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.account-bar button {
+  background: #ff6b00;
+  color: white;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 6px;
+  font-weight: bold;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.account-bar span {
+  color: #ddd;
+  font-size: 13px;
+}
+
+.hero {
+  background: white;
+  padding: 50px 20px;
+  text-align: center;
+}
+
+.hero h2 {
+  font-size: 34px;
+  margin-bottom: 15px;
+}
+
+.hero p {
+  font-size: 17px;
+  color: #666;
+  margin-bottom: 25px;
+}
+
+.button {
+  display: inline-block;
+  background: #ff6b00;
+  color: white;
+  padding: 14px 25px;
+  border-radius: 8px;
+  text-decoration: none;
+  font-weight: bold;
+  border: none;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.categories {
+  padding: 30px 20px;
+  text-align: center;
+}
+
+.categories h2 {
+  margin-bottom: 20px;
+}
+
+.category-list {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  max-width: 700px;
+  margin: auto;
+}
+
+.category {
+  background: white;
+  padding: 25px 10px;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+.products {
+  padding: 30px 20px;
+  background: #fff;
+  text-align: center;
+}
+
+.products h2 {
+  margin-bottom: 20px;
+}
+
+.product-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 15px;
+  max-width: 800px;
+  margin: auto;
+}
+
+.product {
+  border: 1px solid #eee;
+  border-radius: 10px;
+  padding: 15px;
+  text-align: left;
+}
+
+.product-image {
+  height: 130px;
+  background: #eee;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12px;
+  font-size: 40px;
+}
+
+.product h3 {
+  font-size: 16px;
+  margin-bottom: 7px;
+}
+
+.price {
+  color: #ff6b00;
+  font-weight: bold;
+}
+
+footer {
+  background: #111;
+  color: white;
+  text-align: center;
+  padding: 25px;
+  margin-top: 30px;
+}
+
+@media (min-width: 700px) {
+  .category-list {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  .product-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+/* --- Auth modal --- */
+.modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.modal-overlay.show { display: flex; }
+
+.modal {
+  background: white;
+  border-radius: 12px;
+  padding: 28px;
+  width: 90%;
+  max-width: 360px;
+}
+
+.modal h3 {
+  margin-bottom: 16px;
+  font-size: 20px;
+}
+
+.modal input {
+  width: 100%;
+  padding: 11px 12px;
+  margin-bottom: 12px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.modal .button {
+  width: 100%;
+  text-align: center;
+}
+
+.modal .switch {
+  text-align: center;
+  margin-top: 14px;
+  font-size: 13px;
+  color: #666;
+}
+
+.modal .switch a {
+  color: #ff6b00;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.modal .close {
+  float: right;
+  cursor: pointer;
+  font-size: 18px;
+  color: #999;
+}
+
+.modal .error {
+  color: #c0392b;
+  font-size: 13px;
+  margin-bottom: 10px;
+  display: none;
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="account-bar" id="accountBar">
+    <button onclick="openAuth('login')">Sign up / Log in</button>
+  </div>
+  <h1>BuyQora</h1>
+  <p>Shop. Discover. Enjoy.</p>
+</header>
+
+<section class="hero">
+  <h2>Everything You Need, All in One Place</h2>
+  <p>Discover great products from sellers you can trust.</p>
+  <a href="#products" class="button">Shop Now</a>
+</section>
+
+<section class="categories">
+  <h2>Shop by Category</h2>
+  <div class="category-list">
+    <div class="category">📱 Electronics</div>
+    <div class="category">👕 Fashion</div>
+    <div class="category">🏠 Home & Living</div>
+    <div class="category">💄 Beauty</div>
+  </div>
+</section>
+
+<section class="products" id="products">
+  <h2>Featured Products</h2>
+  <div class="product-grid">
+    <div class="product">
+      <div class="product-image">📱</div>
+      <h3>Smartphone</h3>
+      <p class="price">₦150,000</p>
+    </div>
+    <div class="product">
+      <div class="product-image">👟</div>
+      <h3>Fashion Sneakers</h3>
+      <p class="price">₦35,000</p>
+    </div>
+    <div class="product">
+      <div class="product-image">🎧</div>
+      <h3>Wireless Headphones</h3>
+      <p class="price">₦25,000</p>
+    </div>
+    <div class="product">
+      <div class="product-image">⌚</div>
+      <h3>Smart Watch</h3>
+      <p class="price">₦45,000</p>
+    </div>
+  </div>
+</section>
+
+<footer>© 2026 BuyQora. All rights reserved.</footer>
+
+<!-- Auth modal -->
+<div class="modal-overlay" id="authOverlay">
+  <div class="modal">
+    <span class="close" onclick="closeAuth()">✕</span>
+    <h3 id="authTitle">Log in</h3>
+    <p class="error" id="authError"></p>
+    <input type="text" id="authName" placeholder="Full name" style="display:none;">
+    <input type="email" id="authEmail" placeholder="Email">
+    <input type="password" id="authPassword" placeholder="Password">
+    <button class="button" id="authSubmit" onclick="submitAuth()">Log in</button>
+    <p class="switch">
+      <span id="switchPrompt">Don't have an account? <a onclick="toggleAuthMode()">Sign up</a></span>
+    </p>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="./config.js"></script>
+<script>
+let authMode = "login";
+
+function openAuth(mode){
+  authMode = mode;
+  updateAuthUI();
+  document.getElementById('authOverlay').classList.add('show');
+}
+
+function closeAuth(){
+  document.getElementById('authOverlay').classList.remove('show');
+  document.getElementById('authError').style.display = 'none';
+}
+
+function toggleAuthMode(){
+  authMode = authMode === "login" ? "signup" : "login";
+  updateAuthUI();
+}
+
+function updateAuthUI(){
+  const isSignup = authMode === "signup";
+  document.getElementById('authTitle').textContent = isSignup ? "Create your account" : "Log in";
+  document.getElementById('authName').style.display = isSignup ? "block" : "none";
+  document.getElementById('authSubmit').textContent = isSignup ? "Sign up" : "Log in";
+  document.getElementById('switchPrompt').innerHTML = isSignup
+    ? 'Already have an account? <a onclick="toggleAuthMode()">Log in</a>'
+    : "Don't have an account? <a onclick=\"toggleAuthMode()\">Sign up</a>";
+  document.getElementById('authError').style.display = 'none';
+}
+
+async function submitAuth(){
+  const email = document.getElementById('authEmail').value.trim();
+  const password = document.getElementById('authPassword').value;
+  const errorEl = document.getElementById('authError');
+  errorEl.style.display = 'none';
+
+  if(!email || !password){
+    errorEl.textContent = "Enter both email and password.";
+    errorEl.style.display = 'block';
+    return;
+  }
+
+  if(authMode === "signup"){
+    const fullName = document.getElementById('authName').value.trim();
+    const { error } = await supabaseClient.auth.signUp({
+      email, password,
+      options: { data: { full_name: fullName } }
+    });
+    if(error){ errorEl.textContent = error.message; errorEl.style.display = 'block'; return; }
+    alert("Account created! Check your email to confirm, then log in.");
+    authMode = "login";
+    updateAuthUI();
+  } else {
+    const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+    if(error){ errorEl.textContent = error.message; errorEl.style.display = 'block'; return; }
+    closeAuth();
+    refreshAccountBar();
+  }
+}
+
+async function logout(){
+  await supabaseClient.auth.signOut();
+  refreshAccountBar();
+}
+
+async function refreshAccountBar(){
+  const { data: { session } } = await supabaseClient.auth.getSession();
+  const bar = document.getElementById('accountBar');
+  if(session){
+    const { data: profile } = await supabaseClient
+      .from('profiles')
+      .select('full_name')
+      .eq('id', session.user.id)
+      .single();
+    const name = profile?.full_name || session.user.email;
+    bar.innerHTML = `<span>Hi, ${name}</span><button onclick="logout()">Log out</button>`;
+  } else {
+    bar.innerHTML = `<button onclick="openAuth('login')">Sign up / Log in</button>`;
+  }
+}
+
+refreshAccountBar();
+
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./service-worker.js")
+      .then(() => console.log("BuyQora app ready"))
+      .catch(error => console.error("Service Worker error:", error));
+  });
+}
+</script>
+</body>
+</html>
