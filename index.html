@@ -51,9 +51,12 @@ header p {
   font-size: 13px;
 }
 
-.account-bar span {
+.account-bar .name-btn {
+  background: none;
   color: #ddd;
-  font-size: 13px;
+  text-decoration: underline;
+  padding: 8px 4px;
+  font-weight: normal;
 }
 
 .hero {
@@ -174,7 +177,7 @@ footer {
   }
 }
 
-/* --- Auth modal --- */
+/* --- Modals (auth + profile) --- */
 .modal-overlay {
   display: none;
   position: fixed;
@@ -200,13 +203,22 @@ footer {
   font-size: 20px;
 }
 
-.modal input {
+.modal input, .modal select {
   width: 100%;
   padding: 11px 12px;
   margin-bottom: 12px;
   border: 1px solid #ddd;
   border-radius: 8px;
   font-size: 14px;
+  font-family: inherit;
+  background: white;
+}
+
+.modal label {
+  display: block;
+  font-size: 12.5px;
+  color: #666;
+  margin-bottom: 4px;
 }
 
 .modal .button {
@@ -236,6 +248,13 @@ footer {
 
 .modal .error {
   color: #c0392b;
+  font-size: 13px;
+  margin-bottom: 10px;
+  display: none;
+}
+
+.modal .success {
+  color: #2e7d32;
   font-size: 13px;
   margin-bottom: 10px;
   display: none;
@@ -309,6 +328,33 @@ footer {
     <p class="switch">
       <span id="switchPrompt">Don't have an account? <a onclick="toggleAuthMode()">Sign up</a></span>
     </p>
+  </div>
+</div>
+
+<!-- Profile modal -->
+<div class="modal-overlay" id="profileOverlay">
+  <div class="modal">
+    <span class="close" onclick="closeProfile()">✕</span>
+    <h3>My profile</h3>
+    <p class="error" id="profileError"></p>
+    <p class="success" id="profileSuccess"></p>
+
+    <label>Full name</label>
+    <input type="text" id="profileName" placeholder="Your full name">
+
+    <label>Phone number</label>
+    <input type="text" id="profilePhone" placeholder="e.g. 08012345678">
+
+    <label>State</label>
+    <select id="profileState">
+      <option value="">Select your state</option>
+      <option value="Imo">Imo</option>
+      <option value="Anambra">Anambra</option>
+      <option value="Abia">Abia</option>
+      <option value="Lagos">Lagos</option>
+    </select>
+
+    <button class="button" onclick="saveProfile()">Save profile</button>
   </div>
 </div>
 
@@ -389,10 +435,69 @@ async function refreshAccountBar(){
       .eq('id', session.user.id)
       .single();
     const name = profile?.full_name || session.user.email;
-    bar.innerHTML = `<span>Hi, ${name}</span><button onclick="logout()">Log out</button>`;
+    bar.innerHTML = `<button class="name-btn" onclick="openProfile()">Hi, ${name}</button><button onclick="logout()">Log out</button>`;
   } else {
     bar.innerHTML = `<button onclick="openAuth('login')">Sign up / Log in</button>`;
   }
+}
+
+async function openProfile(){
+  const { data: { session } } = await supabaseClient.auth.getSession();
+  if(!session) return;
+
+  document.getElementById('profileError').style.display = 'none';
+  document.getElementById('profileSuccess').style.display = 'none';
+
+  const { data: profile } = await supabaseClient
+    .from('profiles')
+    .select('full_name, phone, state')
+    .eq('id', session.user.id)
+    .single();
+
+  document.getElementById('profileName').value = profile?.full_name || "";
+  document.getElementById('profilePhone').value = profile?.phone || "";
+  document.getElementById('profileState').value = profile?.state || "";
+
+  document.getElementById('profileOverlay').classList.add('show');
+}
+
+function closeProfile(){
+  document.getElementById('profileOverlay').classList.remove('show');
+}
+
+async function saveProfile(){
+  const { data: { session } } = await supabaseClient.auth.getSession();
+  if(!session) return;
+
+  const errorEl = document.getElementById('profileError');
+  const successEl = document.getElementById('profileSuccess');
+  errorEl.style.display = 'none';
+  successEl.style.display = 'none';
+
+  const full_name = document.getElementById('profileName').value.trim();
+  const phone = document.getElementById('profilePhone').value.trim();
+  const state = document.getElementById('profileState').value;
+
+  if(!full_name){
+    errorEl.textContent = "Enter your full name.";
+    errorEl.style.display = 'block';
+    return;
+  }
+
+  const { error } = await supabaseClient
+    .from('profiles')
+    .update({ full_name, phone, state })
+    .eq('id', session.user.id);
+
+  if(error){
+    errorEl.textContent = error.message;
+    errorEl.style.display = 'block';
+    return;
+  }
+
+  successEl.textContent = "Profile saved!";
+  successEl.style.display = 'block';
+  refreshAccountBar();
 }
 
 refreshAccountBar();
