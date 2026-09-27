@@ -89,6 +89,22 @@ header p {
   cursor: pointer;
 }
 
+.sell-fab {
+  position: fixed;
+  right: 18px;
+  bottom: 22px;
+  background: #ff6b00;
+  color: white;
+  border: none;
+  border-radius: 999px;
+  padding: 14px 22px;
+  font-weight: bold;
+  font-size: 15px;
+  box-shadow: 0 6px 16px rgba(0,0,0,0.3);
+  cursor: pointer;
+  z-index: 50;
+}
+
 .categories {
   padding: 30px 20px;
   text-align: center;
@@ -111,6 +127,12 @@ header p {
   padding: 25px 10px;
   border-radius: 10px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  cursor: pointer;
+  border: 2px solid transparent;
+}
+
+.category.active {
+  border-color: #ff6b00;
 }
 
 .products {
@@ -120,7 +142,33 @@ header p {
 }
 
 .products h2 {
-  margin-bottom: 20px;
+  margin-bottom: 16px;
+}
+
+.filter-row {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 16px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.filter-chip {
+  padding: 7px 14px;
+  border-radius: 999px;
+  border: 1px solid #ddd;
+  background: white;
+  font-size: 13px;
+  color: #555;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.filter-chip.active {
+  background: #ff6b00;
+  color: white;
+  border-color: #ff6b00;
 }
 
 .product-grid {
@@ -136,6 +184,7 @@ header p {
   border-radius: 10px;
   padding: 15px;
   text-align: left;
+  cursor: pointer;
 }
 
 .product-image {
@@ -147,6 +196,13 @@ header p {
   justify-content: center;
   margin-bottom: 12px;
   font-size: 40px;
+  overflow: hidden;
+}
+
+.product-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .product h3 {
@@ -157,6 +213,19 @@ header p {
 .price {
   color: #ff6b00;
   font-weight: bold;
+}
+
+.product .loc {
+  font-size: 12px;
+  color: #999;
+  margin-top: 4px;
+}
+
+.empty-state {
+  grid-column: 1 / -1;
+  color: #999;
+  padding: 30px 10px;
+  font-size: 14px;
 }
 
 footer {
@@ -177,7 +246,7 @@ footer {
   }
 }
 
-/* --- Modals (auth + profile) --- */
+/* --- Modals --- */
 .modal-overlay {
   display: none;
   position: fixed;
@@ -186,6 +255,7 @@ footer {
   align-items: center;
   justify-content: center;
   z-index: 100;
+  padding: 20px;
 }
 
 .modal-overlay.show { display: flex; }
@@ -194,8 +264,10 @@ footer {
   background: white;
   border-radius: 12px;
   padding: 28px;
-  width: 90%;
-  max-width: 360px;
+  width: 100%;
+  max-width: 400px;
+  max-height: 88vh;
+  overflow-y: auto;
 }
 
 .modal h3 {
@@ -203,7 +275,7 @@ footer {
   font-size: 20px;
 }
 
-.modal input, .modal select {
+.modal input, .modal select, .modal textarea {
   width: 100%;
   padding: 11px 12px;
   margin-bottom: 12px;
@@ -212,6 +284,11 @@ footer {
   font-size: 14px;
   font-family: inherit;
   background: white;
+}
+
+.modal textarea {
+  min-height: 70px;
+  resize: vertical;
 }
 
 .modal label {
@@ -259,6 +336,43 @@ footer {
   margin-bottom: 10px;
   display: none;
 }
+
+.detail-image {
+  width: 100%;
+  height: 200px;
+  border-radius: 10px;
+  background: #eee;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 60px;
+  overflow: hidden;
+  margin-bottom: 14px;
+}
+
+.detail-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.detail-tag {
+  display: inline-block;
+  background: #f7f7f7;
+  border: 1px solid #ddd;
+  color: #666;
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  margin: 0 6px 8px 0;
+}
+
+.detail-desc {
+  font-size: 14.5px;
+  line-height: 1.6;
+  color: #444;
+  margin: 12px 0 18px;
+}
 </style>
 </head>
 <body>
@@ -273,47 +387,43 @@ footer {
 
 <section class="hero">
   <h2>Everything You Need, All in One Place</h2>
-  <p>Discover great products from sellers you can trust.</p>
+  <p>Discover great products from sellers you can trust — across Imo, Anambra, Abia & Lagos.</p>
   <a href="#products" class="button">Shop Now</a>
 </section>
 
 <section class="categories">
   <h2>Shop by Category</h2>
-  <div class="category-list">
-    <div class="category">📱 Electronics</div>
-    <div class="category">👕 Fashion</div>
-    <div class="category">🏠 Home & Living</div>
-    <div class="category">💄 Beauty</div>
+  <div class="category-list" id="categoryList">
+    <div class="category" data-cat="all">🛍️ All</div>
+    <div class="category" data-cat="electronics">📱 Electronics</div>
+    <div class="category" data-cat="fashion">👕 Fashion</div>
+    <div class="category" data-cat="home">🏠 Home & Living</div>
+    <div class="category" data-cat="beauty">💄 Beauty</div>
   </div>
 </section>
 
 <section class="products" id="products">
-  <h2>Featured Products</h2>
-  <div class="product-grid">
-    <div class="product">
-      <div class="product-image">📱</div>
-      <h3>Smartphone</h3>
-      <p class="price">₦150,000</p>
-    </div>
-    <div class="product">
-      <div class="product-image">👟</div>
-      <h3>Fashion Sneakers</h3>
-      <p class="price">₦35,000</p>
-    </div>
-    <div class="product">
-      <div class="product-image">🎧</div>
-      <h3>Wireless Headphones</h3>
-      <p class="price">₦25,000</p>
-    </div>
-    <div class="product">
-      <div class="product-image">⌚</div>
-      <h3>Smart Watch</h3>
-      <p class="price">₦45,000</p>
-    </div>
+  <h2>Listings</h2>
+  <div class="filter-row" id="stateFilters">
+    <div class="filter-chip active" data-state="all">All states</div>
+    <div class="filter-chip" data-state="Imo">Imo</div>
+    <div class="filter-chip" data-state="Anambra">Anambra</div>
+    <div class="filter-chip" data-state="Abia">Abia</div>
+    <div class="filter-chip" data-state="Lagos">Lagos</div>
+    <div class="filter-chip" data-state="Rivers">Rivers</div>
+    <div class="filter-chip" data-state="Abuja">Abuja</div>
+    <div class="filter-chip" data-state="Enugu">Enugu</div>
+    <div class="filter-chip" data-state="Cross River">Cross River</div>
+    <div class="filter-chip" data-state="Ebonyi">Ebonyi</div>
+  </div>
+  <div class="product-grid" id="productGrid">
+    <div class="empty-state">Loading listings...</div>
   </div>
 </section>
 
 <footer>© 2026 BuyQora. All rights reserved.</footer>
+
+<button class="sell-fab" id="sellFab" onclick="openSell()" style="display:none;">+ Sell an item</button>
 
 <!-- Auth modal -->
 <div class="modal-overlay" id="authOverlay">
@@ -352,33 +462,95 @@ footer {
       <option value="Anambra">Anambra</option>
       <option value="Abia">Abia</option>
       <option value="Lagos">Lagos</option>
+      <option value="Rivers">Rivers</option>
+      <option value="Abuja">Abuja</option>
+      <option value="Enugu">Enugu</option>
+      <option value="Cross River">Cross River</option>
+      <option value="Ebonyi">Ebonyi</option>
     </select>
 
     <button class="button" onclick="saveProfile()">Save profile</button>
   </div>
 </div>
 
+<!-- Sell modal -->
+<div class="modal-overlay" id="sellOverlay">
+  <div class="modal">
+    <span class="close" onclick="closeSell()">✕</span>
+    <h3>Post an item</h3>
+    <p class="error" id="sellError"></p>
+    <p class="success" id="sellSuccess"></p>
+
+    <label>What are you selling?</label>
+    <input type="text" id="sellTitle" placeholder="e.g. Samsung A14, fairly used">
+
+    <label>Price (₦)</label>
+    <input type="text" id="sellPrice" placeholder="e.g. 85000">
+
+    <label>Category</label>
+    <select id="sellCategory">
+      <option value="electronics">Electronics</option>
+      <option value="fashion">Fashion</option>
+      <option value="home">Home & Living</option>
+      <option value="beauty">Beauty</option>
+    </select>
+
+    <label>State</label>
+    <select id="sellState">
+      <option value="Imo">Imo</option>
+      <option value="Anambra">Anambra</option>
+      <option value="Abia">Abia</option>
+      <option value="Lagos">Lagos</option>
+      <option value="Rivers">Rivers</option>
+      <option value="Abuja">Abuja</option>
+      <option value="Enugu">Enugu</option>
+      <option value="Cross River">Cross River</option>
+      <option value="Ebonyi">Ebonyi</option>
+    </select>
+
+    <label>Description</label>
+    <textarea id="sellDesc" placeholder="Condition, pickup location, anything a buyer should know"></textarea>
+
+    <label>Photo (optional)</label>
+    <input type="file" id="sellImage" accept="image/*">
+
+    <button class="button" onclick="submitListing()" id="sellSubmitBtn">Post listing</button>
+  </div>
+</div>
+
+<!-- Listing detail modal -->
+<div class="modal-overlay" id="detailOverlay">
+  <div class="modal">
+    <span class="close" onclick="closeDetail()">✕</span>
+    <div id="detailContent"></div>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="./config.js"></script>
 <script>
-let authMode = "login";
+const CATEGORY_ICONS = { electronics: "📱", fashion: "👕", home: "🏠", beauty: "💄" };
+const CATEGORY_LABELS = { electronics: "Electronics", fashion: "Fashion", home: "Home & Living", beauty: "Beauty" };
 
+let authMode = "login";
+let activeCategory = "all";
+let activeState = "all";
+let currentListings = [];
+
+/* ---------- AUTH ---------- */
 function openAuth(mode){
   authMode = mode;
   updateAuthUI();
   document.getElementById('authOverlay').classList.add('show');
 }
-
 function closeAuth(){
   document.getElementById('authOverlay').classList.remove('show');
   document.getElementById('authError').style.display = 'none';
 }
-
 function toggleAuthMode(){
   authMode = authMode === "login" ? "signup" : "login";
   updateAuthUI();
 }
-
 function updateAuthUI(){
   const isSignup = authMode === "signup";
   document.getElementById('authTitle').textContent = isSignup ? "Create your account" : "Log in";
@@ -389,19 +561,16 @@ function updateAuthUI(){
     : "Don't have an account? <a onclick=\"toggleAuthMode()\">Sign up</a>";
   document.getElementById('authError').style.display = 'none';
 }
-
 async function submitAuth(){
   const email = document.getElementById('authEmail').value.trim();
   const password = document.getElementById('authPassword').value;
   const errorEl = document.getElementById('authError');
   errorEl.style.display = 'none';
-
   if(!email || !password){
     errorEl.textContent = "Enter both email and password.";
     errorEl.style.display = 'block';
     return;
   }
-
   if(authMode === "signup"){
     const fullName = document.getElementById('authName').value.trim();
     const { error } = await supabaseClient.auth.signUp({
@@ -419,15 +588,14 @@ async function submitAuth(){
     refreshAccountBar();
   }
 }
-
 async function logout(){
   await supabaseClient.auth.signOut();
   refreshAccountBar();
 }
-
 async function refreshAccountBar(){
   const { data: { session } } = await supabaseClient.auth.getSession();
   const bar = document.getElementById('accountBar');
+  const fab = document.getElementById('sellFab');
   if(session){
     const { data: profile } = await supabaseClient
       .from('profiles')
@@ -436,58 +604,135 @@ async function refreshAccountBar(){
       .single();
     const name = profile?.full_name || session.user.email;
     bar.innerHTML = `<button class="name-btn" onclick="openProfile()">Hi, ${name}</button><button onclick="logout()">Log out</button>`;
+    fab.style.display = 'block';
   } else {
     bar.innerHTML = `<button onclick="openAuth('login')">Sign up / Log in</button>`;
+    fab.style.display = 'none';
   }
 }
 
+/* ---------- PROFILE ---------- */
 async function openProfile(){
   const { data: { session } } = await supabaseClient.auth.getSession();
   if(!session) return;
-
   document.getElementById('profileError').style.display = 'none';
   document.getElementById('profileSuccess').style.display = 'none';
-
   const { data: profile } = await supabaseClient
     .from('profiles')
     .select('full_name, phone, state')
     .eq('id', session.user.id)
     .single();
-
   document.getElementById('profileName').value = profile?.full_name || "";
   document.getElementById('profilePhone').value = profile?.phone || "";
   document.getElementById('profileState').value = profile?.state || "";
-
   document.getElementById('profileOverlay').classList.add('show');
 }
-
 function closeProfile(){
   document.getElementById('profileOverlay').classList.remove('show');
 }
-
 async function saveProfile(){
   const { data: { session } } = await supabaseClient.auth.getSession();
   if(!session) return;
-
   const errorEl = document.getElementById('profileError');
   const successEl = document.getElementById('profileSuccess');
   errorEl.style.display = 'none';
   successEl.style.display = 'none';
-
   const full_name = document.getElementById('profileName').value.trim();
   const phone = document.getElementById('profilePhone').value.trim();
   const state = document.getElementById('profileState').value;
-
   if(!full_name){
     errorEl.textContent = "Enter your full name.";
     errorEl.style.display = 'block';
     return;
   }
-
   const { error } = await supabaseClient
     .from('profiles')
     .update({ full_name, phone, state })
     .eq('id', session.user.id);
+  if(error){
+    errorEl.textContent = error.message;
+    errorEl.style.display = 'block';
+    return;
+  }
+  successEl.textContent = "Profile saved!";
+  successEl.style.display = 'block';
+  refreshAccountBar();
+}
+
+/* ---------- SELL / LISTINGS ---------- */
+function openSell(){
+  document.getElementById('sellError').style.display = 'none';
+  document.getElementById('sellSuccess').style.display = 'none';
+  document.getElementById('sellOverlay').classList.add('show');
+}
+function closeSell(){
+  document.getElementById('sellOverlay').classList.remove('show');
+}
+
+async function submitListing(){
+  const { data: { session } } = await supabaseClient.auth.getSession();
+  if(!session){ alert("Please log in first."); return; }
+
+  const errorEl = document.getElementById('sellError');
+  const successEl = document.getElementById('sellSuccess');
+  errorEl.style.display = 'none';
+  successEl.style.display = 'none';
+
+  const title = document.getElementById('sellTitle').value.trim();
+  const priceRaw = document.getElementById('sellPrice').value.trim();
+  const category_id = document.getElementById('sellCategory').value;
+  const state = document.getElementById('sellState').value;
+  const description = document.getElementById('sellDesc').value.trim();
+  const fileInput = document.getElementById('sellImage');
+  const file = fileInput.files[0];
+
+  const price = parseFloat(priceRaw.replace(/[^0-9.]/g, ''));
+
+  if(!title || !priceRaw || isNaN(price)){
+    errorEl.textContent = "Add a title and a valid price.";
+    errorEl.style.display = 'block';
+    return;
+  }
+
+  const submitBtn = document.getElementById('sellSubmitBtn');
+  submitBtn.disabled = true;
+  submitBtn.textContent = "Posting...";
+
+  let image_url = null;
+
+  if(file){
+    const fileExt = file.name.split('.').pop();
+    const filePath = `${session.user.id}/${Date.now()}.${fileExt}`;
+    const { error: uploadError } = await supabaseClient
+      .storage
+      .from('listing-images')
+      .upload(filePath, file);
+
+    if(uploadError){
+      errorEl.textContent = "Image upload failed: " + uploadError.message;
+      errorEl.style.display = 'block';
+      submitBtn.disabled = false;
+      submitBtn.textContent = "Post listing";
+      return;
+    }
+
+    const { data: publicUrlData } = supabaseClient
+      .storage
+      .from('listing-images')
+      .getPublicUrl(filePath);
+    image_url = publicUrlData.publicUrl;
+  }
+
+  const { error } = await supabaseClient
+    .from('listings')
+    .insert({
+      seller_id: session.user.id,
+      title, description, price,
+      category_id, state, image_url
+    });
+
+  submitBtn.disabled = false;
+  submitBtn.textContent = "Post listing";
 
   if(error){
     errorEl.textContent = error.message;
@@ -495,12 +740,100 @@ async function saveProfile(){
     return;
   }
 
-  successEl.textContent = "Profile saved!";
+  successEl.textContent = "Listing posted!";
   successEl.style.display = 'block';
-  refreshAccountBar();
+  document.getElementById('sellTitle').value = '';
+  document.getElementById('sellPrice').value = '';
+  document.getElementById('sellDesc').value = '';
+  fileInput.value = '';
+
+  loadListings();
+  setTimeout(closeSell, 1200);
 }
 
+async function loadListings(){
+  const grid = document.getElementById('productGrid');
+  let query = supabaseClient
+    .from('listings')
+    .select('*')
+    .eq('status', 'active')
+    .order('created_at', { ascending: false });
+
+  const { data, error } = await query;
+
+  if(error){
+    grid.innerHTML = `<div class="empty-state">Couldn't load listings: ${error.message}</div>`;
+    return;
+  }
+
+  currentListings = data || [];
+  renderListings();
+}
+
+function renderListings(){
+  const grid = document.getElementById('productGrid');
+  const filtered = currentListings.filter(l =>
+    (activeCategory === "all" || l.category_id === activeCategory) &&
+    (activeState === "all" || l.state === activeState)
+  );
+
+  if(filtered.length === 0){
+    grid.innerHTML = `<div class="empty-state">No listings yet for this filter. Be the first to post one!</div>`;
+    return;
+  }
+
+  grid.innerHTML = filtered.map(l => `
+    <div class="product" onclick='openDetail(${JSON.stringify(l).replace(/'/g, "&#39;")})'>
+      <div class="product-image">
+        ${l.image_url ? `<img src="${l.image_url}" alt="">` : (CATEGORY_ICONS[l.category_id] || "🛍️")}
+      </div>
+      <h3>${l.title}</h3>
+      <p class="price">₦${Number(l.price).toLocaleString()}</p>
+      <p class="loc">📍 ${l.state}</p>
+    </div>
+  `).join('');
+}
+
+function openDetail(listing){
+  document.getElementById('detailContent').innerHTML = `
+    <div class="detail-image">
+      ${listing.image_url ? `<img src="${listing.image_url}" alt="">` : (CATEGORY_ICONS[listing.category_id] || "🛍️")}
+    </div>
+    <h3>${listing.title}</h3>
+    <p class="price" style="font-size:18px; margin:6px 0 10px;">₦${Number(listing.price).toLocaleString()}</p>
+    <span class="detail-tag">📍 ${listing.state}</span>
+    <span class="detail-tag">${CATEGORY_LABELS[listing.category_id] || listing.category_id}</span>
+    <p class="detail-desc">${listing.description || "No description provided."}</p>
+    <button class="button" onclick="alert('Buyer-seller messaging is coming in a future step.')">Contact seller</button>
+  `;
+  document.getElementById('detailOverlay').classList.add('show');
+}
+function closeDetail(){
+  document.getElementById('detailOverlay').classList.remove('show');
+}
+
+/* ---------- FILTERS ---------- */
+document.getElementById('categoryList').addEventListener('click', (e) => {
+  const card = e.target.closest('.category');
+  if(!card) return;
+  activeCategory = card.dataset.cat;
+  document.querySelectorAll('.category').forEach(c => c.classList.remove('active'));
+  card.classList.add('active');
+  renderListings();
+});
+
+document.getElementById('stateFilters').addEventListener('click', (e) => {
+  const chip = e.target.closest('.filter-chip');
+  if(!chip) return;
+  activeState = chip.dataset.state;
+  document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+  chip.classList.add('active');
+  renderListings();
+});
+
+/* ---------- INIT ---------- */
 refreshAccountBar();
+loadListings();
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
