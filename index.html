@@ -394,6 +394,7 @@ footer {
 }
 
 .detail-image {
+  position: relative;
   width: 100%;
   height: 200px;
   border-radius: 10px;
@@ -623,6 +624,30 @@ footer {
   </div>
 </div>
 
+<!-- Admin reports list modal -->
+<div class="modal-overlay" id="adminOverlay">
+  <div class="modal" style="max-width:650px;">
+    <span class="close" onclick="closeAdmin()">✕</span>
+    <h3>Admin — Reports</h3>
+    <div class="filter-row" id="adminStatusFilters" style="justify-content:flex-start;">
+      <div class="filter-chip active" data-status="all">All</div>
+      <div class="filter-chip" data-status="open">Open</div>
+      <div class="filter-chip" data-status="reviewing">Reviewing</div>
+      <div class="filter-chip" data-status="resolved">Resolved</div>
+      <div class="filter-chip" data-status="dismissed">Dismissed</div>
+    </div>
+    <div id="adminReportsList"><p style="color:#999; font-size:14px;">Loading...</p></div>
+  </div>
+</div>
+
+<!-- Admin report detail modal -->
+<div class="modal-overlay" id="adminDetailOverlay">
+  <div class="modal">
+    <span class="close" onclick="closeAdminDetail()">✕</span>
+    <div id="adminDetailContent"></div>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="./config.js"></script>
 <script>
@@ -653,6 +678,7 @@ let activeState = "all";
 let currentListings = [];
 let currentFavorites = new Set();
 let currentFilteredListings = [];
+let isAdmin = false;
 
 /* ---------- AUTH ---------- */
 function openAuth(mode){
@@ -716,16 +742,18 @@ async function refreshAccountBar(){
   if(session){
     const { data: profile } = await supabaseClient
       .from('profiles')
-      .select('full_name')
+      .select('full_name, is_admin')
       .eq('id', session.user.id)
       .single();
     const name = profile?.full_name || session.user.email;
-    bar.innerHTML = `<button class="name-btn" onclick="openProfile()">Hi, ${name}</button><button onclick="openFavorites()">♥ Favorites</button><button onclick="openNotifications()">🔔<span id="notifBadge" class="badge"></span></button><button onclick="openInbox()">Messages</button><button onclick="logout()">Log out</button>`;
+    isAdmin = !!profile?.is_admin;
+    bar.innerHTML = `<button class="name-btn" onclick="openProfile()">Hi, ${name}</button><button onclick="openFavorites()">♥ Favorites</button><button onclick="openNotifications()">🔔<span id="notifBadge" class="badge"></span></button><button onclick="openInbox()">Messages</button>${isAdmin ? '<button onclick="openAdmin()">🛡️ Admin</button>' : ''}<button onclick="logout()">Log out</button>`;
     fab.style.display = 'block';
     await loadFavorites();
     await refreshNotifBadge();
     renderListings();
   } else {
+    isAdmin = false;
     bar.innerHTML = `<button onclick="openAuth('login')">Sign up / Log in</button>`;
     fab.style.display = 'none';
     currentFavorites = new Set();
@@ -1234,6 +1262,144 @@ async function submitReport(){
   successEl.style.display = 'block';
   btn.textContent = "Submitted";
   setTimeout(closeReport, 1400);
+}
+
+/* ---------- ADMIN ---------- */
+let adminReports = [];
+let adminStatusFilter = 'all';
+let currentAdminReport = null;
+
+async function openAdmin(){
+  document.getElementById('adminOverlay').classList.add('show');
+  await loadAdminReports();
+}
+function closeAdmin(){
+  document.getElementById('adminOverlay').classList.remove('show');
+}
+
+async function loadAdminReports(){
+  const list = document.getElementById('adminReportsList');
+  list.innerHTML = `<p style="color:#999; font-size:14px;">Loading...</p>`;
+
+  const { data, error } = await supabaseClient
+    .from('reports')
+    .select('*, listings(title)')
+    .order('created_at', { ascending: false });
+
+  if(error){
+    list.innerHTML = `<p style="color:#c0392b; font-size:13px;">${error.message}</p>`;
+    return;
+  }
+
+  for(const r of (data || [])){
+    r.reporterName = await getProfileName(r.reporter_id);
+    r.reportedName = r.reported_user_id ? await getProfileName(r.reported_user_id) : null;
+  }
+
+  adminReports = data || [];
+  renderAdminReports();
+}
+
+function renderAdminReports(){
+  const list = document.getElementById('adminReportsList');
+  const filtered = adminStatusFilter === 'all'
+    ? adminReports
+    : adminReports.filter(r => r.status === adminStatusFilter);
+
+  if(filtered.length === 0){
+    list.innerHTML = `<div class="empty-state">No reports in this view.</div>`;
+    return;
+  }
+
+  list.innerHTML = filtered.map((r) => `
+    <div class="admin-report-row" data-id="${r.id}" style="padding:12px 0; border-bottom:1px solid #eee; cursor:pointer;">
+      <div style="font-weight:bold; font-size:14px;">${r.reason} — ${r.listings?.title || 'Listing'}</div>
+      <div style="color:#777; font-size:13px; margin-top:2px;">Reported by ${r.reporterName}${r.reportedName ? ' about ' + r.reportedName : ''} · <span style="text-transform:capitalize;">${r.status}</span></div>
+    </div>
+  `).join('');
+}
+
+document.getElementById('adminStatusFilters').addEventListener('click', (e) => {
+  const chip = e.target.closest('.filter-chip');
+  if(!chip) return;
+  adminStatusFilter = chip.dataset.status;
+  document.querySelectorAll('#adminStatusFilters .filter-chip').forEach(c => c.classList.remove('active'));
+  chip.classList.add('active');
+  renderAdminReports();
+});
+
+document.getElementById('adminReportsList').addEventListener('click', (e) => {
+  const row = e.target.closest('.admin-report-row');
+  if(!row) return;
+  const report = adminReports.find(r => r.id === row.dataset.id);
+  if(report) openAdminDetail(report);
+});
+
+function openAdminDetail(report){
+  currentAdminReport = report;
+  document.getElementById('adminDetailContent').innerHTML = `
+    <h3>${report.reason}</h3>
+    <p style="color:#666; font-size:13.5px; margin-bottom:10px;">
+      Reported by ${report.reporterName}${report.reportedName ? ' about ' + report.reportedName : ''}${report.listings?.title ? ' — listing: ' + report.listings.title : ''}
+    </p>
+    <p class="detail-desc">${report.description || 'No extra details provided.'}</p>
+    <label>Admin notes</label>
+    <textarea id="adminNotesInput">${report.admin_notes || ''}</textarea>
+    <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px;">
+      <button class="button" style="width:auto; background:#999;" onclick="updateReportStatus('reviewing')">Mark reviewing</button>
+      <button class="button" style="width:auto; background:#2e7d32;" onclick="updateReportStatus('resolved')">Mark resolved</button>
+      <button class="button" style="width:auto; background:#c0392b;" onclick="updateReportStatus('dismissed')">Dismiss</button>
+    </div>
+    ${report.listing_id ? `<button class="button" style="background:#c0392b;" onclick="adminRemoveListing()">Remove reported listing</button>` : ''}
+    ${report.reported_user_id ? `<button class="button" style="background:#111; margin-top:8px;" onclick="adminBanUser()">Ban reported user</button>` : ''}
+  `;
+  document.getElementById('adminDetailOverlay').classList.add('show');
+}
+function closeAdminDetail(){
+  document.getElementById('adminDetailOverlay').classList.remove('show');
+}
+
+async function updateReportStatus(status){
+  if(!currentAdminReport) return;
+  const notes = document.getElementById('adminNotesInput').value.trim();
+  const updates = { status, admin_notes: notes };
+  if(status === 'resolved' || status === 'dismissed'){
+    updates.resolved_at = new Date().toISOString();
+  }
+  const { error } = await supabaseClient
+    .from('reports')
+    .update(updates)
+    .eq('id', currentAdminReport.id);
+  if(error){ alert("Couldn't update report: " + error.message); return; }
+  closeAdminDetail();
+  loadAdminReports();
+}
+
+async function adminRemoveListing(){
+  if(!currentAdminReport?.listing_id) return;
+  if(!confirm("Remove this listing from the marketplace?")) return;
+  const { error } = await supabaseClient
+    .from('listings')
+    .update({ status: 'removed' })
+    .eq('id', currentAdminReport.listing_id);
+  if(error){ alert("Couldn't remove listing: " + error.message); return; }
+  alert("Listing removed.");
+}
+
+async function adminBanUser(){
+  if(!currentAdminReport?.reported_user_id) return;
+  if(!confirm("Ban this user? They will no longer be able to post listings or send messages, and their active listings will be removed.")) return;
+  const uid = currentAdminReport.reported_user_id;
+  const { error: banError } = await supabaseClient
+    .from('profiles')
+    .update({ is_banned: true })
+    .eq('id', uid);
+  if(banError){ alert("Couldn't ban user: " + banError.message); return; }
+  await supabaseClient
+    .from('listings')
+    .update({ status: 'removed' })
+    .eq('seller_id', uid);
+  alert("User banned and their listings removed.");
 }
 
 /* ---------- MESSAGING ---------- */
