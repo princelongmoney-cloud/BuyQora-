@@ -404,18 +404,7 @@ footer {
 
 <section class="products" id="products">
   <h2>Listings</h2>
-  <div class="filter-row" id="stateFilters">
-    <div class="filter-chip active" data-state="all">All states</div>
-    <div class="filter-chip" data-state="Imo">Imo</div>
-    <div class="filter-chip" data-state="Anambra">Anambra</div>
-    <div class="filter-chip" data-state="Abia">Abia</div>
-    <div class="filter-chip" data-state="Lagos">Lagos</div>
-    <div class="filter-chip" data-state="Rivers">Rivers</div>
-    <div class="filter-chip" data-state="Abuja">Abuja</div>
-    <div class="filter-chip" data-state="Enugu">Enugu</div>
-    <div class="filter-chip" data-state="Cross River">Cross River</div>
-    <div class="filter-chip" data-state="Ebonyi">Ebonyi</div>
-  </div>
+  <div class="filter-row" id="stateFilters"></div>
   <div class="product-grid" id="productGrid">
     <div class="empty-state">Loading listings...</div>
   </div>
@@ -456,18 +445,7 @@ footer {
     <input type="text" id="profilePhone" placeholder="e.g. 08012345678">
 
     <label>State</label>
-    <select id="profileState">
-      <option value="">Select your state</option>
-      <option value="Imo">Imo</option>
-      <option value="Anambra">Anambra</option>
-      <option value="Abia">Abia</option>
-      <option value="Lagos">Lagos</option>
-      <option value="Rivers">Rivers</option>
-      <option value="Abuja">Abuja</option>
-      <option value="Enugu">Enugu</option>
-      <option value="Cross River">Cross River</option>
-      <option value="Ebonyi">Ebonyi</option>
-    </select>
+    <select id="profileState"></select>
 
     <button class="button" onclick="saveProfile()">Save profile</button>
   </div>
@@ -496,17 +474,7 @@ footer {
     </select>
 
     <label>State</label>
-    <select id="sellState">
-      <option value="Imo">Imo</option>
-      <option value="Anambra">Anambra</option>
-      <option value="Abia">Abia</option>
-      <option value="Lagos">Lagos</option>
-      <option value="Rivers">Rivers</option>
-      <option value="Abuja">Abuja</option>
-      <option value="Enugu">Enugu</option>
-      <option value="Cross River">Cross River</option>
-      <option value="Ebonyi">Ebonyi</option>
-    </select>
+    <select id="sellState"></select>
 
     <label>Description</label>
     <textarea id="sellDesc" placeholder="Condition, pickup location, anything a buyer should know"></textarea>
@@ -526,11 +494,51 @@ footer {
   </div>
 </div>
 
+<!-- Inbox modal -->
+<div class="modal-overlay" id="inboxOverlay">
+  <div class="modal">
+    <span class="close" onclick="closeInbox()">✕</span>
+    <h3>Messages</h3>
+    <div id="inboxList"><p style="color:#999; font-size:14px;">Loading...</p></div>
+  </div>
+</div>
+
+<!-- Chat modal -->
+<div class="modal-overlay" id="chatOverlay">
+  <div class="modal" style="display:flex; flex-direction:column; max-height:80vh;">
+    <span class="close" onclick="closeChat()">✕</span>
+    <h3 id="chatTitle">Chat</h3>
+    <div id="chatMessages" style="flex:1; overflow-y:auto; margin-bottom:12px; display:flex; flex-direction:column; gap:8px; min-height:150px;"></div>
+    <div style="display:flex; gap:8px;">
+      <input type="text" id="chatInput" placeholder="Type a message..." style="flex:1; margin-bottom:0;">
+      <button class="button" style="width:auto; padding:11px 16px;" onclick="sendChatMessage()">Send</button>
+    </div>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="./config.js"></script>
 <script>
 const CATEGORY_ICONS = { electronics: "📱", fashion: "👕", home: "🏠", beauty: "💄" };
 const CATEGORY_LABELS = { electronics: "Electronics", fashion: "Fashion", home: "Home & Living", beauty: "Beauty" };
+
+// Single source of truth for every state list in the app
+const BUYQORA_STATES = [
+  "Imo","Anambra","Abia","Lagos","Rivers","Abuja","Enugu","Akwa Ibom","Cross River","Ebonyi",
+  "Kano","Oyo","Kaduna","Katsina","Ogun","Delta","Edo","Benue","Plateau","Kwara","Osun","Ondo"
+];
+
+function buildStateOptions(selectEl, includeBlank){
+  selectEl.innerHTML =
+    (includeBlank ? '<option value="">Select your state</option>' : '') +
+    BUYQORA_STATES.map(s => `<option value="${s}">${s}</option>`).join('');
+}
+
+function buildStateFilterChips(){
+  const row = document.getElementById('stateFilters');
+  row.innerHTML = '<div class="filter-chip active" data-state="all">All states</div>' +
+    BUYQORA_STATES.map(s => `<div class="filter-chip" data-state="${s}">${s}</div>`).join('');
+}
 
 let authMode = "login";
 let activeCategory = "all";
@@ -603,7 +611,7 @@ async function refreshAccountBar(){
       .eq('id', session.user.id)
       .single();
     const name = profile?.full_name || session.user.email;
-    bar.innerHTML = `<button class="name-btn" onclick="openProfile()">Hi, ${name}</button><button onclick="logout()">Log out</button>`;
+    bar.innerHTML = `<button class="name-btn" onclick="openProfile()">Hi, ${name}</button><button onclick="openInbox()">Messages</button><button onclick="logout()">Log out</button>`;
     fab.style.display = 'block';
   } else {
     bar.innerHTML = `<button onclick="openAuth('login')">Sign up / Log in</button>`;
@@ -615,6 +623,7 @@ async function refreshAccountBar(){
 async function openProfile(){
   const { data: { session } } = await supabaseClient.auth.getSession();
   if(!session) return;
+  buildStateOptions(document.getElementById('profileState'), true);
   document.getElementById('profileError').style.display = 'none';
   document.getElementById('profileSuccess').style.display = 'none';
   const { data: profile } = await supabaseClient
@@ -661,6 +670,7 @@ async function saveProfile(){
 
 /* ---------- SELL / LISTINGS ---------- */
 function openSell(){
+  buildStateOptions(document.getElementById('sellState'), false);
   document.getElementById('sellError').style.display = 'none';
   document.getElementById('sellSuccess').style.display = 'none';
   document.getElementById('sellOverlay').classList.add('show');
@@ -794,7 +804,10 @@ function renderListings(){
   `).join('');
 }
 
+let currentDetailListing = null;
+
 function openDetail(listing){
+  currentDetailListing = listing;
   document.getElementById('detailContent').innerHTML = `
     <div class="detail-image">
       ${listing.image_url ? `<img src="${listing.image_url}" alt="">` : (CATEGORY_ICONS[listing.category_id] || "🛍️")}
@@ -804,12 +817,177 @@ function openDetail(listing){
     <span class="detail-tag">📍 ${listing.state}</span>
     <span class="detail-tag">${CATEGORY_LABELS[listing.category_id] || listing.category_id}</span>
     <p class="detail-desc">${listing.description || "No description provided."}</p>
-    <button class="button" onclick="alert('Buyer-seller messaging is coming in a future step.')">Contact seller</button>
+    <button class="button" id="contactSellerBtn" onclick="contactSeller()">Contact seller</button>
   `;
   document.getElementById('detailOverlay').classList.add('show');
 }
 function closeDetail(){
   document.getElementById('detailOverlay').classList.remove('show');
+}
+
+/* ---------- MESSAGING ---------- */
+let currentChat = null; // { listingId, listingTitle, otherUserId }
+
+async function getProfileName(userId){
+  const { data } = await supabaseClient
+    .from('profiles')
+    .select('full_name')
+    .eq('id', userId)
+    .single();
+  return data?.full_name || "User";
+}
+
+async function contactSeller(){
+  const { data: { session } } = await supabaseClient.auth.getSession();
+  if(!session){ alert("Please log in first."); openAuth('login'); return; }
+  if(!currentDetailListing) return;
+
+  if(session.user.id === currentDetailListing.seller_id){
+    alert("This is your own listing — check your Messages inbox to see buyer inquiries.");
+    return;
+  }
+
+  closeDetail();
+  openChat(currentDetailListing.id, currentDetailListing.title, currentDetailListing.seller_id);
+}
+
+async function openChat(listingId, listingTitle, otherUserId){
+  currentChat = { listingId, listingTitle, otherUserId };
+  document.getElementById('chatTitle').textContent = `${listingTitle}`;
+  document.getElementById('chatMessages').innerHTML = `<p style="color:#999; font-size:13px;">Loading messages...</p>`;
+  document.getElementById('chatOverlay').classList.add('show');
+  await loadChatMessages();
+}
+
+function closeChat(){
+  document.getElementById('chatOverlay').classList.remove('show');
+  currentChat = null;
+}
+
+async function loadChatMessages(){
+  if(!currentChat) return;
+  const { data: { session } } = await supabaseClient.auth.getSession();
+  if(!session) return;
+
+  const { data, error } = await supabaseClient
+    .from('messages')
+    .select('*')
+    .eq('listing_id', currentChat.listingId)
+    .or(`and(sender_id.eq.${session.user.id},recipient_id.eq.${currentChat.otherUserId}),and(sender_id.eq.${currentChat.otherUserId},recipient_id.eq.${session.user.id})`)
+    .order('created_at', { ascending: true });
+
+  const box = document.getElementById('chatMessages');
+
+  if(error){
+    box.innerHTML = `<p style="color:#c0392b; font-size:13px;">${error.message}</p>`;
+    return;
+  }
+
+  if(!data || data.length === 0){
+    box.innerHTML = `<p style="color:#999; font-size:13px;">No messages yet. Say hello!</p>`;
+  } else {
+    box.innerHTML = data.map(m => {
+      const mine = m.sender_id === session.user.id;
+      return `<div style="align-self:${mine ? 'flex-end' : 'flex-start'}; background:${mine ? '#ff6b00' : '#f0f0f0'}; color:${mine ? 'white' : '#222'}; padding:8px 12px; border-radius:12px; max-width:80%; font-size:14px;">${m.body}</div>`;
+    }).join('');
+    box.scrollTop = box.scrollHeight;
+  }
+
+  // Mark unread messages (sent to me) as read
+  const unreadIds = (data || [])
+    .filter(m => m.recipient_id === session.user.id && !m.read)
+    .map(m => m.id);
+  if(unreadIds.length > 0){
+    await supabaseClient.from('messages').update({ read: true }).in('id', unreadIds);
+  }
+}
+
+async function sendChatMessage(){
+  if(!currentChat) return;
+  const { data: { session } } = await supabaseClient.auth.getSession();
+  if(!session) return;
+
+  const input = document.getElementById('chatInput');
+  const body = input.value.trim();
+  if(!body) return;
+
+  const { error } = await supabaseClient
+    .from('messages')
+    .insert({
+      listing_id: currentChat.listingId,
+      sender_id: session.user.id,
+      recipient_id: currentChat.otherUserId,
+      body
+    });
+
+  if(error){
+    alert("Couldn't send message: " + error.message);
+    return;
+  }
+
+  input.value = '';
+  await loadChatMessages();
+}
+
+async function openInbox(){
+  document.getElementById('inboxList').innerHTML = `<p style="color:#999; font-size:14px;">Loading...</p>`;
+  document.getElementById('inboxOverlay').classList.add('show');
+
+  const { data: { session } } = await supabaseClient.auth.getSession();
+  if(!session) return;
+
+  const { data, error } = await supabaseClient
+    .from('messages')
+    .select('*, listings(title)')
+    .or(`sender_id.eq.${session.user.id},recipient_id.eq.${session.user.id}`)
+    .order('created_at', { ascending: false });
+
+  const list = document.getElementById('inboxList');
+
+  if(error){
+    list.innerHTML = `<p style="color:#c0392b; font-size:13px;">${error.message}</p>`;
+    return;
+  }
+
+  if(!data || data.length === 0){
+    list.innerHTML = `<p style="color:#999; font-size:14px;">No conversations yet.</p>`;
+    return;
+  }
+
+  // Group by listing_id + other party, keep the latest message per conversation
+  const conversations = {};
+  for(const m of data){
+    const otherId = m.sender_id === session.user.id ? m.recipient_id : m.sender_id;
+    const key = `${m.listing_id}::${otherId}`;
+    if(!conversations[key]){
+      conversations[key] = {
+        listingId: m.listing_id,
+        listingTitle: m.listings?.title || "Listing",
+        otherId,
+        lastBody: m.body,
+        lastTime: m.created_at
+      };
+    }
+  }
+
+  const convoArray = Object.values(conversations);
+
+  // Fetch names for all other parties
+  for(const c of convoArray){
+    c.otherName = await getProfileName(c.otherId);
+  }
+
+  list.innerHTML = convoArray.map(c => `
+    <div onclick="closeInbox(); openChat('${c.listingId}', ${JSON.stringify(c.listingTitle)}, '${c.otherId}')"
+         style="padding:12px 0; border-bottom:1px solid #eee; cursor:pointer;">
+      <div style="font-weight:bold; font-size:14.5px;">${c.otherName} — ${c.listingTitle}</div>
+      <div style="color:#777; font-size:13px; margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${c.lastBody}</div>
+    </div>
+  `).join('');
+}
+
+function closeInbox(){
+  document.getElementById('inboxOverlay').classList.remove('show');
 }
 
 /* ---------- FILTERS ---------- */
@@ -832,6 +1010,7 @@ document.getElementById('stateFilters').addEventListener('click', (e) => {
 });
 
 /* ---------- INIT ---------- */
+buildStateFilterChips();
 refreshAccountBar();
 loadListings();
 
