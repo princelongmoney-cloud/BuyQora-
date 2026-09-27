@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -827,6 +828,7 @@ function closeDetail(){
 
 /* ---------- MESSAGING ---------- */
 let currentChat = null; // { listingId, listingTitle, otherUserId }
+let currentConversations = [];
 
 async function getProfileName(userId){
   const { data } = await supabaseClient
@@ -977,8 +979,10 @@ async function openInbox(){
     c.otherName = await getProfileName(c.otherId);
   }
 
-  list.innerHTML = convoArray.map(c => `
-    <div onclick="closeInbox(); openChat('${c.listingId}', ${JSON.stringify(c.listingTitle)}, '${c.otherId}')"
+  currentConversations = convoArray;
+
+  list.innerHTML = convoArray.map((c, idx) => `
+    <div class="inbox-row" data-idx="${idx}"
          style="padding:12px 0; border-bottom:1px solid #eee; cursor:pointer;">
       <div style="font-weight:bold; font-size:14.5px;">${c.otherName} — ${c.listingTitle}</div>
       <div style="color:#777; font-size:13px; margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${c.lastBody}</div>
@@ -989,6 +993,15 @@ async function openInbox(){
 function closeInbox(){
   document.getElementById('inboxOverlay').classList.remove('show');
 }
+
+document.getElementById('inboxList').addEventListener('click', (e) => {
+  const row = e.target.closest('.inbox-row');
+  if(!row) return;
+  const c = currentConversations[row.dataset.idx];
+  if(!c) return;
+  closeInbox();
+  openChat(c.listingId, c.listingTitle, c.otherId);
+});
 
 /* ---------- FILTERS ---------- */
 document.getElementById('categoryList').addEventListener('click', (e) => {
