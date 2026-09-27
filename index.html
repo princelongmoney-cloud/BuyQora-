@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -36,20 +35,24 @@ header p {
   position: absolute;
   top: 18px;
   right: 18px;
+  left: 18px;
   display: flex;
-  gap: 8px;
+  gap: 6px;
   align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
 }
 
 .account-bar button {
   background: #ff6b00;
   color: white;
   border: none;
-  padding: 8px 14px;
+  padding: 7px 10px;
   border-radius: 6px;
   font-weight: bold;
   cursor: pointer;
-  font-size: 13px;
+  font-size: 12.5px;
+  white-space: nowrap;
 }
 
 .account-bar .name-btn {
@@ -189,6 +192,7 @@ header p {
 }
 
 .product-image {
+  position: relative;
   height: 130px;
   background: #eee;
   border-radius: 8px;
@@ -198,6 +202,57 @@ header p {
   margin-bottom: 12px;
   font-size: 40px;
   overflow: hidden;
+}
+
+.fav-btn {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  background: rgba(255,255,255,0.9);
+  border: none;
+  border-radius: 999px;
+  width: 30px;
+  height: 30px;
+  font-size: 16px;
+  line-height: 1;
+  color: #ff6b00;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+  z-index: 5;
+}
+
+.detail-fav-btn {
+  width: 38px;
+  height: 38px;
+  font-size: 20px;
+}
+
+.badge {
+  display: none;
+  background: #c0392b;
+  color: white;
+  font-size: 10px;
+  font-weight: bold;
+  border-radius: 999px;
+  padding: 1px 5px;
+  margin-left: 3px;
+  vertical-align: top;
+}
+
+.notif-row.unread {
+  background: #fff7f0;
+}
+
+.report-btn {
+  width: 100%;
+  text-align: center;
+  background: white;
+  color: #c0392b;
+  border: 1px solid #c0392b;
+  margin-top: 8px;
 }
 
 .product-image img {
@@ -508,12 +563,63 @@ footer {
 <div class="modal-overlay" id="chatOverlay">
   <div class="modal" style="display:flex; flex-direction:column; max-height:80vh;">
     <span class="close" onclick="closeChat()">✕</span>
-    <h3 id="chatTitle">Chat</h3>
+    <h3 id="chatTitle" style="display:inline-block; margin-right:8px;">Chat</h3>
+    <button onclick="reportCurrentChatUser()" style="background:none; border:none; color:#c0392b; font-size:12.5px; cursor:pointer; float:right; margin-top:2px;">🚩 Report</button>
+    <div style="clear:both;"></div>
     <div id="chatMessages" style="flex:1; overflow-y:auto; margin-bottom:12px; display:flex; flex-direction:column; gap:8px; min-height:150px;"></div>
     <div style="display:flex; gap:8px;">
       <input type="text" id="chatInput" placeholder="Type a message..." style="flex:1; margin-bottom:0;">
       <button class="button" style="width:auto; padding:11px 16px;" onclick="sendChatMessage()">Send</button>
     </div>
+  </div>
+</div>
+
+<!-- Favorites modal -->
+<div class="modal-overlay" id="favoritesOverlay">
+  <div class="modal" style="max-width:600px;">
+    <span class="close" onclick="closeFavorites()">✕</span>
+    <h3>My Favorites</h3>
+    <div class="product-grid" id="favoritesList">
+      <div class="empty-state">Loading...</div>
+    </div>
+  </div>
+</div>
+
+<!-- Notifications modal -->
+<div class="modal-overlay" id="notifOverlay">
+  <div class="modal">
+    <span class="close" onclick="closeNotifications()">✕</span>
+    <h3>Notifications</h3>
+    <button class="button" style="width:auto; padding:7px 12px; font-size:12.5px; margin-bottom:14px;" onclick="markAllNotificationsRead()">Mark all as read</button>
+    <div id="notifList"><p style="color:#999; font-size:14px;">Loading...</p></div>
+  </div>
+</div>
+
+<!-- Report modal -->
+<div class="modal-overlay" id="reportOverlay">
+  <div class="modal">
+    <span class="close" onclick="closeReport()">✕</span>
+    <h3>Report</h3>
+    <p class="error" id="reportError"></p>
+    <p class="success" id="reportSuccess"></p>
+
+    <label>Reason</label>
+    <select id="reportReason">
+      <option value="Scam/Fraud">Scam/Fraud</option>
+      <option value="Fake Listing">Fake Listing</option>
+      <option value="Fake Account">Fake Account</option>
+      <option value="Wrong Information">Wrong Information</option>
+      <option value="Spam">Spam</option>
+      <option value="Harassment">Harassment</option>
+      <option value="Impersonation">Impersonation</option>
+      <option value="Prohibited Item">Prohibited Item</option>
+      <option value="Other">Other</option>
+    </select>
+
+    <label>Details (optional)</label>
+    <textarea id="reportDescription" placeholder="Add any extra detail that will help us review this."></textarea>
+
+    <button class="button" id="reportSubmitBtn" onclick="submitReport()">Submit report</button>
   </div>
 </div>
 
@@ -545,6 +651,8 @@ let authMode = "login";
 let activeCategory = "all";
 let activeState = "all";
 let currentListings = [];
+let currentFavorites = new Set();
+let currentFilteredListings = [];
 
 /* ---------- AUTH ---------- */
 function openAuth(mode){
@@ -612,11 +720,16 @@ async function refreshAccountBar(){
       .eq('id', session.user.id)
       .single();
     const name = profile?.full_name || session.user.email;
-    bar.innerHTML = `<button class="name-btn" onclick="openProfile()">Hi, ${name}</button><button onclick="openInbox()">Messages</button><button onclick="logout()">Log out</button>`;
+    bar.innerHTML = `<button class="name-btn" onclick="openProfile()">Hi, ${name}</button><button onclick="openFavorites()">♥ Favorites</button><button onclick="openNotifications()">🔔<span id="notifBadge" class="badge"></span></button><button onclick="openInbox()">Messages</button><button onclick="logout()">Log out</button>`;
     fab.style.display = 'block';
+    await loadFavorites();
+    await refreshNotifBadge();
+    renderListings();
   } else {
     bar.innerHTML = `<button onclick="openAuth('login')">Sign up / Log in</button>`;
     fab.style.display = 'none';
+    currentFavorites = new Set();
+    renderListings();
   }
 }
 
@@ -788,15 +901,18 @@ function renderListings(){
     (activeState === "all" || l.state === activeState)
   );
 
+  currentFilteredListings = filtered;
+
   if(filtered.length === 0){
     grid.innerHTML = `<div class="empty-state">No listings yet for this filter. Be the first to post one!</div>`;
     return;
   }
 
-  grid.innerHTML = filtered.map(l => `
-    <div class="product" onclick='openDetail(${JSON.stringify(l).replace(/'/g, "&#39;")})'>
+  grid.innerHTML = filtered.map((l, idx) => `
+    <div class="product" data-idx="${idx}">
       <div class="product-image">
         ${l.image_url ? `<img src="${l.image_url}" alt="">` : (CATEGORY_ICONS[l.category_id] || "🛍️")}
+        <button class="fav-btn" data-listing-id="${l.id}">${currentFavorites.has(l.id) ? '♥' : '♡'}</button>
       </div>
       <h3>${l.title}</h3>
       <p class="price">₦${Number(l.price).toLocaleString()}</p>
@@ -805,25 +921,319 @@ function renderListings(){
   `).join('');
 }
 
+document.getElementById('productGrid').addEventListener('click', (e) => {
+  const favBtn = e.target.closest('.fav-btn');
+  if(favBtn){
+    e.stopPropagation();
+    toggleFavorite(favBtn.dataset.listingId, favBtn);
+    return;
+  }
+  const card = e.target.closest('.product');
+  if(!card) return;
+  const listing = currentFilteredListings[card.dataset.idx];
+  if(listing) openDetail(listing);
+});
+
 let currentDetailListing = null;
 
-function openDetail(listing){
+async function openDetail(listing){
   currentDetailListing = listing;
+  const { data: { session } } = await supabaseClient.auth.getSession();
+  const isOwn = session && session.user.id === listing.seller_id;
+  const isFav = currentFavorites.has(listing.id);
+
   document.getElementById('detailContent').innerHTML = `
     <div class="detail-image">
       ${listing.image_url ? `<img src="${listing.image_url}" alt="">` : (CATEGORY_ICONS[listing.category_id] || "🛍️")}
+      <button class="fav-btn detail-fav-btn" id="detailFavBtn" data-listing-id="${listing.id}">${isFav ? '♥' : '♡'}</button>
     </div>
     <h3>${listing.title}</h3>
     <p class="price" style="font-size:18px; margin:6px 0 10px;">₦${Number(listing.price).toLocaleString()}</p>
     <span class="detail-tag">📍 ${listing.state}</span>
     <span class="detail-tag">${CATEGORY_LABELS[listing.category_id] || listing.category_id}</span>
+    ${listing.status && listing.status !== 'active' ? `<p style="color:#c0392b; font-weight:bold; margin:8px 0;">This listing is marked as ${listing.status}.</p>` : ''}
     <p class="detail-desc">${listing.description || "No description provided."}</p>
-    <button class="button" id="contactSellerBtn" onclick="contactSeller()">Contact seller</button>
+    ${isOwn ? `
+      <div style="display:flex; gap:8px;">
+        ${listing.status !== 'sold' ? `<button class="button" style="background:#2e7d32;" onclick="markListingStatus('sold')">Mark as sold</button>` : ''}
+        ${listing.status !== 'removed' ? `<button class="button" style="background:#999;" onclick="markListingStatus('removed')">Remove</button>` : ''}
+      </div>
+    ` : `
+      <button class="button" id="contactSellerBtn" onclick="contactSeller()">Contact seller</button>
+      <button class="report-btn button" onclick="openReport(currentDetailListing.id, currentDetailListing.seller_id)">🚩 Report this listing</button>
+    `}
   `;
+
+  document.getElementById('detailFavBtn').addEventListener('click', () => {
+    toggleFavorite(listing.id, document.getElementById('detailFavBtn'));
+  });
+
   document.getElementById('detailOverlay').classList.add('show');
 }
 function closeDetail(){
   document.getElementById('detailOverlay').classList.remove('show');
+}
+
+async function markListingStatus(status){
+  if(!currentDetailListing) return;
+  const { error } = await supabaseClient
+    .from('listings')
+    .update({ status })
+    .eq('id', currentDetailListing.id);
+  if(error){ alert("Couldn't update listing: " + error.message); return; }
+  currentDetailListing.status = status;
+  closeDetail();
+  loadListings();
+}
+
+/* ---------- FAVORITES ---------- */
+async function loadFavorites(){
+  currentFavorites = new Set();
+  const { data: { session } } = await supabaseClient.auth.getSession();
+  if(!session) return;
+  const { data, error } = await supabaseClient
+    .from('favorites')
+    .select('listing_id')
+    .eq('user_id', session.user.id);
+  if(!error && data){
+    currentFavorites = new Set(data.map(f => f.listing_id));
+  }
+}
+
+async function toggleFavorite(listingId, btnEl){
+  const { data: { session } } = await supabaseClient.auth.getSession();
+  if(!session){ alert("Please log in first."); openAuth('login'); return; }
+
+  const isFav = currentFavorites.has(listingId);
+
+  if(isFav){
+    const { error } = await supabaseClient
+      .from('favorites')
+      .delete()
+      .eq('user_id', session.user.id)
+      .eq('listing_id', listingId);
+    if(error){ alert("Couldn't remove favorite: " + error.message); return; }
+    currentFavorites.delete(listingId);
+  } else {
+    const { error } = await supabaseClient
+      .from('favorites')
+      .insert({ user_id: session.user.id, listing_id: listingId });
+    if(error){ alert("Couldn't save favorite: " + error.message); return; }
+    currentFavorites.add(listingId);
+  }
+
+  if(btnEl) btnEl.textContent = currentFavorites.has(listingId) ? '♥' : '♡';
+  renderListings();
+}
+
+let currentFavoriteListings = [];
+
+async function openFavorites(){
+  const box = document.getElementById('favoritesList');
+  box.innerHTML = `<div class="empty-state">Loading...</div>`;
+  document.getElementById('favoritesOverlay').classList.add('show');
+
+  const { data: { session } } = await supabaseClient.auth.getSession();
+  if(!session){ box.innerHTML = `<div class="empty-state">Please log in to see your favorites.</div>`; return; }
+
+  const { data, error } = await supabaseClient
+    .from('favorites')
+    .select('listing_id, listings(*)')
+    .eq('user_id', session.user.id)
+    .order('created_at', { ascending: false });
+
+  if(error){
+    box.innerHTML = `<div class="empty-state">${error.message}</div>`;
+    return;
+  }
+
+  const listings = (data || []).map(f => f.listings).filter(Boolean);
+  currentFavoriteListings = listings;
+
+  if(listings.length === 0){
+    box.innerHTML = `<div class="empty-state">No favorites yet. Tap the heart on any listing to save it here.</div>`;
+    return;
+  }
+
+  box.innerHTML = listings.map((l, idx) => `
+    <div class="product" data-idx="${idx}">
+      <div class="product-image">
+        ${l.image_url ? `<img src="${l.image_url}" alt="">` : (CATEGORY_ICONS[l.category_id] || "🛍️")}
+        <button class="fav-btn" data-listing-id="${l.id}">♥</button>
+      </div>
+      <h3>${l.title}</h3>
+      <p class="price">₦${Number(l.price).toLocaleString()}</p>
+      <p class="loc">📍 ${l.state}</p>
+    </div>
+  `).join('');
+}
+
+function closeFavorites(){
+  document.getElementById('favoritesOverlay').classList.remove('show');
+}
+
+document.getElementById('favoritesList').addEventListener('click', async (e) => {
+  const favBtn = e.target.closest('.fav-btn');
+  if(favBtn){
+    e.stopPropagation();
+    await toggleFavorite(favBtn.dataset.listingId, favBtn);
+    openFavorites();
+    return;
+  }
+  const card = e.target.closest('.product');
+  if(!card) return;
+  const listing = currentFavoriteListings[card.dataset.idx];
+  if(listing){ closeFavorites(); openDetail(listing); }
+});
+
+/* ---------- NOTIFICATIONS ---------- */
+let currentNotifications = [];
+
+async function refreshNotifBadge(){
+  const { data: { session } } = await supabaseClient.auth.getSession();
+  const badge = document.getElementById('notifBadge');
+  if(!badge) return;
+  if(!session){ badge.style.display = 'none'; return; }
+
+  const { count, error } = await supabaseClient
+    .from('notifications')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', session.user.id)
+    .is('read_at', null);
+
+  if(!error && count > 0){
+    badge.textContent = count > 9 ? '9+' : String(count);
+    badge.style.display = 'inline-block';
+  } else {
+    badge.style.display = 'none';
+  }
+}
+
+async function openNotifications(){
+  const list = document.getElementById('notifList');
+  list.innerHTML = `<p style="color:#999; font-size:14px;">Loading...</p>`;
+  document.getElementById('notifOverlay').classList.add('show');
+
+  const { data: { session } } = await supabaseClient.auth.getSession();
+  if(!session){ list.innerHTML = `<p style="color:#999; font-size:14px;">Please log in to see notifications.</p>`; return; }
+
+  const { data, error } = await supabaseClient
+    .from('notifications')
+    .select('*')
+    .eq('user_id', session.user.id)
+    .order('created_at', { ascending: false })
+    .limit(50);
+
+  if(error){
+    list.innerHTML = `<p style="color:#c0392b; font-size:13px;">${error.message}</p>`;
+    return;
+  }
+
+  currentNotifications = data || [];
+
+  if(currentNotifications.length === 0){
+    list.innerHTML = `<p style="color:#999; font-size:14px;">No notifications yet.</p>`;
+    return;
+  }
+
+  list.innerHTML = currentNotifications.map((n, idx) => `
+    <div class="notif-row ${n.read_at ? '' : 'unread'}" data-idx="${idx}" style="padding:12px 8px; border-bottom:1px solid #eee; cursor:pointer;">
+      <div style="font-weight:bold; font-size:14px;">${n.read_at ? '' : '🔴 '}${n.title}</div>
+      <div style="color:#666; font-size:13px; margin-top:2px;">${n.message || ''}</div>
+    </div>
+  `).join('');
+}
+
+function closeNotifications(){
+  document.getElementById('notifOverlay').classList.remove('show');
+}
+
+document.getElementById('notifList').addEventListener('click', async (e) => {
+  const row = e.target.closest('.notif-row');
+  if(!row) return;
+  const n = currentNotifications[row.dataset.idx];
+  if(!n || n.read_at) return;
+  await supabaseClient.from('notifications').update({ read_at: new Date().toISOString() }).eq('id', n.id);
+  n.read_at = new Date().toISOString();
+  refreshNotifBadge();
+  openNotifications();
+});
+
+async function markAllNotificationsRead(){
+  const { data: { session } } = await supabaseClient.auth.getSession();
+  if(!session) return;
+  await supabaseClient
+    .from('notifications')
+    .update({ read_at: new Date().toISOString() })
+    .eq('user_id', session.user.id)
+    .is('read_at', null);
+  openNotifications();
+  refreshNotifBadge();
+}
+
+/* ---------- REPORTS ---------- */
+let currentReportTarget = null; // { listingId, reportedUserId }
+
+function openReport(listingId, reportedUserId){
+  currentReportTarget = { listingId: listingId || null, reportedUserId: reportedUserId || null };
+  document.getElementById('reportError').style.display = 'none';
+  document.getElementById('reportSuccess').style.display = 'none';
+  document.getElementById('reportReason').value = 'Scam/Fraud';
+  document.getElementById('reportDescription').value = '';
+  const btn = document.getElementById('reportSubmitBtn');
+  btn.disabled = false;
+  btn.textContent = "Submit report";
+  document.getElementById('reportOverlay').classList.add('show');
+}
+
+function closeReport(){
+  document.getElementById('reportOverlay').classList.remove('show');
+}
+
+function reportCurrentChatUser(){
+  if(!currentChat) return;
+  openReport(currentChat.listingId, currentChat.otherUserId);
+}
+
+async function submitReport(){
+  const { data: { session } } = await supabaseClient.auth.getSession();
+  if(!session){ alert("Please log in first."); openAuth('login'); return; }
+  if(!currentReportTarget) return;
+
+  const errorEl = document.getElementById('reportError');
+  const successEl = document.getElementById('reportSuccess');
+  errorEl.style.display = 'none';
+  successEl.style.display = 'none';
+
+  const reason = document.getElementById('reportReason').value;
+  const description = document.getElementById('reportDescription').value.trim();
+
+  const btn = document.getElementById('reportSubmitBtn');
+  btn.disabled = true;
+  btn.textContent = "Submitting...";
+
+  const { error } = await supabaseClient
+    .from('reports')
+    .insert({
+      reporter_id: session.user.id,
+      listing_id: currentReportTarget.listingId,
+      reported_user_id: currentReportTarget.reportedUserId,
+      reason,
+      description
+    });
+
+  if(error){
+    errorEl.textContent = error.message;
+    errorEl.style.display = 'block';
+    btn.disabled = false;
+    btn.textContent = "Submit report";
+    return;
+  }
+
+  successEl.textContent = "Report submitted. Our team will review it.";
+  successEl.style.display = 'block';
+  btn.textContent = "Submitted";
+  setTimeout(closeReport, 1400);
 }
 
 /* ---------- MESSAGING ---------- */
