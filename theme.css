@@ -1,0 +1,39 @@
+/* BuyQora home theme: dark layout, orange accent. Add-on only; existing code untouched. */
+header,.hero,.categories,#stateFilters,.sell-fab,footer{display:none!important}
+body{background:#12161a;color:#eceff1;padding-bottom:84px;font-family:Roboto,"Segoe UI",Arial,sans-serif}
+#bq .bq-top{background:linear-gradient(#8a3300,#b34700);padding:14px 16px 18px}
+.bq-bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px}
+.bq-logo{font-size:22px;font-weight:800;letter-spacing:.3px;color:#fff}
+#bqBell{background:none;border:0;color:#fff;font-size:22px;position:relative;cursor:pointer;padding:4px 6px}
+.bq-badge{display:none;position:absolute;top:-4px;right:-2px;background:#e53935;color:#fff;font-size:11px;font-weight:700;border-radius:99px;padding:1px 6px}
+#bq h2{color:#fff;text-align:center;font-size:19px;font-weight:600;margin-bottom:14px}
+.bq-search{display:flex;gap:10px}
+.bq-search select,.bq-input{background:#12161a;color:#cfd8dc;border:0;border-radius:10px;height:46px;font-size:15px}
+.bq-search select{width:38%;padding:0 10px}
+.bq-input{flex:1;display:flex;align-items:center;padding-right:12px}
+.bq-input input{flex:1;min-width:0;height:100%;background:none;border:0;color:#eceff1;font-size:15px;padding:0 12px;outline:none}
+.bq-chips{display:flex;flex-wrap:wrap;gap:10px;padding:16px}
+.bq-chips button{background:#1c2228;color:#fff;border:1.5px solid #ff6b00;border-radius:10px;padding:9px 14px;font-weight:600;font-size:14px;cursor:pointer}
+.bq-h{padding:4px 16px 10px;font-size:18px;font-weight:600}
+.bq-rec{display:flex;gap:14px;overflow-x:auto;padding:0 16px 18px;scrollbar-width:none}
+.bq-rec::-webkit-scrollbar{display:none}
+.bq-rec div{flex:0 0 96px;font-size:13px;color:#cfd8dc;cursor:pointer}
+.bq-rec img{width:96px;height:96px;object-fit:cover;border-radius:10px;display:block;margin-bottom:6px}
+.bq-rec span{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.bq-cats{display:grid;grid-template-columns:repeat(4,1fr);gap:16px 10px;padding:6px 14px 18px}
+.bq-cat{background:none;border:0;color:#cfd8dc;font-size:12.5px;text-align:center;cursor:pointer;padding:0}
+.bq-cat i{display:flex;align-items:center;justify-content:center;font-style:normal;font-size:34px;height:64px;background:#252c33;border-radius:14px;margin-bottom:6px;border:2px solid transparent}
+.bq-cat.on i{border-color:#ff6b00}
+.products{background:#12161a!important;padding:14px 12px!important;text-align:left!important}
+.products h2{color:#fff;font-size:18px;margin:0 4px 12px!important}
+.product{background:#1c2228;border:1px solid #2a323a!important;padding:10px!important}
+.product h3{color:#eceff1;font-size:14px!important}
+.product .loc{color:#90a4ae!important}
+.price{color:#ff8a3d!important}
+.empty-state{color:#90a4ae!important}
+.bq-cond{position:absolute;left:6px;bottom:6px;font-size:11px;font-weight:700;padding:2px 8px;border-radius:99px;color:#fff;background:#2e7d32}
+.bq-cond.used{background:#616161}
+#bqNav{position:fixed;left:0;right:0;bottom:0;display:flex;background:#12161a;border-top:1px solid #2a323a;z-index:60;padding-bottom:env(safe-area-inset-bottom,0)}
+#bqNav button{flex:1;background:none;border:0;color:#b0bec5;padding:9px 0 8px;font-size:12px;font-weight:600;cursor:pointer;position:relative}
+#bqNav button b{display:block;font-size:22px;font-weight:400;line-height:1.1}
+#bqNav button.on{color:#ff6b00}
