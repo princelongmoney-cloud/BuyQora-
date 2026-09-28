@@ -1612,4 +1612,19 @@ if ("serviceWorker" in navigator) {
 }
 </script>
 </body>
-</html>
+</html><script>
+(function(){
+  var msg = "Your account has been suspended. Please contact BuyQora support.";
+  var nativeAlert = window.alert;
+  window.alert = function(m){
+    if(String(m).indexOf('Banned users') !== -1){ m = msg; }
+    nativeAlert.call(window, m);
+  };
+  var err = document.getElementById('sellError');
+  if(err){
+    new MutationObserver(function(){
+      if(err.textContent.indexOf('Banned users') !== -1){ err.textContent = msg; }
+    }).observe(err, {childList:true, characterData:true, subtree:true});
+  }
+})();
+</script>
