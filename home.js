@@ -165,3 +165,92 @@ $('editSave').onclick=async()=>{
  await openMine();loadListings();
 };
 })();
+(function(){
+const $=id=>document.getElementById(id);
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const MAXP=5;
+$('sellPrice').insertAdjacentHTML('afterend','<label style="display:flex;gap:8px;align-items:center;margin-bottom:12px"><input type="checkbox" id="sellNeg" style="width:auto;margin:0"> Price is negotiable</label>');
+$('sellState').insertAdjacentHTML('afterend','<label>City / area</label><input type="text" id="sellCity" placeholder="e.g. Owerri, Ikeja, Onitsha">');
+const si=$('sellImage');si.multiple=true;
+if(si.previousElementSibling)si.previousElementSibling.textContent='Photos (up to 5)';
+function shrink(file){return new Promise(res=>{
+ const img=new Image(),u=URL.createObjectURL(file);
+ img.onload=()=>{const r=Math.min(1,1280/Math.max(img.width,img.height));
+  const c=document.createElement('canvas');c.width=Math.round(img.width*r);c.height=Math.round(img.height*r);
+  c.getContext('2d').drawImage(img,0,0,c.width,c.height);URL.revokeObjectURL(u);
+  c.toBlob(b=>res(b||file),'image/jpeg',0.8);};
+ img.onerror=()=>{URL.revokeObjectURL(u);res(file);};
+ img.src=u;});}
+window.submitListing=async function(){
+ const{data:{session}}=await supabaseClient.auth.getSession();
+ if(!session){alert('Please log in first.');return;}
+ const err=$('sellError'),ok=$('sellSuccess');err.style.display='none';ok.style.display='none';
+ const title=$('sellTitle').value.trim(),priceRaw=$('sellPrice').value.trim();
+ const price=parseFloat(priceRaw.replace(/[^0-9.]/g,''));
+ if(!title||!priceRaw||isNaN(price)){err.textContent='Add a title and a valid price.';err.style.display='block';return;}
+ const files=Array.from(si.files||[]).slice(0,MAXP);
+ const btn=$('sellSubmitBtn');btn.disabled=true;btn.textContent='Posting...';
+ const fail=m=>{err.textContent=m;err.style.display='block';btn.disabled=false;btn.textContent='Post listing';};
+ const images=[];
+ for(let i=0;i<files.length;i++){
+  btn.textContent='Uploading photo '+(i+1)+' of '+files.length+'...';
+  const blob=await shrink(files[i]);
+  const path=session.user.id+'/'+Date.now()+'-'+i+'.jpg';
+  const{error:ue}=await supabaseClient.storage.from('listing-images').upload(path,blob,{contentType:'image/jpeg'});
+  if(ue)return fail('Image upload failed: '+ue.message);
+  images.push(supabaseClient.storage.from('listing-images').getPublicUrl(path).data.publicUrl);
+ }
+ btn.textContent='Posting...';
+ const row={seller_id:session.user.id,title,description:$('sellDesc').value.trim(),price,category_id:$('sellCategory').value,state:$('sellState').value,city:$('sellCity').value.trim()||null,negotiable:$('sellNeg').checked,condition:$('sellCondition').value,image_url:images[0]||null,images};
+ let{error}=await supabaseClient.from('listings').insert(row);
+ if(error&&/condition/i.test(error.message)){delete row.condition;({error}=await supabaseClient.from('listings').insert(row));}
+ if(error)return fail(error.message);
+ btn.disabled=false;btn.textContent='Post listing';ok.textContent='Listing posted!';ok.style.display='block';
+ ['sellTitle','sellPrice','sellDesc','sellCity'].forEach(id=>$(id).value='');$('sellNeg').checked=false;si.value='';
+ loadListings();setTimeout(closeSell,1200);
+};
+function ago(d){const s=(Date.now()-new Date(d))/1000;if(!(s>=0))return '';if(s<3600)return Math.max(1,Math.round(s/60))+' min ago';if(s<86400)return Math.round(s/3600)+' hr ago';const n=Math.round(s/86400);return n<30?n+' day'+(n>1?'s':'')+' ago':new Date(d).toLocaleDateString();}
+window.openDetail=async function(l){
+ currentDetailListing=l;
+ const{data:{session}}=await supabaseClient.auth.getSession();
+ const own=session&&session.user.id===l.seller_id;
+ const imgs=l.images&&l.images.length?l.images:(l.image_url?[l.image_url]:[]);
+ const sim=currentListings.filter(x=>x.id!==l.id&&x.category_id===l.category_id).slice(0,6);
+ const where=l.city?l.city+', '+l.state:l.state;
+ $('detailContent').innerHTML=
+ '<div class="detail-image">'+(imgs.length?'<img id="dMainImg" src="'+esc(imgs[0])+'" alt="">':(CATEGORY_ICONS[l.category_id]||'🛍️'))+'<button class="fav-btn detail-fav-btn" id="detailFavBtn">'+(currentFavorites.has(l.id)?'♥':'♡')+'</button></div>'+
+ (imgs.length>1?'<div class="bq-thumbs">'+imgs.map((u,i)=>'<img src="'+esc(u)+'" data-i="'+i+'" class="'+(i?'':'on')+'">').join('')+'</div>':'')+
+ '<h3>'+esc(l.title)+'</h3>'+
+ '<p class="price" style="font-size:18px;margin:6px 0 6px">₦'+Number(l.price).toLocaleString()+(l.negotiable?'<span class="bq-neg">Negotiable</span>':'')+'</p>'+
+ '<p class="bq-meta">👁 <span id="dViews">'+(l.views||0)+'</span> views · Posted '+ago(l.created_at)+'</p>'+
+ '<span class="detail-tag">📍 '+esc(where)+'</span><span class="detail-tag">'+esc(CATEGORY_LABELS[l.category_id]||l.category_id)+'</span>'+(l.condition?'<span class="detail-tag">'+(l.condition==='new'?'New':'Used')+'</span>':'')+
+ (l.status&&l.status!=='active'?'<p style="color:#c0392b !important;font-weight:bold;margin:8px 0">This listing is '+esc(l.status)+'.</p>':'')+
+ '<p class="detail-desc" style="white-space:pre-wrap">'+esc(l.description||'No description provided.')+'</p>'+
+ '<p class="bq-meta">Seller: <b id="dSeller">...</b></p>'+
+ (own?'<button class="button" id="dManage">Manage this listing</button>':'<button class="button" id="contactSellerBtn" onclick="contactSeller()">Contact seller</button><button class="button" id="dShare" style="background:#0277bd;margin-top:8px">Share</button><button class="report-btn button" onclick="openReport(currentDetailListing.id, currentDetailListing.seller_id)">🚩 Report this listing</button>')+
+ (own?'<button class="button" id="dShare" style="background:#0277bd;margin-top:8px">Share</button>':'')+
+ (sim.length?'<h4 class="bq-simh">Similar listings</h4><div class="bq-sim">'+sim.map(x=>'<div data-id="'+x.id+'">'+(x.image_url?'<img src="'+esc(x.image_url)+'" alt="">':'<img alt="" style="background:#eee">')+'<span>'+esc(x.title)+'</span><b>₦'+Number(x.price).toLocaleString()+'</b></div>').join('')+'</div>':'');
+ $('detailFavBtn').onclick=()=>toggleFavorite(l.id,$('detailFavBtn'));
+ document.querySelectorAll('.bq-thumbs img').forEach(t=>t.onclick=()=>{$('dMainImg').src=t.src;document.querySelectorAll('.bq-thumbs img').forEach(x=>x.classList.toggle('on',x===t));});
+ $('dShare').onclick=async()=>{const url=location.origin+location.pathname+'?l='+l.id;try{if(navigator.share){await navigator.share({title:l.title,text:l.title+' - ₦'+Number(l.price).toLocaleString()+' on BuyQora',url});}else{await navigator.clipboard.writeText(url);alert('Link copied!');}}catch(e){}};
+ if($('dManage'))$('dManage').onclick=()=>{closeDetail();openMine();};
+ document.querySelectorAll('.bq-sim div').forEach(d=>d.onclick=()=>{const x=currentListings.find(z=>String(z.id)===d.dataset.id);if(x)openDetail(x);});
+ $('detailOverlay').classList.add('show');
+ getProfileName(l.seller_id).then(n=>{const s=$('dSeller');if(s)s.textContent=n;});
+ if(!own){try{const k='bqv'+l.id;if(!sessionStorage.getItem(k)){sessionStorage.setItem(k,'1');supabaseClient.rpc('increment_listing_views',{p_id:String(l.id)}).then(r=>{if(!r.error){l.views=(l.views||0)+1;const v=$('dViews');if(v)v.textContent=l.views;}});}}catch(e){}}
+};
+const f2=document.createElement('div');f2.className='bq-filter2';
+f2.innerHTML='<input id="bqMin" type="number" inputmode="numeric" placeholder="Min ₦"><input id="bqMax" type="number" inputmode="numeric" placeholder="Max ₦"><input id="bqCity" type="text" placeholder="City">';
+document.querySelector('.bq-filter').insertAdjacentElement('afterend',f2);
+const baseRender=window.renderListings;
+window.renderListings=function(){
+ const lo=parseFloat($('bqMin').value),hi=parseFloat($('bqMax').value),cq=$('bqCity').value.trim().toLowerCase();
+ const all=currentListings;
+ if(lo>0||hi>0||cq){currentListings=all.filter(l=>(!(lo>0)||Number(l.price)>=lo)&&(!(hi>0)||Number(l.price)<=hi)&&(!cq||(l.city||'').toLowerCase().includes(cq)));}
+ try{baseRender();}finally{currentListings=all;}
+};
+['bqMin','bqMax','bqCity'].forEach(id=>$(id).addEventListener('input',()=>renderListings()));
+$('bqNav').addEventListener('click',e=>{if(e.target.closest('[data-n="home"]')){['bqMin','bqMax','bqCity'].forEach(id=>$(id).value='');renderListings();}});
+const p=new URLSearchParams(location.search).get('l');
+if(p){let n=0;const t=setInterval(()=>{const x=currentListings.find(z=>String(z.id)===p);if(x){clearInterval(t);openDetail(x);}else if(++n>20)clearInterval(t);},500);}
+})();
