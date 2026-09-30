@@ -5,13 +5,15 @@ CATS.forEach(c=>{CATEGORY_ICONS[c[0]]=c[1];CATEGORY_LABELS[c[0]]=c[2];});
 const $=id=>document.getElementById(id);
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 async function authed(fn){const{data:{session}}=await supabaseClient.auth.getSession();if(!session){openAuth('login');return;}fn(session);}
+let condFilter='all',sortMode='new';
 
 const root=document.createElement('div');root.id='bq';
 root.innerHTML=`<div class="bq-top"><div class="bq-bar"><span class="bq-logo">BuyQora</span><button id="bqBell" aria-label="Notifications">🔔<span id="bqBellBadge" class="bq-badge"></span></button></div>
 <h2>What are you looking for?</h2><div class="bq-search"><select id="bqState"></select><div class="bq-input"><input id="bqQ" type="search" placeholder="I am looking for..."><span>🔍</span></div></div></div>
 <div class="bq-chips"><button data-a="sell">💰 How to sell</button><button data-a="buy">🛒 How to buy</button><button data-a="admin" id="bqAdmin" style="display:none">🛡️ Admin</button></div>
 <h3 class="bq-h" id="bqRecH" style="display:none">Recommended for you</h3><div class="bq-rec" id="bqRec"></div>
-<div class="bq-cats" id="bqCats">${CATS.map(c=>`<button class="bq-cat" data-c="${c[0]}"><i>${c[1]}</i>${esc(c[2])}</button>`).join('')}</div>`;
+<div class="bq-cats" id="bqCats">${CATS.map(c=>`<button class="bq-cat" data-c="${c[0]}"><i>${c[1]}</i>${esc(c[2])}</button>`).join('')}</div>
+<div class="bq-filter"><div class="bq-seg" id="bqCond"><button data-v="all" class="on">All</button><button data-v="new">New</button><button data-v="used">Used</button></div><select id="bqSort"><option value="new">Newest</option><option value="lo">Price: low to high</option><option value="hi">Price: high to low</option></select></div>`;
 document.body.prepend(root);
 const nav=document.createElement('nav');nav.id='bqNav';
 nav.innerHTML=[['home','🏠','Home'],['saved','🔖','Saved'],['sell','➕','Sell'],['msg','💬','Messages'],['me','👤','Profile']].map(n=>`<button data-n="${n[0]}"${n[0]==='home'?' class="on"':''}><b>${n[1]}</b>${n[2]}</button>`).join('');
@@ -21,6 +23,9 @@ $('bqState').innerHTML='<option value="all">All states</option>'+BUYQORA_STATES.
 $('bqState').onchange=e=>{activeState=e.target.value;renderListings();};
 $('bqQ').oninput=()=>renderListings();
 $('bqQ').onkeydown=e=>{if(e.key==='Enter'){e.target.blur();$('products').scrollIntoView({behavior:'smooth'});}};
+$('bqCond').onclick=e=>{const b=e.target.closest('[data-v]');if(!b)return;condFilter=b.dataset.v;
+ document.querySelectorAll('#bqCond button').forEach(x=>x.classList.toggle('on',x===b));renderListings();};
+$('bqSort').onchange=e=>{sortMode=e.target.value;renderListings();};
 $('bqBell').onclick=()=>authed(openNotifications);
 $('bqCats').onclick=e=>{const b=e.target.closest('[data-c]');if(!b)return;const c=b.dataset.c;activeCategory=c==='trending'?'all':c;
  document.querySelectorAll('.bq-cat').forEach(x=>x.classList.toggle('on',x===b&&c!=='trending'));renderListings();$('products').scrollIntoView({behavior:'smooth'});};
@@ -29,7 +34,9 @@ document.querySelector('.bq-chips').onclick=e=>{const b=e.target.closest('[data-
  if(a==='sell')alert('How to sell:\n1. Log in or sign up\n2. Tap Sell\n3. Add title, price, category, New or Used, state and a photo\n4. Post, then reply to buyers in Messages');
  if(a==='buy')alert('How to buy:\n1. Search or pick a category\n2. Open a listing and tap Contact seller\n3. Agree a price and meet in a safe public place\n4. Pay only after you inspect the item');};
 nav.onclick=e=>{const b=e.target.closest('[data-n]');if(!b)return;const n=b.dataset.n;
- if(n==='home'){activeCategory='all';activeState='all';$('bqState').value='all';$('bqQ').value='';document.querySelectorAll('.bq-cat').forEach(x=>x.classList.remove('on'));renderListings();window.scrollTo({top:0,behavior:'smooth'});}
+ if(n==='home'){activeCategory='all';activeState='all';condFilter='all';sortMode='new';$('bqState').value='all';$('bqQ').value='';$('bqSort').value='new';
+  document.querySelectorAll('#bqCond button').forEach(x=>x.classList.toggle('on',x.dataset.v==='all'));
+  document.querySelectorAll('.bq-cat').forEach(x=>x.classList.remove('on'));renderListings();window.scrollTo({top:0,behavior:'smooth'});}
  if(n==='saved')authed(openFavorites);
  if(n==='sell')authed(openSell);
  if(n==='msg')authed(openInbox);
@@ -50,7 +57,10 @@ $('bqRec').onclick=e=>{const d=e.target.closest('[data-id]');if(!d)return;const 
 
 window.renderListings=function(){
  const grid=$('productGrid'),q=$('bqQ').value.trim().toLowerCase();
- const f=currentListings.filter(l=>(activeCategory==='all'||l.category_id===activeCategory)&&(activeState==='all'||l.state===activeState)&&(!q||(l.title||'').toLowerCase().includes(q)||(l.description||'').toLowerCase().includes(q)));
+ const f=currentListings.filter(l=>(activeCategory==='all'||l.category_id===activeCategory)&&(activeState==='all'||l.state===activeState)&&(condFilter==='all'||l.condition===condFilter)&&(!q||(l.title||'').toLowerCase().includes(q)||(l.description||'').toLowerCase().includes(q)));
+ if(sortMode==='lo')f.sort((a,b)=>Number(a.price)-Number(b.price));
+ else if(sortMode==='hi')f.sort((a,b)=>Number(b.price)-Number(a.price));
+ else f.sort((a,b)=>new Date(b.created_at||0)-new Date(a.created_at||0));
  currentFilteredListings=f;
  document.querySelector('#products h2').textContent=activeCategory==='all'?'Trending':(CATEGORY_LABELS[activeCategory]||'Listings');
  renderRec();
