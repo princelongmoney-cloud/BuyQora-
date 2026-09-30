@@ -1,7 +1,10 @@
-const CACHE_NAME = "buyqora-v2";
+const CACHE_NAME = "buyqora-v3";
 const FILES_TO_CACHE = [
   "./",
   "./index.html",
+  "./theme.css",
+  "./home.js",
+  "./config.js",
   "./manifest.json",
   "./icon-192.png",
   "./icon-512.png"
@@ -10,7 +13,11 @@ const FILES_TO_CACHE = [
 self.addEventListener("install", event => {
   self.skipWaiting();
   event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => cache.addAll(FILES_TO_CACHE))
+    caches.open(CACHE_NAME).then(cache =>
+      Promise.all(
+        FILES_TO_CACHE.map(url => cache.add(url).catch(() => null))
+      )
+    )
   );
 });
 
@@ -30,10 +37,18 @@ self.addEventListener("fetch", event => {
   event.respondWith(
     fetch(event.request)
       .then(response => {
-        const copy = response.clone();
-        caches.open(CACHE_NAME).then(cache => cache.put(event.request, copy));
+        if (response && response.ok) {
+          const copy = response.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(event.request, copy));
+        }
         return response;
       })
-      .catch(() => caches.match(event.request))
+      .catch(() =>
+        caches.match(event.request).then(hit => {
+          if (hit) return hit;
+          if (event.request.mode === "navigate") return caches.match("./index.html");
+          return new Response("", { status: 504, statusText: "Offline" });
+        })
+      )
   );
 });
