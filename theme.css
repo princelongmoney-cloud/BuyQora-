@@ -49,3 +49,10 @@ body {
   font-size: 15px !important;
   text-overflow: ellipsis;
 }
+#bq .bq-search select, .bq-search select {
+  flex: 0 0 150px !important;
+  width: 150px !important;
+  min-width: 150px !important;
+  padding: 0 6px !important;
+  font-size: 15px !important;
+  }
