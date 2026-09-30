@@ -72,3 +72,8 @@ html, body {
   min-width: 0 !important;
   flex: 1 1 0 !important;
 }
+.bq-filter{display:flex;gap:10px;align-items:center;padding:6px 16px 4px}
+.bq-seg{display:flex;flex:1;background:#1c2228;border-radius:12px;overflow:hidden}
+.bq-seg button{flex:1;background:none;border:0;color:#cfd8dc;padding:10px 0;font-size:14px}
+.bq-seg button.on{background:#ff6b00;color:#fff;font-weight:700}
+#bqSort{flex:0 0 140px;background:#1c2228;color:#eceff1;border:0;border-radius:12px;padding:10px 8px;font-size:14px}
