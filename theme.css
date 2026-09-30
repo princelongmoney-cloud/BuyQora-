@@ -43,3 +43,9 @@ body{background:#12161a;color:#eceff1;padding-bottom:84px;font-family:Roboto,"Se
 body {
   padding-bottom: 90px !important;
 }
+.bq-search select {
+  width: 46% !important;
+  padding: 0 6px !important;
+  font-size: 15px !important;
+  text-overflow: ellipsis;
+}
