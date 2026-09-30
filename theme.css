@@ -56,3 +56,19 @@ body {
   padding: 0 6px !important;
   font-size: 15px !important;
   }
+html, body {
+  overflow-x: hidden !important;
+}
+.bq-search {
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+#bq .bq-search select, .bq-search select {
+  flex: 0 0 130px !important;
+  width: 130px !important;
+  min-width: 130px !important;
+}
+.bq-input {
+  min-width: 0 !important;
+  flex: 1 1 0 !important;
+}
