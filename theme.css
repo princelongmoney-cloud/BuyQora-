@@ -77,3 +77,8 @@ html, body {
 .bq-seg button{flex:1;background:none;border:0;color:#cfd8dc;padding:10px 0;font-size:14px}
 .bq-seg button.on{background:#ff6b00;color:#fff;font-weight:700}
 #bqSort{flex:0 0 140px;background:#1c2228;color:#eceff1;border:0;border-radius:12px;padding:10px 8px;font-size:14px}
+.modal h3, .modal label, .modal p {
+  color: #222 !important;
+}
+.modal .error { color: #c0392b !important; }
+.modal .success { color: #2e7d32 !important; }
