@@ -36,4 +36,10 @@ body{background:#12161a;color:#eceff1;padding-bottom:84px;font-family:Roboto,"Se
 #bqNav{position:fixed;left:0;right:0;bottom:0;display:flex;background:#12161a;border-top:1px solid #2a323a;z-index:60;padding-bottom:env(safe-area-inset-bottom,0)}
 #bqNav button{flex:1;background:none;border:0;color:#b0bec5;padding:9px 0 8px;font-size:12px;font-weight:600;cursor:pointer;position:relative}
 #bqNav button b{display:block;font-size:22px;font-weight:400;line-height:1.1}
-#bqNav button.on{color:#ff6b00}
+#bqNav button.on{color:#ff6b00}html, body, #bq, main {
+  background: #12161a !important;
+  color: #eceff1 !important;
+}
+body {
+  padding-bottom: 90px !important;
+}
