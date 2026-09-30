@@ -254,3 +254,25 @@ $('bqNav').addEventListener('click',e=>{if(e.target.closest('[data-n="home"]')){
 const p=new URLSearchParams(location.search).get('l');
 if(p){let n=0;const t=setInterval(()=>{const x=currentListings.find(z=>String(z.id)===p);if(x){clearInterval(t);openDetail(x);}else if(++n>20)clearInterval(t);},500);}
 })();
+(function(){
+const $=id=>document.getElementById(id);
+const MAX=1000000000;
+function bad(raw){
+ const n=parseFloat(String(raw).replace(/[^0-9.]/g,''));
+ if(isNaN(n)||n<=0)return 'Enter a price greater than zero.';
+ if(n>MAX)return 'Price is too high. The maximum is ₦1,000,000,000. Check for extra digits.';
+ return '';
+}
+const orig=window.submitListing;
+window.submitListing=function(){
+ const m=bad($('sellPrice').value);
+ if(m){const e=$('sellError');e.textContent=m;e.style.display='block';$('sellSuccess').style.display='none';return;}
+ return orig.apply(this,arguments);
+};
+const es=$('editSave'),oe=es.onclick;
+es.onclick=function(){
+ const m=bad($('editPrice').value);
+ if(m){const e=$('editError');e.textContent=m;e.style.display='block';return;}
+ return oe.apply(this,arguments);
+};
+})();
