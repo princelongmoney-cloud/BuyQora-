@@ -90,3 +90,78 @@ window.submitListing=async function(){
 };
 renderListings();
 })();
+(function(){
+const $=id=>document.getElementById(id);
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+document.body.insertAdjacentHTML('beforeend',`
+<div class="modal-overlay" id="myOverlay"><div class="modal" style="color:#222;max-width:600px"><span class="close" id="myClose">✕</span><h3>My listings</h3><div id="myList"></div></div></div>
+<div class="modal-overlay" id="editOverlay"><div class="modal" style="color:#222"><span class="close" id="editClose">✕</span><h3>Edit listing</h3><p class="error" id="editError"></p>
+<label>Title</label><input id="editTitle"><label>Price (₦)</label><input id="editPrice">
+<label>Category</label><select id="editCategory"></select>
+<label>Condition</label><select id="editCondition"><option value="new">New</option><option value="used">Used</option></select>
+<label>State</label><select id="editState"></select>
+<label>Description</label><textarea id="editDesc"></textarea>
+<button class="button" id="editSave">Save changes</button></div></div>`);
+$('editCategory').innerHTML=$('sellCategory').innerHTML;
+$('editState').innerHTML=BUYQORA_STATES.map(s=>'<option>'+s+'</option>').join('');
+const lo=$('bqLogout');
+if(lo){lo.insertAdjacentHTML('beforebegin','<button class="button" id="bqMine" style="margin-top:10px">My listings</button>');
+ $('bqMine').onclick=()=>{closeProfile();openMine();};}
+$('myClose').onclick=()=>$('myOverlay').classList.remove('show');
+$('editClose').onclick=()=>$('editOverlay').classList.remove('show');
+let mine=[],editing=null;
+const LBL={active:['Live','#2e7d32'],paused:['Paused','#777'],sold:['Sold','#0277bd']};
+async function openMine(){
+ $('myOverlay').classList.add('show');
+ const box=$('myList');box.innerHTML='<p style="color:#999">Loading...</p>';
+ const{data:{session}}=await supabaseClient.auth.getSession();
+ if(!session){box.innerHTML='<p>Please log in.</p>';return;}
+ const{data,error}=await supabaseClient.from('listings').select('*').eq('seller_id',session.user.id).neq('status','removed').order('created_at',{ascending:false});
+ if(error){box.innerHTML='<p style="color:#c0392b">'+esc(error.message)+'</p>';return;}
+ mine=data||[];
+ if(!mine.length){box.innerHTML='<p style="color:#999">You have no listings yet. Tap Sell to post one.</p>';return;}
+ box.innerHTML=mine.map(l=>{
+  const B=(a,t,c)=>'<button data-a="'+a+'" data-id="'+l.id+'" style="background:'+(c||'#ff6b00')+';color:#fff;border:0;border-radius:6px;padding:6px 10px;font-size:12px;font-weight:bold">'+t+'</button>';
+  const st=LBL[l.status]||[l.status,'#777'];
+  let btns='';
+  if(l.status==='active')btns=B('edit','Edit')+B('pause','Pause','#777')+B('sold','Sold','#2e7d32')+B('renew','Renew','#0277bd')+B('delete','Delete','#c0392b');
+  else if(l.status==='paused')btns=B('edit','Edit')+B('resume','Resume','#2e7d32')+B('sold','Sold','#0277bd')+B('delete','Delete','#c0392b');
+  else btns=B('relist','Relist','#2e7d32')+B('delete','Delete','#c0392b');
+  return '<div style="display:flex;gap:10px;padding:12px 0;border-bottom:1px solid #eee"><div style="width:64px;height:64px;flex:0 0 64px;border-radius:8px;background:#eee;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:26px">'+(l.image_url?'<img src="'+esc(l.image_url)+'" style="width:100%;height:100%;object-fit:cover">':'🛍️')+'</div><div style="flex:1;min-width:0"><div style="font-weight:bold;font-size:14px">'+esc(l.title)+'</div><div style="color:#ff6b00;font-weight:bold;font-size:13px">₦'+Number(l.price).toLocaleString()+' <span style="background:'+st[1]+';color:#fff;border-radius:999px;padding:1px 8px;font-size:11px;margin-left:4px">'+st[0]+'</span></div><div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">'+btns+'</div></div></div>';
+ }).join('');
+}
+window.openMine=openMine;
+$('myList').onclick=async e=>{
+ const b=e.target.closest('button[data-a]');if(!b)return;
+ const l=mine.find(x=>String(x.id)===b.dataset.id);if(!l)return;
+ const a=b.dataset.a;
+ if(a==='edit'){editing=l;$('editError').style.display='none';
+  $('editTitle').value=l.title||'';$('editPrice').value=l.price||'';$('editCategory').value=l.category_id;
+  $('editCondition').value=l.condition||'used';$('editState').value=l.state;$('editDesc').value=l.description||'';
+  $('editOverlay').classList.add('show');return;}
+ let upd=null;
+ if(a==='pause')upd={status:'paused'};
+ if(a==='resume'||a==='relist')upd={status:'active'};
+ if(a==='sold')upd={status:'sold'};
+ if(a==='renew')upd={status:'active',created_at:new Date().toISOString()};
+ if(a==='delete'){if(!confirm('Delete this listing?'))return;upd={status:'removed'};}
+ if(!upd)return;
+ b.disabled=true;
+ const{error}=await supabaseClient.from('listings').update(upd).eq('id',l.id);
+ if(error){alert('Could not update: '+error.message);b.disabled=false;return;}
+ await openMine();loadListings();
+};
+$('editSave').onclick=async()=>{
+ if(!editing)return;
+ const err=$('editError');err.style.display='none';
+ const price=parseFloat(String($('editPrice').value).replace(/[^0-9.]/g,''));
+ const title=$('editTitle').value.trim();
+ if(!title||isNaN(price)){err.textContent='Add a title and a valid price.';err.style.display='block';return;}
+ const upd={title,price,category_id:$('editCategory').value,state:$('editState').value,condition:$('editCondition').value,description:$('editDesc').value.trim()};
+ let{error}=await supabaseClient.from('listings').update(upd).eq('id',editing.id);
+ if(error&&/condition/i.test(error.message)){delete upd.condition;({error}=await supabaseClient.from('listings').update(upd).eq('id',editing.id));}
+ if(error){err.textContent=error.message;err.style.display='block';return;}
+ $('editOverlay').classList.remove('show');
+ await openMine();loadListings();
+};
+})();
