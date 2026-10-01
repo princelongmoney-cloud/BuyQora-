@@ -350,3 +350,14 @@ if(f){
  $('legalLinks').onclick=e=>{const a=e.target.closest('[data-l]');if(a)openLegal(a.dataset.l);};
 }
 })();
+(function(){
+const links=document.getElementById('legalLinks');
+const p=document.getElementById('products');
+if(!links||!p)return;
+const box=document.createElement('div');
+box.style.cssText='text-align:center;padding:24px 16px 110px;font-size:14px;color:#aaa';
+links.style.marginBottom='8px';
+box.appendChild(links);
+box.insertAdjacentHTML('beforeend','<p style="font-size:12px">© 2026 BuyQora</p>');
+p.insertAdjacentElement('afterend',box);
+})();
