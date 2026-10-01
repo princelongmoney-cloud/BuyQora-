@@ -306,3 +306,47 @@ $('resetSave').onclick=async()=>{
  setTimeout(()=>{$('resetOverlay').classList.remove('show');refreshAccountBar();},1500);
 };
 })();
+(function(){
+const SUPPORT_EMAIL='princelongmoney@gmail.com';
+const $=id=>document.getElementById(id);
+const PAGES={
+terms:['Terms of Use',`<p><i>Last updated: October 2026</i></p>
+<h4>1. About BuyQora</h4><p>BuyQora is an online marketplace where people in Nigeria post items and services and contact each other. BuyQora is only a platform. We are not the buyer or the seller, and we do not handle payments, delivery or returns.</p>
+<h4>2. Your account</h4><p>You must be 18 or older. Give correct details and keep your password safe. You are responsible for everything done with your account.</p>
+<h4>3. Posting listings</h4><p>Only post items you own or are allowed to sell. Use an honest title, price, photos and description. Mark an item as sold or remove it when it is gone.</p>
+<h4>4. Not allowed</h4><p>Illegal items, weapons, drugs, stolen goods, fake or counterfeit goods, adult content, fake listings, scams, spam, harassment, impersonation, and sharing other people's private details.</p>
+<h4>5. Staying safe</h4><p>Meet in a public place, inspect the item before you pay, and never send money in advance to someone you do not know. BuyQora will never ask for your password or any code sent to your email. BuyQora is not responsible for deals between users.</p>
+<h4>6. Reports and enforcement</h4><p>You can report any listing or user inside the app. We may remove listings and suspend or ban accounts that break these rules, with or without notice.</p>
+<h4>7. Your content</h4><p>You keep ownership of your photos and text. You allow BuyQora to show them in the app so your listing can be seen.</p>
+<h4>8. Liability</h4><p>BuyQora is provided as it is. To the extent the law allows, we are not liable for losses from deals between users.</p>
+<h4>9. Changes</h4><p>We may update these terms. Using BuyQora after an update means you accept it.</p>
+<h4>10. Contact</h4><p>Questions? Email ${SUPPORT_EMAIL}.</p>`],
+privacy:['Privacy Policy',`<p><i>Last updated: October 2026</i></p>
+<h4>What we collect</h4><p>Your name, email, phone number and state; the listings, photos and descriptions you post; your messages to other users; your favorites; and reports you make.</p>
+<h4>How we use it</h4><p>To run your account, show your listings, let buyers and sellers message each other, send account emails such as sign-up confirmation and password reset, keep the marketplace safe, and handle reports.</p>
+<h4>What other people can see</h4><p>Your name, your listings and photos, and your listing city and state are visible to other users. Your email is not shown publicly. Messages are visible only to the people in that conversation and to our admins when a report needs review.</p>
+<h4>Who we share data with</h4><p>We do not sell your data. We use trusted services to run BuyQora, including Supabase for hosting data and photos and Brevo for sending emails. They only handle data to provide those services.</p>
+<h4>Keeping your data</h4><p>We keep your data while your account is active. You can ask us to delete your account and data at any time by emailing ${SUPPORT_EMAIL}.</p>
+<h4>Security</h4><p>We take reasonable steps to protect your data, but no online service is completely secure. Choose a strong password and never share it.</p>
+<h4>Children</h4><p>BuyQora is for people aged 18 and over.</p>
+<h4>Changes and contact</h4><p>We may update this policy. For any question, email ${SUPPORT_EMAIL}.</p>`],
+contact:['Contact & Support',`<p>Need help, found a problem, or want your account or data deleted?</p>
+<p>Email us: <b>${SUPPORT_EMAIL}</b></p>
+<p>Please include your account email and a short description. If you are reporting a scam, include the listing title and the seller name.</p>
+<p>To report a listing or a user quickly, open the listing or chat and tap the Report button.</p>`]
+};
+document.body.insertAdjacentHTML('beforeend','<div class="modal-overlay" id="legalOverlay"><div class="modal" style="color:#222;max-width:600px"><span class="close" id="legalClose">✕</span><h3 id="legalTitle"></h3><div id="legalBody" style="font-size:14px;line-height:1.6"></div></div></div>');
+function openLegal(k){
+ $('legalTitle').textContent=PAGES[k][0];
+ $('legalBody').innerHTML=PAGES[k][1];
+ $('legalBody').querySelectorAll('h4').forEach(h=>{h.style.margin='14px 0 4px';});
+ $('legalOverlay').classList.add('show');
+}
+$('legalClose').onclick=()=>$('legalOverlay').classList.remove('show');
+const f=document.querySelector('footer');
+if(f){
+ f.style.paddingBottom='100px';
+ f.insertAdjacentHTML('afterbegin','<p id="legalLinks" style="margin-bottom:12px"><a data-l="terms" style="color:#ff6b00;cursor:pointer">Terms</a> &nbsp;·&nbsp; <a data-l="privacy" style="color:#ff6b00;cursor:pointer">Privacy</a> &nbsp;·&nbsp; <a data-l="contact" style="color:#ff6b00;cursor:pointer">Contact</a></p>');
+ $('legalLinks').onclick=e=>{const a=e.target.closest('[data-l]');if(a)openLegal(a.dataset.l);};
+}
+})();
