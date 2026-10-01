@@ -537,8 +537,22 @@ footer {
     <label>Description</label>
     <textarea id="sellDesc" placeholder="Condition, pickup location, anything a buyer should know"></textarea>
 
-    <label>Photo (optional)</label>
-    <input type="file" id="sellImage" accept="image/*">
+    <label>Condition</label>
+    <select id="sellCondition">
+      <option value="used">Used</option>
+      <option value="new">New</option>
+    </select>
+
+    <label>City / area</label>
+    <input type="text" id="sellCity" placeholder="e.g. Owerri, Ikeja, Aba">
+
+    <label style="display:flex; align-items:center; gap:8px;">
+      <input type="checkbox" id="sellNegotiable" style="width:auto; margin:0;"> Price is negotiable
+    </label>
+    <div style="height:12px;"></div>
+
+    <label>Photos (up to 5)</label>
+    <input type="file" id="sellImage" accept="image/*" multiple>
 
     <button class="button" onclick="submitListing()" id="sellSubmitBtn">Post listing</button>
   </div>
