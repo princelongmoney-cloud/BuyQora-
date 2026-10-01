@@ -276,3 +276,33 @@ es.onclick=function(){
  return oe.apply(this,arguments);
 };
 })();
+(function(){
+const $=id=>document.getElementById(id);
+document.querySelector('#authOverlay .switch').insertAdjacentHTML('afterend','<p class="switch" id="bqForgotWrap"><a id="bqForgot">Forgot password?</a></p>');
+document.body.insertAdjacentHTML('beforeend','<div class="modal-overlay" id="resetOverlay"><div class="modal" style="color:#222"><h3>Set a new password</h3><p class="error" id="resetError"></p><p class="success" id="resetSuccess"></p><input type="password" id="resetPw1" placeholder="New password (6+ characters)"><input type="password" id="resetPw2" placeholder="Repeat new password"><button class="button" id="resetSave">Save new password</button></div></div>');
+const oldUI=window.updateAuthUI;
+window.updateAuthUI=function(){oldUI.apply(this,arguments);$('bqForgotWrap').style.display=(authMode==='login')?'block':'none';};
+window.updateAuthUI();
+$('bqForgot').onclick=async()=>{
+ const err=$('authError');err.style.display='none';
+ const email=$('authEmail').value.trim();
+ if(!email){err.textContent='Type your email in the box above first, then tap Forgot password.';err.style.display='block';return;}
+ const{error}=await supabaseClient.auth.resetPasswordForEmail(email,{redirectTo:location.origin+location.pathname});
+ if(error){err.textContent=error.message;err.style.display='block';return;}
+ alert('Done! We sent a password reset link to '+email+'. Open your email and tap the link.');
+};
+function showReset(){$('resetError').style.display='none';$('resetSuccess').style.display='none';$('resetOverlay').classList.add('show');}
+supabaseClient.auth.onAuthStateChange(ev=>{if(ev==='PASSWORD_RECOVERY'){closeAuth();showReset();}});
+if(location.hash.indexOf('type=recovery')>-1){closeAuth();showReset();}
+$('resetSave').onclick=async()=>{
+ const e=$('resetError'),s=$('resetSuccess');e.style.display='none';s.style.display='none';
+ const a=$('resetPw1').value,b=$('resetPw2').value;
+ if(a.length<6){e.textContent='Password must be at least 6 characters.';e.style.display='block';return;}
+ if(a!==b){e.textContent='The two passwords do not match.';e.style.display='block';return;}
+ const{error}=await supabaseClient.auth.updateUser({password:a});
+ if(error){e.textContent=error.message;e.style.display='block';return;}
+ s.textContent='Password changed! You are now logged in.';s.style.display='block';
+ history.replaceState(null,'',location.pathname);
+ setTimeout(()=>{$('resetOverlay').classList.remove('show');refreshAccountBar();},1500);
+};
+})();
