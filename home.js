@@ -361,3 +361,48 @@ box.appendChild(links);
 box.insertAdjacentHTML('beforeend','<p style="font-size:12px">© 2026 BuyQora</p>');
 p.insertAdjacentElement('afterend',box);
 })();
+(function(){
+const $=id=>document.getElementById(id);
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+document.body.insertAdjacentHTML('beforeend','<div class="modal-overlay" id="blockOverlay"><div class="modal" style="color:#222"><span class="close" id="blockClose">✕</span><h3>Blocked users</h3><div id="blockList"></div></div></div>');
+$('blockClose').onclick=()=>$('blockOverlay').classList.remove('show');
+const rep=document.querySelector('#chatOverlay button[onclick="reportCurrentChatUser()"]');
+if(rep){
+ rep.insertAdjacentHTML('beforebegin','<button id="chatBlockBtn" style="background:none;border:none;color:#c0392b;font-size:12.5px;cursor:pointer;float:right;margin:2px 0 0 12px">🚫 Block</button>');
+ $('chatBlockBtn').onclick=async()=>{
+  if(!currentChat)return;
+  const{data:{session}}=await supabaseClient.auth.getSession();
+  if(!session)return;
+  if(!confirm('Block this user? You will not be able to message each other. You can unblock them later in Profile.'))return;
+  const{error}=await supabaseClient.from('blocks').insert({blocker_id:session.user.id,blocked_id:currentChat.otherUserId});
+  if(error&&error.code!=='23505'){alert('Could not block: '+error.message);return;}
+  alert('User blocked.');
+  closeChat();
+ };
+}
+async function openBlocked(){
+ const box=$('blockList');
+ box.innerHTML='<p style="color:#999">Loading...</p>';
+ $('blockOverlay').classList.add('show');
+ const{data:{session}}=await supabaseClient.auth.getSession();
+ if(!session){box.innerHTML='<p>Please log in.</p>';return;}
+ const{data,error}=await supabaseClient.from('blocks').select('id,blocked_id').eq('blocker_id',session.user.id).order('created_at',{ascending:false});
+ if(error){box.innerHTML='<p style="color:#c0392b">'+esc(error.message)+'</p>';return;}
+ if(!data.length){box.innerHTML='<p style="color:#999">You have not blocked anyone.</p>';return;}
+ for(const b of data){b.name=await getProfileName(b.blocked_id);}
+ box.innerHTML=data.map(b=>'<div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid #eee"><span style="font-weight:bold">'+esc(b.name)+'</span><button data-id="'+b.id+'" style="background:#555;color:#fff;border:0;border-radius:6px;padding:7px 12px;font-size:12px;font-weight:bold">Unblock</button></div>').join('');
+}
+$('blockList').onclick=async e=>{
+ const b=e.target.closest('button[data-id]');
+ if(!b)return;
+ b.disabled=true;
+ const{error}=await supabaseClient.from('blocks').delete().eq('id',b.dataset.id);
+ if(error){alert('Could not unblock: '+error.message);b.disabled=false;return;}
+ openBlocked();
+};
+const lo=$('bqLogout');
+if(lo){
+ lo.insertAdjacentHTML('beforebegin','<button class="button" id="bqBlocked" style="background:#555;margin-top:10px">Blocked users</button>');
+ $('bqBlocked').onclick=()=>{closeProfile();openBlocked();};
+}
+})();
