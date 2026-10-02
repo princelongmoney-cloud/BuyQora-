@@ -98,3 +98,24 @@ html, body {
 .bq-sim img{width:96px;height:96px;object-fit:cover;border-radius:8px;display:block}
 .bq-sim span{display:block;margin-top:4px}
 .bq-sim b{color:#ff6b00}
+#adminOverlay,
+#verOverlay {
+  position: fixed !important;
+  top: 0; left: 0; right: 0; bottom: 0;
+  width: 100% !important;
+  height: 100% !important;
+  max-width: none !important;
+  max-height: none !important;
+  margin: 0 !important;
+  border-radius: 0 !important;
+  overflow-y: auto;
+  z-index: 9999;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+#adminOverlay > *,
+#verOverlay > * {
+  max-width: none !important;
+  width: 100%;
+  border-radius: 0 !important;
+  }
