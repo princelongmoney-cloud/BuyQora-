@@ -839,3 +839,126 @@ $('myList').addEventListener('click',e=>{
  openPromo(b.dataset.id);
 },true);
 })();
+(function(){
+const $=id=>document.getElementById(id);
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const naira=n=>'₦'+Number(n||0).toLocaleString();
+const dt=d=>d?new Date(d).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):'-';
+const NAMES={basic:'Basic Boost',featured:'Featured',premium:'Premium',top:'Top Advert'};
+const sty=document.createElement('style');
+sty.textContent='.modal-overlay#aprOverlay>.modal{position:fixed !important;inset:0 !important;width:100% !important;height:100% !important;max-width:none !important;max-height:none !important;margin:0 !important;border-radius:0 !important;box-sizing:border-box !important;overflow-y:auto !important;padding:calc(env(safe-area-inset-top,0px) + 12px) 16px calc(env(safe-area-inset-bottom,0px) + 12px) !important}';
+document.head.appendChild(sty);
+document.body.insertAdjacentHTML('beforeend','<div class="modal-overlay" id="aprOverlay"><div class="modal" style="color:#222"><span class="close" id="aprClose">✕</span><h3>Promotions</h3><div id="aprRev" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px"></div><details id="aprSet" style="margin-bottom:12px"><summary style="cursor:pointer;font-weight:bold;color:#0277bd;padding:6px 0">⚙️ Promotion prices (per 7 days)</summary><div id="aprPk" style="margin-top:8px"></div><button class="button" id="aprPkSave">Save prices</button></details><div class="filter-row" id="aprTabs" style="justify-content:flex-start"><div class="filter-chip active" data-t="pending">Pending</div><div class="filter-chip" data-t="active">Active</div><div class="filter-chip" data-t="expired">Expired</div><div class="filter-chip" data-t="other">Rejected</div></div><div id="aprList"></div></div></div>');
+$('aprClose').onclick=()=>$('aprOverlay').classList.remove('show');
+let tab='pending',rows=[],pays={},names={};
+function grp(r){
+ if(r.status==='pending_payment')return 'pending';
+ if(r.status==='active')return new Date(r.expires_at)>new Date()?'active':'expired';
+ if(r.status==='expired')return 'expired';
+ return 'other';
+}
+function btn(a,id,t,c){return '<button data-a="'+a+'" data-id="'+id+'" style="background:'+c+';color:#fff;border:0;border-radius:6px;padding:7px 12px;font-size:12px;font-weight:bold;margin:6px 6px 0 0">'+t+'</button>';}
+function render(){
+ const box=$('aprList');
+ const f=rows.filter(r=>grp(r)===tab);
+ if(!f.length){box.innerHTML='<p style="color:#999">None in this list.</p>';return;}
+ box.innerHTML=f.map(r=>{
+  const p=pays[r.id];
+  const pl=p?'💳 '+naira(p.amount)+' · Ref: <b>'+esc(p.reference)+'</b> · '+esc(p.status):'💳 No payment submitted';
+  let b='';
+  const g=grp(r);
+  if(g==='pending'){
+   if(p&&p.status==='submitted')b+=btn('paid',r.id,'Payment received &amp; activate','#2e7d32');
+   else if(p&&p.status==='confirmed')b+=btn('activate',r.id,'Activate','#2e7d32');
+   b+=btn('reject',r.id,'Reject','#c0392b');
+  }else if(g==='active'){
+   b+=btn('extend',r.id,'Extend +7 days','#0277bd')+btn('suspend',r.id,'Suspend','#777');
+  }else if(r.status==='suspended'){
+   b+=btn('reinstate',r.id,'Reinstate','#2e7d32');
+  }
+  return '<div style="padding:14px 0;border-bottom:1px solid #eee"><div style="font-weight:bold;font-size:15px">'+esc(r.listings&&r.listings.title||'Listing')+'</div><div style="color:#666;font-size:13px;margin:2px 0">Seller: '+esc(names[r.seller_id]||'')+'</div><div style="font-size:13px">'+esc(NAMES[r.package_id]||r.package_id)+' · '+r.days+' day(s) · '+naira(r.amount)+'</div><div style="font-size:12.5px;color:#666;margin:2px 0">'+(r.starts_at?'Starts '+dt(r.starts_at)+' · Expires '+dt(r.expires_at):'Requested '+dt(r.created_at))+'</div><div style="background:#f7f7f7;border-radius:8px;padding:6px 10px;font-size:12.5px;margin-top:6px">'+pl+'</div>'+b+'</div>';
+ }).join('');
+}
+async function revenue(){
+ const{data}=await supabaseClient.from('payments').select('amount,confirmed_at').eq('purpose','promotion').eq('status','confirmed');
+ const now=Date.now(),day=86400000;let t=0,w=0,m=0,all=0;
+ (data||[]).forEach(p=>{
+  const a=Number(p.amount)||0;all+=a;
+  const age=now-new Date(p.confirmed_at||0).getTime();
+  if(age<day)t+=a;if(age<7*day)w+=a;if(age<30*day)m+=a;
+ });
+ const c=(l,v)=>'<div style="background:#f7f7f7;border-radius:8px;padding:8px 10px"><div style="font-size:12px;color:#666">'+l+'</div><div style="font-weight:bold;color:#ff6b00">'+naira(v)+'</div></div>';
+ $('aprRev').innerHTML=c('Last 24 hours',t)+c('Last 7 days',w)+c('Last 30 days',m)+c('Total promotion revenue',all);
+}
+async function load(){
+ $('aprList').innerHTML='<p style="color:#999">Loading...</p>';
+ const{data,error}=await supabaseClient.from('promotions').select('*, listings(title)').order('created_at',{ascending:false}).limit(200);
+ if(error){$('aprList').innerHTML='<p style="color:#c0392b">'+esc(error.message)+'</p>';return;}
+ rows=data||[];pays={};
+ if(rows.length){
+  const{data:py}=await supabaseClient.from('payments').select('id,related_id,amount,reference,status').eq('purpose','promotion').in('related_id',rows.map(r=>r.id));
+  (py||[]).forEach(p=>{pays[p.related_id]=p;});
+ }
+ for(const uid of [...new Set(rows.map(r=>r.seller_id))]){names[uid]=await getProfileName(uid);}
+ render();revenue();
+}
+async function loadPk(){
+ const{data}=await supabaseClient.from('promotion_packages').select('id,name,price_7d').order('sort_order');
+ $('aprPk').innerHTML=(data||[]).map(p=>'<label>'+esc(p.name)+' (₦ per 7 days)</label><input type="number" inputmode="numeric" data-pk="'+p.id+'" value="'+p.price_7d+'">').join('');
+}
+$('aprPkSave').onclick=async()=>{
+ const b=$('aprPkSave');b.disabled=true;
+ for(const i of document.querySelectorAll('#aprPk input[data-pk]')){
+  const v=parseFloat(i.value);
+  if(isNaN(v)||v<0){alert('Enter valid prices.');b.disabled=false;return;}
+  const{error}=await supabaseClient.from('promotion_packages').update({price_7d:v}).eq('id',i.dataset.pk);
+  if(error){alert('Could not save: '+error.message);b.disabled=false;return;}
+ }
+ b.disabled=false;alert('Prices saved. New requests will use them.');
+};
+$('aprTabs').onclick=e=>{
+ const c=e.target.closest('.filter-chip');if(!c)return;
+ tab=c.dataset.t;
+ document.querySelectorAll('#aprTabs .filter-chip').forEach(x=>x.classList.toggle('active',x===c));
+ render();
+};
+async function note(r,title,msg){try{await supabaseClient.from('notifications').insert({user_id:r.seller_id,title,message:msg});}catch(x){}}
+$('aprList').onclick=async e=>{
+ const b=e.target.closest('button[data-a]');if(!b)return;
+ const r=rows.find(x=>x.id===b.dataset.id);if(!r)return;
+ const a=b.dataset.a,name=r.listings&&r.listings.title||'this listing';
+ b.disabled=true;
+ let err=null;
+ if(a==='paid'){
+  if(!confirm('Have you checked your bank and received '+naira(r.amount)+'? This will start the promotion for "'+name+'".')){b.disabled=false;return;}
+  const{data:{session}}=await supabaseClient.auth.getSession();
+  const p=pays[r.id];
+  ({error:err}=await supabaseClient.from('payments').update({status:'confirmed',confirmed_by:session.user.id,confirmed_at:new Date().toISOString()}).eq('id',p.id));
+  if(!err)({error:err}=await supabaseClient.rpc('activate_promotion',{p_id:r.id}));
+  if(!err)note(r,'Your promotion is live','Payment confirmed. "'+name+'" is now promoted.');
+ }else if(a==='activate'){
+  ({error:err}=await supabaseClient.rpc('activate_promotion',{p_id:r.id}));
+  if(!err)note(r,'Your promotion is live','"'+name+'" is now promoted.');
+ }else if(a==='reject'){
+  if(!confirm('Reject the promotion for "'+name+'"? If the seller already paid, you must refund them yourself.')){b.disabled=false;return;}
+  ({error:err}=await supabaseClient.from('promotions').update({status:'rejected'}).eq('id',r.id));
+  if(!err)note(r,'Promotion not approved','We could not approve the promotion for "'+name+'". Contact support if you paid.');
+ }else if(a==='suspend'){
+  if(!confirm('Suspend this promotion?')){b.disabled=false;return;}
+  ({error:err}=await supabaseClient.from('promotions').update({status:'suspended'}).eq('id',r.id));
+ }else if(a==='reinstate'){
+  ({error:err}=await supabaseClient.from('promotions').update({status:'active'}).eq('id',r.id));
+ }else if(a==='extend'){
+  const nx=new Date(new Date(r.expires_at).getTime()+7*86400000).toISOString();
+  ({error:err}=await supabaseClient.from('promotions').update({expires_at:nx}).eq('id',r.id));
+ }
+ if(err){alert('Could not update: '+err.message);b.disabled=false;return;}
+ load();
+};
+const anchor=$('bqVerBtn')||document.querySelector('#adminOverlay .modal h3');
+if(anchor){
+ const html='<button class="button" id="bqPromoAdmin" style="margin-bottom:12px;background:#8e24aa">🚀 Promotions &amp; revenue</button>';
+ if(anchor.id==='bqVerBtn')anchor.insertAdjacentHTML('afterend',html);else anchor.insertAdjacentHTML('afterend',html);
+ $('bqPromoAdmin').onclick=()=>{$('aprOverlay').classList.add('show');load();loadPk();};
+}
+})();
