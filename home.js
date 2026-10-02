@@ -458,3 +458,69 @@ new MutationObserver(()=>{
  }
 }).observe($('detailContent'),{childList:true});
 })();
+(function(){
+const $=id=>document.getElementById(id);
+const sel=$('profileState');
+if(!sel)return;
+sel.insertAdjacentHTML('afterend','<label>Account type</label><select id="profileType"><option value="personal">Personal seller</option><option value="business">Business</option></select><div id="profileBizBox" style="display:none"><label>Business name</label><input type="text" id="profileBizName" placeholder="e.g. Ada Fashion Store"><label>About your business</label><textarea id="profileBizDesc" placeholder="What you sell, where you are, opening hours"></textarea><label>Logo or profile photo</label><div style="display:flex;align-items:center;gap:12px;margin-bottom:12px"><img id="profileLogoPrev" alt="" style="width:56px;height:56px;border-radius:50%;object-fit:cover;background:#eee;display:none"><input type="file" id="profileLogo" accept="image/*" style="margin-bottom:0;flex:1;min-width:0"></div><p id="profileVerifyLine" style="font-size:13px;margin-bottom:10px"></p><button class="button" id="profileVerifyBtn" style="background:#0277bd;margin-bottom:12px;display:none">Request verification</button></div><label style="display:flex;align-items:center;gap:8px"><input type="checkbox" id="profileShowPhone" style="width:auto;margin:0"> Show my phone number on my seller page</label><div style="height:12px"></div>');
+let curStatus='none';
+function toggle(){$('profileBizBox').style.display=$('profileType').value==='business'?'block':'none';}
+$('profileType').onchange=toggle;
+function verifyUI(){
+ const map={none:'Not verified yet',pending:'⏳ Verification requested. We will review it soon.',verified:'✅ Verified business',rejected:'Verification was not approved. Update your details and request again.'};
+ $('profileVerifyLine').textContent='Status: '+(map[curStatus]||map.none);
+ $('profileVerifyBtn').style.display=(curStatus==='none'||curStatus==='rejected')?'block':'none';
+}
+function shrink(file){return new Promise(res=>{const img=new Image(),u=URL.createObjectURL(file);img.onload=()=>{const r=Math.min(1,512/Math.max(img.width,img.height));const c=document.createElement('canvas');c.width=Math.round(img.width*r);c.height=Math.round(img.height*r);c.getContext('2d').drawImage(img,0,0,c.width,c.height);URL.revokeObjectURL(u);c.toBlob(b=>res(b||file),'image/jpeg',0.85);};img.onerror=()=>{URL.revokeObjectURL(u);res(file);};img.src=u;});}
+$('profileLogo').onchange=()=>{const f=$('profileLogo').files[0];if(f){$('profileLogoPrev').src=URL.createObjectURL(f);$('profileLogoPrev').style.display='block';}};
+const origOpen=window.openProfile;
+window.openProfile=async function(){
+ await origOpen.apply(this,arguments);
+ const{data:{session}}=await supabaseClient.auth.getSession();
+ if(!session)return;
+ const{data:p}=await supabaseClient.from('profiles').select('account_type,business_name,business_description,logo_url,show_phone,verification_status').eq('id',session.user.id).single();
+ if(!p)return;
+ $('profileType').value=p.account_type||'personal';
+ $('profileBizName').value=p.business_name||'';
+ $('profileBizDesc').value=p.business_description||'';
+ $('profileShowPhone').checked=!!p.show_phone;
+ $('profileLogo').value='';
+ if(p.logo_url){$('profileLogoPrev').src=p.logo_url;$('profileLogoPrev').style.display='block';}else{$('profileLogoPrev').style.display='none';}
+ curStatus=p.verification_status||'none';
+ toggle();verifyUI();
+};
+const origSave=window.saveProfile;
+window.saveProfile=async function(){
+ const{data:{session}}=await supabaseClient.auth.getSession();
+ if(!session)return;
+ if(!$('profileName').value.trim())return origSave.apply(this,arguments);
+ const err=$('profileError');
+ err.style.display='none';
+ const type=$('profileType').value;
+ const biz=$('profileBizName').value.trim();
+ if(type==='business'&&!biz){err.textContent='Enter your business name.';err.style.display='block';return;}
+ const upd={account_type:type,business_name:biz||null,business_description:$('profileBizDesc').value.trim()||null,show_phone:$('profileShowPhone').checked};
+ const f=$('profileLogo').files[0];
+ if(f){
+  const blob=await shrink(f);
+  const path=session.user.id+'/logo-'+Date.now()+'.jpg';
+  const{error:ue}=await supabaseClient.storage.from('business-logos').upload(path,blob,{contentType:'image/jpeg'});
+  if(ue){err.textContent='Logo upload failed: '+ue.message;err.style.display='block';return;}
+  upd.logo_url=supabaseClient.storage.from('business-logos').getPublicUrl(path).data.publicUrl;
+ }
+ const{error}=await supabaseClient.from('profiles').update(upd).eq('id',session.user.id);
+ if(error){err.textContent=error.message;err.style.display='block';return;}
+ return origSave.apply(this,arguments);
+};
+$('profileVerifyBtn').onclick=async()=>{
+ const{data:{session}}=await supabaseClient.auth.getSession();
+ if(!session)return;
+ const{data:p}=await supabaseClient.from('profiles').select('business_name,account_type').eq('id',session.user.id).single();
+ if(!p||p.account_type!=='business'||!p.business_name){alert('Save your business details first (account type Business and a business name), then request verification.');return;}
+ if(!confirm('Request verification for '+p.business_name+'? Our team will review your business.'))return;
+ const{error}=await supabaseClient.from('profiles').update({verification_status:'pending'}).eq('id',session.user.id);
+ if(error){alert('Could not send request: '+error.message);return;}
+ curStatus='pending';verifyUI();
+ alert('Verification requested. We will review it.');
+};
+})();
