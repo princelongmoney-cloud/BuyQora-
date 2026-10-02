@@ -962,3 +962,71 @@ if(anchor){
  $('bqPromoAdmin').onclick=()=>{$('aprOverlay').classList.add('show');load();loadPk();};
 }
 })();
+(function(){
+const $=id=>document.getElementById(id);
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const LBL={basic:['Promoted','#0277bd'],featured:['Featured','#ff6b00'],premium:['Premium','#8e24aa'],top:['Sponsored','#c62828']};
+const RANK={basic:1,featured:2,premium:3,top:4};
+let promoMap={};
+
+async function loadPromos(){
+ try{
+  const{data}=await supabaseClient.from('promotions').select('listing_id,package_id,expires_at').eq('status','active').gt('expires_at',new Date().toISOString());
+  const m={};
+  (data||[]).forEach(p=>{const c=m[p.listing_id];if(!c||RANK[p.package_id]>RANK[c.package_id])m[p.listing_id]=p;});
+  promoMap=m;
+ }catch(e){}
+}
+function rankOf(l){
+ const p=promoMap[l.id];if(!p)return 0;
+ if(p.package_id==='basic'&&activeCategory==='all'&&!$('bqQ').value.trim())return 0;
+ return RANK[p.package_id]||0;
+}
+function tag(pk,style){
+ const t=LBL[pk]||LBL.basic;
+ return '<b class="bqPromoTag" style="position:absolute;'+style+';background:'+t[1]+';color:#fff;font-size:10px;padding:2px 7px;border-radius:999px;z-index:3">'+t[0]+'</b>';
+}
+
+const rec=$('bqRec');
+const fh=document.createElement('h3');fh.className='bq-h';fh.id='bqFeatH';fh.textContent='⭐ Featured';
+const fr=document.createElement('div');fr.className='bq-rec';fr.id='bqFeat';
+if(rec){rec.after(fr);rec.after(fh);}
+fr.onclick=e=>{
+ const d=e.target.closest('[data-id]');if(!d)return;
+ const l=currentListings.find(x=>String(x.id)===d.dataset.id);
+ if(l)openDetail(l);
+};
+function renderFeatured(){
+ const items=currentListings.filter(l=>{const p=promoMap[l.id];return p&&(p.package_id==='featured'||p.package_id==='premium'||p.package_id==='top');})
+  .sort((a,b)=>RANK[promoMap[b.id].package_id]-RANK[promoMap[a.id].package_id]).slice(0,10);
+ fh.style.display=fr.style.display=items.length?'':'none';
+ fr.innerHTML=items.map(l=>'<div data-id="'+l.id+'" style="position:relative">'+(l.image_url?'<img src="'+esc(l.image_url)+'" alt="" loading="lazy">':'<img alt="" style="background:#eee">')+'<span>'+esc(l.title)+'</span>'+tag(promoMap[l.id].package_id,'top:6px;left:6px')+'</div>').join('');
+}
+
+const prev=window.renderListings;
+window.renderListings=function(){
+ prev.apply(this,arguments);
+ try{
+  const grid=$('productGrid');
+  const sortVal=$('bqSort')?$('bqSort').value:'new';
+  const items=[...grid.querySelectorAll('.product[data-idx]')].map(c=>({c,l:currentFilteredListings[c.dataset.idx]})).filter(x=>x.l);
+  if(sortVal==='new')items.sort((a,b)=>rankOf(b.l)-rankOf(a.l));
+  items.forEach((x,i)=>{
+   x.c.dataset.idx=i;grid.appendChild(x.c);
+   const p=promoMap[x.l.id];
+   const box=x.c.querySelector('.product-image');
+   if(p&&box&&!box.querySelector('.bqPromoTag'))box.insertAdjacentHTML('beforeend',tag(p.package_id,'left:6px;bottom:6px'));
+  });
+  currentFilteredListings=items.map(x=>x.l);
+  renderFeatured();
+ }catch(e){}
+};
+
+const ol=window.loadListings;
+if(ol)window.loadListings=async function(){
+ await ol.apply(this,arguments);
+ await loadPromos();
+ window.renderListings();
+};
+loadPromos().then(()=>window.renderListings());
+})();
