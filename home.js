@@ -524,3 +524,53 @@ $('profileVerifyBtn').onclick=async()=>{
  alert('Verification requested. We will review it.');
 };
 })();
+(function(){
+const $=id=>document.getElementById(id);
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+document.body.insertAdjacentHTML('beforeend','<div class="modal-overlay" id="verOverlay"><div class="modal" style="color:#222;max-width:650px"><span class="close" id="verClose">✕</span><h3>Verification requests</h3><div class="filter-row" id="verTabs" style="justify-content:flex-start"><div class="filter-chip active" data-s="pending">Pending</div><div class="filter-chip" data-s="verified">Verified</div><div class="filter-chip" data-s="rejected">Rejected</div></div><div id="verList"></div></div></div>');
+let tab='pending',rows=[];
+$('verClose').onclick=()=>$('verOverlay').classList.remove('show');
+function btn(a,id,t,c){return '<button data-a="'+a+'" data-id="'+id+'" style="background:'+c+';color:#fff;border:0;border-radius:6px;padding:7px 12px;font-size:12px;font-weight:bold;margin-right:6px">'+t+'</button>';}
+async function load(){
+ const box=$('verList');
+ box.innerHTML='<p style="color:#999">Loading...</p>';
+ const{data,error}=await supabaseClient.from('profiles').select('id,full_name,phone,state,business_name,business_description,logo_url,verification_status').eq('verification_status',tab).order('full_name');
+ if(error){box.innerHTML='<p style="color:#c0392b">'+esc(error.message)+'</p>';return;}
+ rows=data||[];
+ if(!rows.length){box.innerHTML='<p style="color:#999">None in this list.</p>';return;}
+ box.innerHTML=rows.map(p=>{
+  let b='';
+  if(tab==='pending')b=btn('approve',p.id,'Approve','#2e7d32')+btn('reject',p.id,'Reject','#c0392b');
+  else if(tab==='verified')b=btn('revoke',p.id,'Revoke','#777');
+  else b=btn('approve',p.id,'Approve','#2e7d32');
+  return '<div style="display:flex;gap:12px;padding:14px 0;border-bottom:1px solid #eee"><div style="width:56px;height:56px;flex:0 0 56px;border-radius:50%;background:#eee;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:24px">'+(p.logo_url?'<img src="'+esc(p.logo_url)+'" style="width:100%;height:100%;object-fit:cover">':'🏪')+'</div><div style="flex:1;min-width:0"><div style="font-weight:bold;font-size:15px">'+esc(p.business_name||'(no business name)')+'</div><div style="color:#666;font-size:13px;margin:2px 0">Owner: '+esc(p.full_name||'')+' · '+esc(p.state||'')+(p.phone?' · '+esc(p.phone):'')+'</div><div style="font-size:13px;margin-bottom:8px">'+esc(p.business_description||'No description')+'</div>'+b+'</div></div>';
+ }).join('');
+}
+$('verTabs').onclick=e=>{
+ const c=e.target.closest('.filter-chip');
+ if(!c)return;
+ tab=c.dataset.s;
+ document.querySelectorAll('#verTabs .filter-chip').forEach(x=>x.classList.toggle('active',x===c));
+ load();
+};
+$('verList').onclick=async e=>{
+ const b=e.target.closest('button[data-a]');
+ if(!b)return;
+ const a=b.dataset.a,id=b.dataset.id;
+ const p=rows.find(r=>r.id===id);
+ const name=p?(p.business_name||p.full_name):'this business';
+ const cfg={approve:['verified','Approve verification for '+name+'?','Your business is verified','Congratulations! Your business is now verified on BuyQora.'],reject:['rejected','Reject verification for '+name+'?','Verification not approved','We could not verify your business yet. Update your business details and request again.'],revoke:['none','Remove verification from '+name+'?','Verification removed','Your verified status was removed. Contact support if you have questions.']}[a];
+ if(!cfg||!confirm(cfg[1]))return;
+ b.disabled=true;
+ const upd={verification_status:cfg[0],verified_at:a==='approve'?new Date().toISOString():null};
+ const{error}=await supabaseClient.from('profiles').update(upd).eq('id',id);
+ if(error){alert('Could not update: '+error.message);b.disabled=false;return;}
+ try{await supabaseClient.from('notifications').insert({user_id:id,title:cfg[2],message:cfg[3]});}catch(x){}
+ load();
+};
+const ao=document.querySelector('#adminOverlay .modal h3');
+if(ao){
+ ao.insertAdjacentHTML('afterend','<button class="button" id="bqVerBtn" style="margin-bottom:12px;background:#0277bd">✅ Verification requests</button>');
+ $('bqVerBtn').onclick=()=>{$('verOverlay').classList.add('show');load();};
+}
+})();
