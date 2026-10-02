@@ -411,3 +411,50 @@ const s=document.createElement('style');
 s.textContent='.modal{color:#222 !important} #inboxList .inbox-row>div:first-child{color:#222 !important}';
 document.head.appendChild(s);
 })();
+(function(){
+const $=id=>document.getElementById(id);
+const st=document.createElement('style');
+st.textContent='.detail-image{height:300px !important} #dMainImg{cursor:zoom-in} #bqViewer button{position:absolute;background:rgba(255,255,255,.2);color:#fff;border:0;border-radius:999px;width:46px;height:46px;font-size:26px;line-height:1;cursor:pointer;z-index:2} #bqVClose{top:16px;right:16px} #bqVPrev{left:10px;top:50%;transform:translateY(-50%)} #bqVNext{right:10px;top:50%;transform:translateY(-50%)}';
+document.head.appendChild(st);
+document.body.insertAdjacentHTML('beforeend','<div id="bqViewer" style="display:none;position:fixed;inset:0;background:#000;z-index:300;align-items:center;justify-content:center"><button id="bqVClose">✕</button><button id="bqVPrev">‹</button><img id="bqVImg" alt="" style="max-width:100%;max-height:100%;object-fit:contain"><button id="bqVNext">›</button><div id="bqVCount" style="position:absolute;bottom:22px;left:0;right:0;text-align:center;color:#fff;font-size:14px"></div></div>');
+let list=[],idx=0;
+function show(i){
+ if(!list.length)return;
+ idx=(i+list.length)%list.length;
+ $('bqVImg').src=list[idx];
+ $('bqVCount').textContent=list.length>1?(idx+1)+' / '+list.length:'';
+ const m=list.length>1?'block':'none';
+ $('bqVPrev').style.display=m;
+ $('bqVNext').style.display=m;
+}
+function openV(){
+ const l=currentDetailListing;
+ if(!l)return;
+ list=l.images&&l.images.length?l.images:(l.image_url?[l.image_url]:[]);
+ if(!list.length)return;
+ const cur=$('dMainImg')?$('dMainImg').src:'';
+ let i=list.findIndex(u=>new URL(u,location.href).href===cur);
+ if(i<0)i=0;
+ $('bqViewer').style.display='flex';
+ show(i);
+}
+function closeV(){$('bqViewer').style.display='none';}
+$('bqVClose').onclick=closeV;
+$('bqVPrev').onclick=()=>show(idx-1);
+$('bqVNext').onclick=()=>show(idx+1);
+let sx=0;
+$('bqViewer').addEventListener('touchstart',e=>{sx=e.touches[0].clientX;},{passive:true});
+$('bqViewer').addEventListener('touchend',e=>{
+ const dx=e.changedTouches[0].clientX-sx;
+ if(Math.abs(dx)>60&&list.length>1)show(idx+(dx<0?1:-1));
+},{passive:true});
+$('detailContent').addEventListener('click',e=>{
+ if(e.target.id==='dMainImg')openV();
+});
+new MutationObserver(()=>{
+ const box=document.querySelector('#detailContent .detail-image');
+ if(box&&!$('bqHint')&&$('dMainImg')){
+  box.insertAdjacentHTML('afterend','<p id="bqHint" style="font-size:12px;color:#999;margin:-6px 0 8px;text-align:center">🔍 Tap the photo to view it full size</p>');
+ }
+}).observe($('detailContent'),{childList:true});
+})();
