@@ -143,3 +143,17 @@ html, body {
   flex: 1;
   overflow-y: auto;
 }
+.modal-overlay#adminOverlay > .modal,
+.modal-overlay#verOverlay > .modal {
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  max-width: none !important;
+  max-height: none !important;
+  margin: 0 !important;
+  border-radius: 0 !important;
+  box-sizing: border-box !important;
+  overflow-y: auto !important;
+  padding: calc(env(safe-area-inset-top, 0px) + 12px) 16px calc(env(safe-area-inset-bottom, 0px) + 12px) !important;
+}
