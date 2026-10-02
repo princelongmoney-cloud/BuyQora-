@@ -574,3 +574,143 @@ if(ao){
  $('bqVerBtn').onclick=()=>{$('verOverlay').classList.add('show');load();};
 }
 })();
+(function(){
+const $=id=>document.getElementById(id);
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const naira=n=>'₦'+Number(n||0).toLocaleString();
+async function getSettings(){
+ const{data}=await supabaseClient.from('app_settings').select('key,value');
+ const o={};(data||[]).forEach(r=>{o[r.key]=r.value;});return o;
+}
+async function setKey(k,v){
+ const{data,error}=await supabaseClient.from('app_settings').update({value:String(v),updated_at:new Date().toISOString()}).eq('key',k).select();
+ if(error)return error;
+ if(!data||!data.length){const r=await supabaseClient.from('app_settings').insert({key:k,value:String(v)});return r.error;}
+ return null;
+}
+
+/* ---------- SELLER: payment step ---------- */
+document.body.insertAdjacentHTML('beforeend','<div class="modal-overlay" id="payOverlay"><div class="modal" style="color:#222"><span class="close" id="payClose">✕</span><h3>Verification payment</h3><p class="error" id="payError"></p><div id="payInfo" style="font-size:14px;line-height:1.6;margin-bottom:12px"></div><label>Payment reference</label><input type="text" id="payRef" placeholder="Sender name or transaction ID"><button class="button" id="paySubmit">I have paid, submit request</button></div></div>');
+$('payClose').onclick=()=>$('payOverlay').classList.remove('show');
+let pay={price:0,months:'12',instr:''};
+$('profileVerifyBtn').onclick=async()=>{
+ const{data:{session}}=await supabaseClient.auth.getSession();
+ if(!session)return;
+ const{data:p}=await supabaseClient.from('profiles').select('business_name,account_type').eq('id',session.user.id).single();
+ if(!p||p.account_type!=='business'||!p.business_name){alert('Save your business details first (account type Business and a business name), then request verification.');return;}
+ const s=await getSettings();
+ pay={price:parseFloat(s.verification_price)||0,months:s.verification_months||'12',instr:(s.payment_instructions||'').trim()};
+ if(pay.price<=0){
+  if(!confirm('Request verification for '+p.business_name+'? Our team will review your business.'))return;
+  const{error}=await supabaseClient.from('profiles').update({verification_status:'pending'}).eq('id',session.user.id);
+  if(error){alert('Could not send request: '+error.message);return;}
+  alert('Verification requested. We will review it.');
+  if(window.openProfile)window.openProfile();
+  return;
+ }
+ $('payError').style.display='none';
+ $('payInfo').innerHTML='<p><b>Price:</b> '+naira(pay.price)+' for '+esc(pay.months)+' months</p><p style="margin-top:8px"><b>Pay by bank transfer to:</b></p><p style="white-space:pre-wrap;background:#f7f7f7;border-radius:8px;padding:10px">'+(pay.instr?esc(pay.instr):'Payment details are not set up yet. Please contact support.')+'</p><p style="margin-top:8px;color:#666;font-size:13px">After paying, enter your payment reference below. Verification does not guarantee a risk-free transaction.</p>';
+ $('payOverlay').classList.add('show');
+};
+$('paySubmit').onclick=async()=>{
+ const err=$('payError');err.style.display='none';
+ const ref=$('payRef').value.trim();
+ if(!pay.instr){err.textContent='Payment details are not set up yet. Please contact support.';err.style.display='block';return;}
+ if(ref.length<3){err.textContent='Enter your payment reference (sender name or transaction ID).';err.style.display='block';return;}
+ const b=$('paySubmit');b.disabled=true;
+ const{data:{session}}=await supabaseClient.auth.getSession();
+ if(!session){b.disabled=false;return;}
+ const{error:pe}=await supabaseClient.from('payments').insert({user_id:session.user.id,purpose:'verification',related_id:session.user.id,amount:pay.price,reference:ref,status:'submitted'});
+ if(pe){err.textContent='Could not record payment: '+pe.message;err.style.display='block';b.disabled=false;return;}
+ const{error:ue}=await supabaseClient.from('profiles').update({verification_status:'pending'}).eq('id',session.user.id);
+ b.disabled=false;
+ if(ue){err.textContent='Payment saved, but the request failed: '+ue.message;err.style.display='block';return;}
+ $('payOverlay').classList.remove('show');$('payRef').value='';
+ alert('Request sent. We will check your payment and review your business.');
+ if(window.openProfile)window.openProfile();
+};
+
+/* ---------- ADMIN: settings ---------- */
+const h=document.querySelector('#verOverlay .modal h3');
+if(h){
+ h.insertAdjacentHTML('afterend','<details id="verSet" style="margin-bottom:12px"><summary style="cursor:pointer;font-weight:bold;color:#0277bd;padding:6px 0">⚙️ Verification price &amp; payment details</summary><label style="margin-top:8px">Price (₦, 0 = free)</label><input type="number" id="verSetPrice" inputmode="numeric"><label>Verified for (months)</label><input type="number" id="verSetMonths" inputmode="numeric"><label>Payment instructions (bank, account name, account number)</label><textarea id="verSetInstr" placeholder="Bank: ...&#10;Account name: ...&#10;Account number: ..."></textarea><button class="button" id="verSetSave">Save settings</button></details>');
+ async function loadSet(){
+  const s=await getSettings();
+  $('verSetPrice').value=s.verification_price||'0';
+  $('verSetMonths').value=s.verification_months||'12';
+  $('verSetInstr').value=s.payment_instructions||'';
+ }
+ const vb=$('bqVerBtn');
+ if(vb){const old=vb.onclick;vb.onclick=function(){if(old)old.apply(this,arguments);loadSet();};}
+ $('verSetSave').onclick=async()=>{
+  const price=parseFloat(String($('verSetPrice').value).replace(/[^0-9.]/g,''));
+  const months=parseInt($('verSetMonths').value,10);
+  const instr=$('verSetInstr').value.trim();
+  if(isNaN(price)||price<0){alert('Enter a valid price (0 for free).');return;}
+  if(!(months>0)){alert('Enter the number of months.');return;}
+  if(price>0&&!instr&&!confirm('Price is above 0 but payment instructions are empty. Save anyway?'))return;
+  const b=$('verSetSave');b.disabled=true;
+  for(const[k,v]of[['verification_price',price],['verification_months',months],['payment_instructions',instr]]){
+   const er=await setKey(k,v);
+   if(er){alert('Could not save: '+er.message);b.disabled=false;return;}
+  }
+  b.disabled=false;alert('Settings saved.');
+ };
+}
+
+/* ---------- ADMIN: payment check on each request ---------- */
+const list=$('verList');
+let busy=false;
+async function decorate(){
+ if(busy)return;
+ const todo=[];
+ list.querySelectorAll('button[data-a][data-id]').forEach(b=>{
+  const par=b.parentElement;
+  if(!par.querySelector('.bqPay')){
+   const d=document.createElement('div');
+   d.className='bqPay';d.dataset.uid=b.dataset.id;d.dataset.need='1';
+   d.style.cssText='background:#f7f7f7;border-radius:8px;padding:8px 10px;font-size:12.5px;margin-bottom:8px';
+   d.textContent='Checking payment...';
+   par.insertBefore(d,b);todo.push(d);
+  }
+ });
+ if(!todo.length)return;
+ busy=true;
+ try{
+  const s=await getSettings();
+  const price=parseFloat(s.verification_price)||0;
+  const uids=[...new Set(todo.map(d=>d.dataset.uid))];
+  const{data}=await supabaseClient.from('payments').select('id,user_id,amount,reference,status,created_at').eq('purpose','verification').in('user_id',uids).order('created_at',{ascending:false});
+  const latest={};(data||[]).forEach(p=>{if(!latest[p.user_id])latest[p.user_id]=p;});
+  todo.forEach(d=>{
+   const p=latest[d.dataset.uid];
+   d.dataset.need=(price>0&&!(p&&p.status==='confirmed'))?'1':'0';
+   if(!p){d.innerHTML='💳 No payment submitted'+(price>0?' (required: '+naira(price)+')':'');}
+   else{d.innerHTML='💳 '+naira(p.amount)+' · Ref: <b>'+esc(p.reference)+'</b> · '+esc(p.status)+(p.status==='submitted'?' <button data-pay="'+p.id+'" style="background:#2e7d32;color:#fff;border:0;border-radius:6px;padding:5px 10px;font-size:12px;font-weight:bold;margin-left:6px">Payment received</button>':'');}
+  });
+ }finally{busy=false;}
+ decorate();
+}
+new MutationObserver(()=>decorate()).observe(list,{childList:true,subtree:true});
+list.addEventListener('click',async e=>{
+ const pb=e.target.closest('button[data-pay]');
+ if(pb){
+  e.stopImmediatePropagation();
+  pb.disabled=true;
+  const{data:{session}}=await supabaseClient.auth.getSession();
+  const{error}=await supabaseClient.from('payments').update({status:'confirmed',confirmed_by:session.user.id,confirmed_at:new Date().toISOString()}).eq('id',pb.dataset.pay);
+  if(error){alert('Could not confirm: '+error.message);pb.disabled=false;return;}
+  const d=pb.closest('.bqPay');if(d)d.remove();
+  decorate();
+  return;
+ }
+ const ab=e.target.closest('button[data-a="approve"]');
+ if(ab){
+  const d=ab.parentElement.querySelector('.bqPay');
+  if(d&&d.dataset.need==='1'){
+   e.stopImmediatePropagation();
+   alert('Confirm the payment first: check your bank, then tap "Payment received".');
+  }
+ }
+},true);
+})();
