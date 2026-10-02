@@ -174,9 +174,3 @@ html, body {
 #aprOverlay {
   z-index: 10000 !important;
 }
-(function(){
-  ['aprOverlay','adminDetailOverlay'].forEach(function(id){
-    var el=document.getElementById(id);
-    if(el) el.style.zIndex='10000';
-  });
-})();
