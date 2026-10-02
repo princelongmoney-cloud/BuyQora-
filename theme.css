@@ -119,3 +119,27 @@ html, body {
   width: 100%;
   border-radius: 0 !important;
   }
+#inboxOverlay .modal,
+#chatOverlay .modal {
+  position: fixed !important;
+  top: 0; left: 0; right: 0; bottom: 0;
+  width: 100% !important;
+  height: 100% !important;
+  max-width: none !important;
+  max-height: none !important;
+  margin: 0 !important;
+  border-radius: 0 !important;
+  box-sizing: border-box;
+  overflow-y: auto;
+  padding-top: calc(env(safe-area-inset-top, 0px) + 12px);
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 12px);
+}
+#chatOverlay .modal {
+  display: flex !important;
+  flex-direction: column;
+  overflow-y: hidden;
+}
+#chatOverlay #chatMessages {
+  flex: 1;
+  overflow-y: auto;
+}
