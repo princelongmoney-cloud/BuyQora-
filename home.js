@@ -406,3 +406,8 @@ if(lo){
  $('bqBlocked').onclick=()=>{closeProfile();openBlocked();};
 }
 })();
+(function(){
+const s=document.createElement('style');
+s.textContent='.modal{color:#222 !important} #inboxList .inbox-row>div:first-child{color:#222 !important}';
+document.head.appendChild(s);
+})();
