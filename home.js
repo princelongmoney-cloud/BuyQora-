@@ -714,3 +714,128 @@ list.addEventListener('click',async e=>{
  }
 },true);
 })();
+(function(){
+const $=id=>document.getElementById(id);
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const naira=n=>'₦'+Number(n||0).toLocaleString();
+const NAMES={basic:'Basic Boost',featured:'Featured',premium:'Premium',top:'Top Advert'};
+document.body.insertAdjacentHTML('beforeend','<div class="modal-overlay" id="promoOverlay"><div class="modal" style="color:#222"><span class="close" id="promoClose">✕</span><h3>Promote this listing</h3><p id="promoTitle" style="font-weight:bold;margin-bottom:10px"></p><p class="error" id="promoError"></p><label>Package</label><div id="promoPkgs"></div><label>Duration</label><select id="promoDays"></select><div id="promoTotal" style="font-size:16px;font-weight:bold;color:#ff6b00;margin:4px 0 12px"></div><div id="promoPay" style="font-size:14px;line-height:1.6"></div><label>Payment reference</label><input type="text" id="promoRef" placeholder="Sender name or transaction ID"><button class="button" id="promoSubmit">I have paid, submit promotion</button></div></div>');
+$('promoClose').onclick=()=>$('promoOverlay').classList.remove('show');
+const st={listing:null,pkgs:[],durs:[],pkg:null,instr:''};
+
+function total(){
+ const p=st.pkgs.find(x=>x.id===st.pkg);
+ const d=st.durs.find(x=>String(x.days)===$('promoDays').value);
+ if(!p||!d)return 0;
+ return Math.round(Number(p.price_7d)*Number(d.multiplier));
+}
+function showTotal(){
+ const p=st.pkgs.find(x=>x.id===st.pkg);
+ if(!p){$('promoTotal').textContent='Choose a package';return;}
+ let t='Total: '+naira(total())+' for '+$('promoDays').value+' day(s) · shown as "'+p.label+'"';
+ if(p.id==='top')t+='\nTop Advert is reviewed by our team before it goes live. Larger campaigns may cost more.';
+ $('promoTotal').style.whiteSpace='pre-line';
+ $('promoTotal').textContent=t;
+}
+function drawPkgs(){
+ $('promoPkgs').innerHTML=st.pkgs.map(p=>'<div data-p="'+p.id+'" style="border:2px solid '+(p.id===st.pkg?'#ff6b00':'#ddd')+';border-radius:10px;padding:10px;margin-bottom:8px;cursor:pointer"><b>'+esc(p.name)+'</b><span style="float:right;color:#ff6b00;font-weight:bold">'+naira(p.price_7d)+' / 7 days</span><div style="font-size:12.5px;color:#666;margin-top:2px">'+esc(p.description||'')+'</div></div>').join('');
+}
+$('promoPkgs').onclick=e=>{const c=e.target.closest('[data-p]');if(!c)return;st.pkg=c.dataset.p;drawPkgs();showTotal();};
+$('promoDays').onchange=showTotal;
+
+async function openPromo(listingId){
+ const{data:{session}}=await supabaseClient.auth.getSession();
+ if(!session){openAuth('login');return;}
+ const err=$('promoError');err.style.display='none';
+ const[{data:l},{data:pk},{data:du},{data:se}]=await Promise.all([
+  supabaseClient.from('listings').select('id,title,status,seller_id').eq('id',listingId).single(),
+  supabaseClient.from('promotion_packages').select('*').eq('active',true).order('sort_order'),
+  supabaseClient.from('promotion_durations').select('*').eq('active',true).order('days'),
+  supabaseClient.from('app_settings').select('value').eq('key','payment_instructions').maybeSingle()
+ ]);
+ if(!l||l.seller_id!==session.user.id){alert('Listing not found.');return;}
+ if(l.status!=='active'){alert('Only live listings can be promoted.');return;}
+ if(!pk||!pk.length||!du||!du.length){alert('Promotions are not available yet. Please try again later.');return;}
+ const{data:cur}=await supabaseClient.from('promotions').select('id,status,expires_at').eq('listing_id',l.id).in('status',['active','pending_payment']).order('created_at',{ascending:false}).limit(1);
+ if(cur&&cur.length){
+  const c=cur[0];
+  if(c.status==='active'&&new Date(c.expires_at)>new Date()){alert('This listing already has an active promotion.');return;}
+  if(c.status==='pending_payment'){
+   const{data:pp}=await supabaseClient.from('payments').select('id').eq('purpose','promotion').eq('related_id',c.id).limit(1);
+   if(pp&&pp.length){alert('A promotion for this listing is already waiting for payment confirmation.');return;}
+  }
+ }
+ st.listing=l;st.pkgs=pk;st.durs=du;st.pkg=pk[0].id;st.instr=((se&&se.value)||'').trim();
+ $('promoTitle').textContent=l.title;
+ $('promoDays').innerHTML=du.map(d=>'<option value="'+d.days+'"'+(d.days===7?' selected':'')+'>'+d.days+' day'+(d.days>1?'s':'')+'</option>').join('');
+ $('promoPay').innerHTML=st.instr?'<p><b>Pay by bank transfer to:</b></p><p style="white-space:pre-wrap;background:#f7f7f7;border-radius:8px;padding:10px;margin-bottom:10px">'+esc(st.instr)+'</p>':'<p style="color:#c0392b">Payment details are not set up yet. Please contact support.</p>';
+ $('promoRef').value='';
+ drawPkgs();showTotal();
+ $('promoOverlay').classList.add('show');
+}
+
+$('promoSubmit').onclick=async()=>{
+ const err=$('promoError');err.style.display='none';
+ const ref=$('promoRef').value.trim();
+ const show=m=>{err.textContent=m;err.style.display='block';};
+ if(!st.listing||!st.pkg)return;
+ if(!st.instr)return show('Payment details are not set up yet. Please contact support.');
+ if(ref.length<3)return show('Enter your payment reference (sender name or transaction ID).');
+ const b=$('promoSubmit');b.disabled=true;b.textContent='Submitting...';
+ const reset=()=>{b.disabled=false;b.textContent='I have paid, submit promotion';};
+ const{data:{session}}=await supabaseClient.auth.getSession();
+ if(!session){reset();return;}
+ const{data:pr,error:pe}=await supabaseClient.from('promotions').insert({listing_id:st.listing.id,seller_id:session.user.id,package_id:st.pkg,days:parseInt($('promoDays').value,10),status:'pending_payment'}).select('id,amount').single();
+ if(pe){reset();return show('Could not create promotion: '+pe.message);}
+ const{error:ye}=await supabaseClient.from('payments').insert({user_id:session.user.id,purpose:'promotion',related_id:pr.id,amount:pr.amount,reference:ref,status:'submitted'});
+ reset();
+ if(ye)return show('Promotion created but the payment record failed: '+ye.message+'. Please contact support.');
+ $('promoOverlay').classList.remove('show');
+ alert('Promotion request sent. Once we confirm your payment, your promotion goes live.');
+ if(window.openMine)window.openMine();
+};
+
+async function decorate(){
+ const box=$('myList');
+ const pauseBtns=[...box.querySelectorAll('button[data-a="pause"]')].filter(b=>!b.parentElement.querySelector('[data-a="promote"]'));
+ if(!pauseBtns.length)return;
+ const ids=[];
+ pauseBtns.forEach(b=>{
+  const wrap=b.parentElement;
+  const pb=document.createElement('button');
+  pb.dataset.a='promote';pb.dataset.id=b.dataset.id;pb.textContent='🚀 Promote';
+  pb.style.cssText='background:#8e24aa;color:#fff;border:0;border-radius:6px;padding:6px 10px;font-size:12px;font-weight:bold';
+  wrap.insertBefore(pb,wrap.firstChild);
+  const line=document.createElement('div');
+  line.className='bqPromoLine';line.dataset.lid=b.dataset.id;
+  line.style.cssText='font-size:12.5px;color:#666;margin-top:6px';
+  wrap.parentElement.insertBefore(line,wrap);
+  ids.push(b.dataset.id);
+ });
+ const{data:pr}=await supabaseClient.from('promotions').select('id,listing_id,package_id,days,status,expires_at,created_at').in('listing_id',ids).order('created_at',{ascending:false});
+ if(!pr||!pr.length)return;
+ const{data:pays}=await supabaseClient.from('payments').select('related_id,status').eq('purpose','promotion').in('related_id',pr.map(x=>x.id));
+ const paid={};(pays||[]).forEach(p=>{paid[p.related_id]=p.status;});
+ const seen={};
+ pr.forEach(p=>{
+  if(seen[p.listing_id])return;seen[p.listing_id]=1;
+  const line=box.querySelector('.bqPromoLine[data-lid="'+p.listing_id+'"]');
+  if(!line)return;
+  const nm=NAMES[p.package_id]||p.package_id;
+  let t='';
+  if(p.status==='active'&&new Date(p.expires_at)>new Date())t='🚀 '+nm+' · Active · Expires '+new Date(p.expires_at).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
+  else if(p.status==='pending_payment')t='⏳ '+nm+' · '+(paid[p.id]?'Payment submitted, awaiting confirmation':'Awaiting payment');
+  else if(p.status==='active'||p.status==='expired')t='Promotion ended ('+nm+')';
+  else if(p.status==='rejected')t='Promotion not approved ('+nm+')';
+  else if(p.status==='suspended')t='Promotion suspended ('+nm+')';
+  if(t)line.textContent=t;
+ });
+}
+new MutationObserver(()=>decorate()).observe($('myList'),{childList:true,subtree:true});
+$('myList').addEventListener('click',e=>{
+ const b=e.target.closest('button[data-a="promote"]');
+ if(!b)return;
+ e.stopImmediatePropagation();
+ openPromo(b.dataset.id);
+},true);
+})();
