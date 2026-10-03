@@ -1068,3 +1068,158 @@ new MutationObserver(function(){
  }
 }).observe(document.getElementById('promoOverlay'),{attributes:true,attributeFilter:['class']});
 })();
+(function(){
+const $=id=>document.getElementById(id);
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const naira=n=>'₦'+Number(n||0).toLocaleString();
+async function cfg(){
+ const{data}=await supabaseClient.from('app_settings').select('key,value');
+ const o={};(data||[]).forEach(r=>{o[r.key]=r.value;});
+ const l=parseInt(o.free_listings,10),f=parseFloat(o.posting_fee);
+ return{lim:isNaN(l)?5:l,fee:isNaN(f)?1800:f,instr:(o.payment_instructions||'').trim()};
+}
+
+/* ---- Sell screen: remaining free listings ---- */
+const sh=document.querySelector('#sellOverlay .modal h3');
+sh.insertAdjacentHTML('afterend','<div id="quotaNote" style="font-size:13.5px;font-weight:bold;border-radius:8px;padding:8px 10px;margin-bottom:12px;background:#f7f7f7;display:none"></div>');
+async function showQuota(){
+ const n=$('quotaNote');n.style.display='none';
+ const{data:{session}}=await supabaseClient.auth.getSession();
+ if(!session)return;
+ const c=await cfg();
+ const{data:row}=await supabaseClient.from('seller_listing_counts').select('posted').eq('user_id',session.user.id).maybeSingle();
+ const left=Math.max(0,c.lim-(row?row.posted:0));
+ let t,col;
+ if(isAdmin){t='Admin: you can post without paying.';col='#0277bd';}
+ else if(left>0){t='You have '+left+' free listing'+(left>1?'s':'')+' remaining.';col='#2e7d32';}
+ else{t="You've used your "+c.lim+' free listings. Your next listing costs '+naira(c.fee)+'. It goes live after we confirm your payment.';col='#c0392b';}
+ n.textContent=t;n.style.color=col;n.style.display='block';
+}
+const oOpen=window.openSell;
+window.openSell=function(){oOpen.apply(this,arguments);showQuota();};
+
+/* ---- Seller payment screen ---- */
+document.body.insertAdjacentHTML('beforeend','<div class="modal-overlay" id="postOverlay" style="z-index:10001"><div class="modal" style="color:#222"><span class="close" id="postClose">✕</span><h3>Pay to publish your listing</h3><p id="postTitle" style="font-weight:bold;margin-bottom:8px"></p><p class="error" id="postError"></p><div id="postInfo" style="font-size:14px;line-height:1.6;margin-bottom:12px"></div><label>Payment reference</label><input type="text" id="postRef" placeholder="Sender name or transaction ID"><button class="button" id="postSubmit">I have paid, submit</button></div></div>');
+$('postClose').onclick=()=>$('postOverlay').classList.remove('show');
+const ps={id:null,fee:0,instr:''};
+async function openPostPay(id,title){
+ const err=$('postError');err.style.display='none';
+ const{data:ex}=await supabaseClient.from('payments').select('status').eq('purpose','posting').eq('related_id',id).in('status',['submitted','confirmed']).limit(1);
+ if(ex&&ex.length){alert('Payment for this listing was already submitted. Please wait for confirmation.');return;}
+ const c=await cfg();
+ ps.id=id;ps.fee=c.fee;ps.instr=c.instr;
+ $('postTitle').textContent=title||'';
+ $('postInfo').innerHTML='<p>Your listing is saved but hidden until your payment is confirmed.</p><p style="margin-top:8px"><b>Posting fee:</b> '+naira(c.fee)+'</p><p style="margin-top:8px"><b>Pay by bank transfer to:</b></p>'+(c.instr?'<p style="white-space:pre-wrap;background:#f7f7f7;border-radius:8px;padding:10px">'+esc(c.instr)+'</p>':'<p style="color:#c0392b">Payment details are not set up yet. Please contact support.</p>');
+ $('postRef').value='';
+ $('postOverlay').classList.add('show');
+}
+$('postSubmit').onclick=async()=>{
+ const err=$('postError');err.style.display='none';
+ const ref=$('postRef').value.trim();
+ const show=m=>{err.textContent=m;err.style.display='block';};
+ if(!ps.instr)return show('Payment details are not set up yet. Please contact support.');
+ if(ref.length<3)return show('Enter your payment reference (sender name or transaction ID).');
+ const b=$('postSubmit');b.disabled=true;
+ const{data:{session}}=await supabaseClient.auth.getSession();
+ if(!session){b.disabled=false;return;}
+ const{error}=await supabaseClient.from('payments').insert({user_id:session.user.id,purpose:'posting',related_id:ps.id,amount:ps.fee,reference:ref,status:'submitted'});
+ b.disabled=false;
+ if(error)return show('Could not record payment: '+error.message);
+ $('postOverlay').classList.remove('show');
+ alert('Payment submitted. Your listing goes live once we confirm it.');
+ if(window.openMine&&$('myOverlay').classList.contains('show'))window.openMine();
+};
+
+/* ---- after posting: open payment screen if the listing was held ---- */
+const oSub=window.submitListing;
+window.submitListing=async function(){
+ await oSub.apply(this,arguments);
+ try{
+  const{data:{session}}=await supabaseClient.auth.getSession();
+  if(!session)return;
+  const since=new Date(Date.now()-60000).toISOString();
+  const{data:l}=await supabaseClient.from('listings').select('id,title').eq('seller_id',session.user.id).eq('status','pending_payment').gte('created_at',since).order('created_at',{ascending:false}).limit(1);
+  if(l&&l.length){
+   const s=$('sellSuccess');s.textContent='Listing saved. Pay the posting fee to publish it.';s.style.display='block';
+   openPostPay(l[0].id,l[0].title);
+  }
+  showQuota();
+ }catch(e){}
+};
+
+/* ---- My listings: show held listings ---- */
+async function decoratePend(){
+ const box=$('myList');
+ const rows=[...box.children].filter(r=>r.textContent.indexOf('pending_payment')>-1&&!r.dataset.pp);
+ if(!rows.length)return;
+ rows.forEach(r=>{r.dataset.pp='1';});
+ const ids=rows.map(r=>{const b=r.querySelector('button[data-id]');return b&&b.dataset.id;}).filter(Boolean);
+ const{data:py}=await supabaseClient.from('payments').select('related_id,status').eq('purpose','posting').in('related_id',ids).order('created_at');
+ const map={};(py||[]).forEach(p=>{map[p.related_id]=p.status;});
+ rows.forEach(r=>{
+  const b=r.querySelector('button[data-id]');if(!b)return;
+  const id=b.dataset.id;
+  r.querySelectorAll('span').forEach(s=>{if(s.textContent==='pending_payment')s.textContent='Awaiting payment';});
+  const rel=r.querySelector('button[data-a="relist"]');if(rel)rel.remove();
+  const wrap=b.parentElement;
+  const st=map[id];
+  if(st==='submitted'||st==='confirmed'){
+   wrap.insertAdjacentHTML('afterbegin','<span style="font-size:12.5px;color:#666;width:100%">⏳ Payment submitted, awaiting confirmation</span>');
+  }else{
+   wrap.insertAdjacentHTML('afterbegin','<button data-a="postpay" data-id="'+id+'" style="background:#00897b;color:#fff;border:0;border-radius:6px;padding:6px 10px;font-size:12px;font-weight:bold">💳 Pay to publish</button>');
+  }
+ });
+}
+new MutationObserver(()=>decoratePend()).observe($('myList'),{childList:true,subtree:true});
+$('myList').addEventListener('click',e=>{
+ const b=e.target.closest('button[data-a="postpay"]');
+ if(!b)return;
+ e.stopImmediatePropagation();
+ const t=b.closest('div[style*="border-bottom"]');
+ const title=t?(t.querySelector('div[style*="font-weight:bold"]')||{}).textContent:'';
+ openPostPay(b.dataset.id,title);
+},true);
+
+/* ---- Admin: listing payments ---- */
+document.body.insertAdjacentHTML('beforeend','<div class="modal-overlay" id="lpOverlay" style="z-index:10000"><div class="modal" style="color:#222"><span class="close" id="lpClose">✕</span><h3>Listing payments</h3><div id="lpList"></div></div></div>');
+$('lpClose').onclick=()=>$('lpOverlay').classList.remove('show');
+async function lpLoad(){
+ const box=$('lpList');box.innerHTML='<p style="color:#999">Loading...</p>';
+ const c=await cfg();
+ const{data:pays,error}=await supabaseClient.from('payments').select('id,user_id,related_id,reference,created_at').eq('purpose','posting').eq('status','submitted').order('created_at',{ascending:false});
+ if(error){box.innerHTML='<p style="color:#c0392b">'+esc(error.message)+'</p>';return;}
+ if(!pays||!pays.length){box.innerHTML='<p style="color:#999">No listing payments waiting.</p>';return;}
+ const{data:ls}=await supabaseClient.from('listings').select('id,title').in('id',pays.map(p=>p.related_id));
+ const lm={};(ls||[]).forEach(l=>{lm[l.id]=l;});
+ const names={};
+ for(const uid of [...new Set(pays.map(p=>p.user_id))]){names[uid]=await getProfileName(uid);}
+ const bt=(a,p,t,col)=>'<button data-a="'+a+'" data-id="'+p.id+'" data-lid="'+p.related_id+'" data-uid="'+p.user_id+'" style="background:'+col+';color:#fff;border:0;border-radius:6px;padding:7px 12px;font-size:12px;font-weight:bold;margin:6px 6px 0 0">'+t+'</button>';
+ box.innerHTML=pays.map(p=>'<div style="padding:14px 0;border-bottom:1px solid #eee"><div style="font-weight:bold;font-size:15px">'+esc(lm[p.related_id]?lm[p.related_id].title:'Listing')+'</div><div style="color:#666;font-size:13px;margin:2px 0">Seller: '+esc(names[p.user_id]||'')+'</div><div style="background:#f7f7f7;border-radius:8px;padding:6px 10px;font-size:12.5px;margin-top:6px">💳 Expected '+naira(c.fee)+' · Ref: <b>'+esc(p.reference)+'</b></div>'+bt('pub',p,'Payment received &amp; publish','#2e7d32')+bt('rej',p,'Reject','#c0392b')+'</div>').join('');
+}
+$('lpList').onclick=async e=>{
+ const b=e.target.closest('button[data-a]');if(!b)return;
+ const{data:{session}}=await supabaseClient.auth.getSession();
+ if(!session)return;
+ b.disabled=true;
+ if(b.dataset.a==='pub'){
+  if(!confirm('Have you checked your bank and received the posting fee? This will publish the listing.')){b.disabled=false;return;}
+  const r1=await supabaseClient.from('listings').update({status:'active'}).eq('id',b.dataset.lid).select('id');
+  if(r1.error||!(r1.data&&r1.data.length)){alert('Could not publish the listing: '+(r1.error?r1.error.message:'no permission'));b.disabled=false;return;}
+  const r2=await supabaseClient.from('payments').update({status:'confirmed',confirmed_by:session.user.id,confirmed_at:new Date().toISOString()}).eq('id',b.dataset.id);
+  if(r2.error){alert('Listing published but the payment record failed: '+r2.error.message);}
+  await supabaseClient.from('notifications').insert({user_id:b.dataset.uid,title:'Your listing is live',message:'Payment confirmed. Your listing is now published.'});
+  if(window.loadListings)window.loadListings();
+ }else{
+  if(!confirm('Reject this payment? The seller can submit a new one.')){b.disabled=false;return;}
+  const r=await supabaseClient.from('payments').update({status:'rejected',confirmed_by:session.user.id,confirmed_at:new Date().toISOString()}).eq('id',b.dataset.id);
+  if(r.error){alert('Could not update: '+r.error.message);b.disabled=false;return;}
+  await supabaseClient.from('notifications').insert({user_id:b.dataset.uid,title:'Payment not confirmed',message:'We could not confirm your posting payment. Please check the details and submit it again.'});
+ }
+ lpLoad();
+};
+const anc=$('bqPromoAdmin')||$('bqVerBtn')||document.querySelector('#adminOverlay .modal h3');
+if(anc){
+ anc.insertAdjacentHTML('afterend','<button class="button" id="bqLpAdmin" style="margin-bottom:12px;background:#00897b">💳 Listing payments</button>');
+ $('bqLpAdmin').onclick=()=>{$('lpOverlay').classList.add('show');lpLoad();};
+}
+})();
