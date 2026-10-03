@@ -1030,3 +1030,13 @@ if(ol)window.loadListings=async function(){
 };
 loadPromos().then(()=>window.renderListings());
 })();
+(function(){
+const sub=document.getElementById('promoSubmit');
+if(!sub)return;
+const orig=sub.onclick;
+sub.onclick=function(){
+ const line=(document.getElementById('promoTotal').textContent||'').split('\n')[0];
+ if(!confirm(line+'\n\nSubmit this promotion?'))return;
+ return orig.apply(this,arguments);
+};
+})();
