@@ -1040,3 +1040,31 @@ sub.onclick=function(){
  return orig.apply(this,arguments);
 };
 })();
+(function(){
+const wrap=document.getElementById('promoPkgs');
+if(!wrap)return;
+wrap.insertAdjacentHTML('beforebegin','<select id="promoPkgSel" style="margin-bottom:10px"><option value="basic">Basic Boost</option><option value="featured">Featured</option><option value="premium">Premium</option><option value="top">Top Advert</option></select><div id="promoPicked" style="font-weight:bold;margin-bottom:10px;color:#8e24aa"></div>');
+const sel=document.getElementById('promoPkgSel');
+const days=document.getElementById('promoDays');
+function show(){
+ const t=(document.getElementById('promoTotal').textContent||'').split('\n')[0];
+ document.getElementById('promoPicked').textContent='Selected → '+t;
+}
+sel.onchange=function(){
+ const card=wrap.querySelector('[data-p="'+sel.value+'"]');
+ if(card)card.click();
+ show();
+};
+days.addEventListener('change',function(){setTimeout(show,0);});
+wrap.addEventListener('click',function(e){
+ const c=e.target.closest('[data-p]');
+ if(c){sel.value=c.dataset.p;}
+ setTimeout(show,0);
+});
+new MutationObserver(function(){
+ if(document.getElementById('promoOverlay').classList.contains('show')){
+  sel.value='basic';
+  setTimeout(show,0);
+ }
+}).observe(document.getElementById('promoOverlay'),{attributes:true,attributeFilter:['class']});
+})();
