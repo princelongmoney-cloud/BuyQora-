@@ -1090,6 +1090,7 @@ async function cfg(){
 /* ---- Sell screen: remaining free listings ---- */
 const sh=document.querySelector('#sellOverlay .modal h3');
 sh.insertAdjacentHTML('afterend','<div id="quotaNote" style="font-size:13.5px;font-weight:bold;border-radius:8px;padding:8px 10px;margin-bottom:12px;background:#f7f7f7;display:none"></div>');
+$('quotaNote').insertAdjacentHTML('afterend','<div id="oneItemNote" style="font-size:13px;line-height:1.5;border-radius:8px;padding:8px 10px;margin-bottom:12px;background:#fff6ec;color:#8a4b00">One listing = one item. You can add up to 5 photos of the same item. To sell another item, post it as a separate listing.</div>');
 async function showQuota(){
  const n=$('quotaNote');n.style.display='none';
  const{data:{session}}=await supabaseClient.auth.getSession();
