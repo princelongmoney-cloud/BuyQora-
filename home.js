@@ -210,11 +210,12 @@ window.submitListing=async function(){
  loadListings();setTimeout(closeSell,1200);
 };
 function ago(d){const s=(Date.now()-new Date(d))/1000;if(!(s>=0))return '';if(s<3600)return Math.max(1,Math.round(s/60))+' min ago';if(s<86400)return Math.round(s/3600)+' hr ago';const n=Math.round(s/86400);return n<30?n+' day'+(n>1?'s':'')+' ago':new Date(d).toLocaleDateString();}
-window.openDetail=async function(l){
+const openDetailCore=async function(l){
  currentDetailListing=l;
  const{data:{session}}=await supabaseClient.auth.getSession();
  const own=session&&session.user.id===l.seller_id;
- const imgs=l.images&&l.images.length?l.images:(l.image_url?[l.image_url]:[]);
+ let rawImgs=l.images;if(typeof rawImgs==='string'){try{rawImgs=JSON.parse(rawImgs);}catch(e){rawImgs=rawImgs?[rawImgs]:[];}}
+ const imgs=Array.isArray(rawImgs)&&rawImgs.length?rawImgs.filter(Boolean):(l.image_url?[l.image_url]:[]);
  const sim=currentListings.filter(x=>x.id!==l.id&&x.category_id===l.category_id).slice(0,6);
  const where=l.city?l.city+', '+l.state:l.state;
  $('detailContent').innerHTML=
@@ -238,6 +239,13 @@ window.openDetail=async function(l){
  $('detailOverlay').classList.add('show');
  getProfileName(l.seller_id).then(n=>{const s=$('dSeller');if(s)s.textContent=n;});
  if(!own){try{const k='bqv'+l.id;if(!sessionStorage.getItem(k)){sessionStorage.setItem(k,'1');supabaseClient.rpc('increment_listing_views',{p_id:String(l.id)}).then(r=>{if(!r.error){l.views=(l.views||0)+1;const v=$('dViews');if(v)v.textContent=l.views;}});}}catch(e){}}
+};
+window.openDetail=async function(l){
+ try{await openDetailCore(l);}
+ catch(e){
+  try{$('detailOverlay').classList.remove('show');}catch(x){}
+  alert('Could not open this listing. Error: '+(e&&e.message?e.message:e)+'. Please screenshot this message and send it to support.');
+ }
 };
 const f2=document.createElement('div');f2.className='bq-filter2';
 f2.innerHTML='<input id="bqMin" type="number" inputmode="numeric" placeholder="Min ₦"><input id="bqMax" type="number" inputmode="numeric" placeholder="Max ₦"><input id="bqCity" type="text" placeholder="City">';
