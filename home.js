@@ -2,10 +2,14 @@
 (function(){
 const CATS=[['trending','🔥','Trending'],['vehicles','🚗','Vehicles'],['property','🏡','Property'],['phones','📱','Phones & Tablets'],['electronics','💻','Electronics'],['home','🛋️','Home, Furniture & Appliances'],['fashion','👗','Fashion'],['beauty','🧴','Beauty & Personal Care'],['services','🔧','Services'],['repair','⛑️','Repair & Construction'],['equipment','🏭','Commercial Equipment & Tools'],['leisure','🏋️','Leisure & Activities'],['kids','🧸','Babies & Kids'],['food','🥕','Food, Agriculture & Farming'],['animals','🐕','Animals & Pets'],['jobs','💼','Jobs'],['seeking','📄','Seeking Work - CVs'],['business','🧳','Business & Industry']];
 CATS.forEach(c=>{CATEGORY_ICONS[c[0]]=c[1];CATEGORY_LABELS[c[0]]=c[2];});
+const SUBCATS={property:[['new_builds','New Builds','🏗️'],['rent_homes','Houses & Apartments For Rent','🏠'],['sale_homes','Houses & Apartments For Sale','🏡'],['short_let','Short Let','🔑'],['land_rent','Land & Plots For Rent','🌱'],['land_sale','Land & Plots For Sale','🌳'],['venues','Event Centres, Venues & Workstations','🏛️'],['comm_rent','Commercial Property For Rent','🏬'],['comm_sale','Commercial Property For Sale','🏪']]};
+const SUBLABEL={};Object.keys(SUBCATS).forEach(k=>SUBCATS[k].forEach(x=>{SUBLABEL[x[0]]=x[1];}));
+window.SUBCATS=SUBCATS;window.SUBLABEL=SUBLABEL;
+window.subLabel=l=>(l&&l.subcategory&&SUBLABEL[l.subcategory])||'';
 const $=id=>document.getElementById(id);
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 async function authed(fn){const{data:{session}}=await supabaseClient.auth.getSession();if(!session){openAuth('login');return;}fn(session);}
-let condFilter='all',sortMode='new';
+let condFilter='all',sortMode='new',activeSub='all';
 
 const root=document.createElement('div');root.id='bq';
 root.innerHTML=`<div class="bq-top"><div class="bq-bar"><span class="bq-logo">BuyQora</span><button id="bqBell" aria-label="Notifications">🔔<span id="bqBellBadge" class="bq-badge"></span></button></div>
@@ -27,14 +31,14 @@ $('bqCond').onclick=e=>{const b=e.target.closest('[data-v]');if(!b)return;condFi
  document.querySelectorAll('#bqCond button').forEach(x=>x.classList.toggle('on',x===b));renderListings();};
 $('bqSort').onchange=e=>{sortMode=e.target.value;renderListings();};
 $('bqBell').onclick=()=>authed(openNotifications);
-$('bqCats').onclick=e=>{const b=e.target.closest('[data-c]');if(!b)return;const c=b.dataset.c;activeCategory=c==='trending'?'all':c;
+$('bqCats').onclick=e=>{const b=e.target.closest('[data-c]');if(!b)return;const c=b.dataset.c;if(SUBCATS[c]){openSubPicker(c);return;}activeCategory=c==='trending'?'all':c;activeSub='all';
  document.querySelectorAll('.bq-cat').forEach(x=>x.classList.toggle('on',x===b&&c!=='trending'));renderListings();$('products').scrollIntoView({behavior:'smooth'});};
 document.querySelector('.bq-chips').onclick=e=>{const b=e.target.closest('[data-a]');if(!b)return;const a=b.dataset.a;
  if(a==='admin')openAdmin();
  if(a==='sell')alert('How to sell:\n1. Log in or sign up\n2. Tap Sell\n3. Add title, price, category, New or Used, state and a photo\n4. Post, then reply to buyers in Messages');
  if(a==='buy')alert('How to buy:\n1. Search or pick a category\n2. Open a listing and tap Contact seller\n3. Agree a price and meet in a safe public place\n4. Pay only after you inspect the item');};
 nav.onclick=e=>{const b=e.target.closest('[data-n]');if(!b)return;const n=b.dataset.n;
- if(n==='home'){activeCategory='all';activeState='all';condFilter='all';sortMode='new';$('bqState').value='all';$('bqQ').value='';$('bqSort').value='new';
+ if(n==='home'){activeCategory='all';activeSub='all';activeState='all';condFilter='all';sortMode='new';$('bqState').value='all';$('bqQ').value='';$('bqSort').value='new';
   document.querySelectorAll('#bqCond button').forEach(x=>x.classList.toggle('on',x.dataset.v==='all'));
   document.querySelectorAll('.bq-cat').forEach(x=>x.classList.remove('on'));renderListings();window.scrollTo({top:0,behavior:'smooth'});}
  if(n==='saved')authed(openFavorites);
@@ -49,20 +53,38 @@ function sync(){const b=$('notifBadge');const t=b&&b.style.display!=='none'?b.te
 new MutationObserver(sync).observe($('accountBar'),{childList:true,subtree:true,characterData:true,attributes:true});
 
 const sc=$('sellCategory');sc.innerHTML=CATS.filter(c=>c[0]!=='trending').map(c=>`<option value="${c[0]}">${esc(c[2])}</option>`).join('');
+sc.insertAdjacentHTML('afterend','<label id="sellSubL" style="display:none">Type</label><select id="sellSub" style="display:none"></select>');
+function fillSub(prefix,cat,val){const L=document.getElementById(prefix+'SubL'),S=document.getElementById(prefix+'Sub');if(!L||!S)return;const list=SUBCATS[cat];if(!list){L.style.display=S.style.display='none';S.innerHTML='';return;}S.innerHTML='<option value="">Choose a type</option>'+list.map(x=>'<option value="'+x[0]+'">'+esc(x[1])+'</option>').join('');S.value=val&&SUBLABEL[val]?val:'';L.style.display=S.style.display='';}
+window.fillSub=fillSub;sc.addEventListener('change',()=>fillSub('sell',sc.value));fillSub('sell',sc.value);
 sc.insertAdjacentHTML('afterend','<label>Condition</label><select id="sellCondition"><option value="new">New</option><option value="used">Used</option></select>');
 
+document.body.insertAdjacentHTML('beforeend','<div class="modal-overlay" id="subOverlay"><div class="modal" style="color:#222;padding:0"><div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid #eee;position:sticky;top:0;background:#fff;z-index:2"><h3 id="subTitle" style="margin:0"></h3><span id="subClose" style="font-size:22px;cursor:pointer;padding:4px 8px">✕</span></div><div id="subList"></div></div></div>');
+let subCat=null;
+function subRow(icon,name,note,key){return '<div class="bqSubRow" data-k="'+key+'" style="display:flex;align-items:center;gap:14px;padding:14px 16px;border-bottom:1px solid #eee;cursor:pointer"><div style="width:48px;height:48px;border-radius:12px;background:#fff3e8;display:flex;align-items:center;justify-content:center;font-size:24px;flex:0 0 48px">'+icon+'</div><div style="flex:1;min-width:0"><div style="font-weight:bold;font-size:15px;color:#222">'+esc(name)+'</div><div style="font-size:12.5px;color:#777;margin-top:2px">'+note+'</div></div><div style="color:#999;font-size:20px">›</div></div>';}
+function openSubPicker(c){
+ subCat=c;$('subTitle').textContent=CATEGORY_LABELS[c]||'Category';
+ const live=currentListings.filter(l=>l.category_id===c);
+ const cnt=k=>{const n=live.filter(l=>l.subcategory===k).length;return n?n+' listing'+(n>1?'s':''):'No listings yet';};
+ $('subList').innerHTML=subRow(CATEGORY_ICONS[c]||'🛍️','All '+(CATEGORY_LABELS[c]||''),live.length+' listing'+(live.length===1?'':'s'),'all')+SUBCATS[c].map(x=>subRow(x[2],x[1],cnt(x[0]),x[0])).join('');
+ $('subOverlay').classList.add('show');
+}
+$('subClose').onclick=()=>$('subOverlay').classList.remove('show');
+$('subList').onclick=e=>{const r=e.target.closest('.bqSubRow');if(!r||!subCat)return;
+ activeCategory=subCat;activeSub=r.dataset.k;$('subOverlay').classList.remove('show');
+ document.querySelectorAll('.bq-cat').forEach(x=>x.classList.toggle('on',x.dataset.c===subCat));
+ renderListings();$('products').scrollIntoView({behavior:'smooth'});};
 function renderRec(){const rec=currentListings.filter(l=>l.image_url).slice(0,10);$('bqRecH').style.display=rec.length?'':'none';
  $('bqRec').innerHTML=rec.map(l=>`<div data-id="${l.id}"><img src="${esc(l.image_url)}" alt="" loading="lazy"><span>${esc(l.title)}</span></div>`).join('');}
 $('bqRec').onclick=e=>{const d=e.target.closest('[data-id]');if(!d)return;const l=currentListings.find(x=>String(x.id)===d.dataset.id);if(l)openDetail(l);};
 
 window.renderListings=function(){
  const grid=$('productGrid'),q=$('bqQ').value.trim().toLowerCase();
- const f=currentListings.filter(l=>(activeCategory==='all'||l.category_id===activeCategory)&&(activeState==='all'||l.state===activeState)&&(condFilter==='all'||l.condition===condFilter)&&(!q||(l.title||'').toLowerCase().includes(q)||(l.description||'').toLowerCase().includes(q)));
+ const f=currentListings.filter(l=>(activeCategory==='all'||l.category_id===activeCategory)&&(activeSub==='all'||l.subcategory===activeSub)&&(activeState==='all'||l.state===activeState)&&(condFilter==='all'||l.condition===condFilter)&&(!q||(l.title||'').toLowerCase().includes(q)||(l.description||'').toLowerCase().includes(q)));
  if(sortMode==='lo')f.sort((a,b)=>Number(a.price)-Number(b.price));
  else if(sortMode==='hi')f.sort((a,b)=>Number(b.price)-Number(a.price));
  else f.sort((a,b)=>new Date(b.created_at||0)-new Date(a.created_at||0));
  currentFilteredListings=f;
- document.querySelector('#products h2').textContent=activeCategory==='all'?'Trending':(CATEGORY_LABELS[activeCategory]||'Listings');
+ document.querySelector('#products h2').textContent=activeCategory==='all'?'Trending':(activeSub!=='all'&&SUBLABEL[activeSub]?SUBLABEL[activeSub]:(CATEGORY_LABELS[activeCategory]||'Listings'));
  renderRec();
  if(!f.length){grid.innerHTML='<div class="empty-state">No listings match yet. Try another category or state, or post one yourself.</div>';return;}
  grid.innerHTML=f.map((l,i)=>`<div class="product" data-idx="${i}"><div class="product-image">${l.image_url?`<img src="${esc(l.image_url)}" alt="" loading="lazy">`:(CATEGORY_ICONS[l.category_id]||'🛍️')}${l.condition?`<span class="bq-cond ${esc(l.condition)}">${l.condition==='new'?'New':'Used'}</span>`:''}<button class="fav-btn" data-listing-id="${l.id}">${currentFavorites.has(l.id)?'♥':'♡'}</button></div><h3>${esc(l.title)}</h3><p class="price">₦${Number(l.price).toLocaleString()}</p><p class="loc">📍 ${esc(l.state)}</p></div>`).join('');
@@ -97,12 +119,13 @@ document.body.insertAdjacentHTML('beforeend',`
 <div class="modal-overlay" id="myOverlay"><div class="modal" style="color:#222;max-width:600px"><span class="close" id="myClose">✕</span><h3>My listings</h3><div id="myList"></div></div></div>
 <div class="modal-overlay" id="editOverlay"><div class="modal" style="color:#222"><span class="close" id="editClose">✕</span><h3>Edit listing</h3><p class="error" id="editError"></p>
 <label>Title</label><input id="editTitle"><label>Price (₦)</label><input id="editPrice">
-<label>Category</label><select id="editCategory"></select>
+<label>Category</label><select id="editCategory"></select><label id="editSubL" style="display:none">Type</label><select id="editSub" style="display:none"></select>
 <label>Condition</label><select id="editCondition"><option value="new">New</option><option value="used">Used</option></select>
 <label>State</label><select id="editState"></select>
 <label>Description</label><textarea id="editDesc"></textarea>
 <button class="button" id="editSave">Save changes</button></div></div>`);
 $('editCategory').innerHTML=$('sellCategory').innerHTML;
+$('editCategory').addEventListener('change',()=>fillSub('edit',$('editCategory').value));
 $('editState').innerHTML=BUYQORA_STATES.map(s=>'<option>'+s+'</option>').join('');
 const lo=$('bqLogout');
 if(lo){lo.insertAdjacentHTML('beforebegin','<button class="button" id="bqMine" style="margin-top:10px">My listings</button>');
@@ -136,7 +159,7 @@ $('myList').onclick=async e=>{
  const l=mine.find(x=>String(x.id)===b.dataset.id);if(!l)return;
  const a=b.dataset.a;
  if(a==='edit'){editing=l;$('editError').style.display='none';
-  $('editTitle').value=l.title||'';$('editPrice').value=l.price||'';$('editCategory').value=l.category_id;
+  $('editTitle').value=l.title||'';$('editPrice').value=l.price||'';$('editCategory').value=l.category_id;fillSub('edit',l.category_id,l.subcategory);
   $('editCondition').value=l.condition||'used';$('editState').value=l.state;$('editDesc').value=l.description||'';
   $('editOverlay').classList.add('show');return;}
  let upd=null;
@@ -157,9 +180,12 @@ $('editSave').onclick=async()=>{
  const price=parseFloat(String($('editPrice').value).replace(/[^0-9.]/g,''));
  const title=$('editTitle').value.trim();
  if(!title||isNaN(price)){err.textContent='Add a title and a valid price.';err.style.display='block';return;}
- const upd={title,price,category_id:$('editCategory').value,state:$('editState').value,condition:$('editCondition').value,description:$('editDesc').value.trim()};
+ const editCat=$('editCategory').value;
+ if(SUBCATS[editCat]&&!$('editSub').value){err.textContent='Choose the type of '+(CATEGORY_LABELS[editCat]||'item')+'.';err.style.display='block';return;}
+ const upd={title,price,category_id:editCat,state:$('editState').value,condition:$('editCondition').value,description:$('editDesc').value.trim(),subcategory:SUBCATS[editCat]?$('editSub').value:null};
  let{error}=await supabaseClient.from('listings').update(upd).eq('id',editing.id);
  if(error&&/condition/i.test(error.message)){delete upd.condition;({error}=await supabaseClient.from('listings').update(upd).eq('id',editing.id));}
+ if(error&&/subcategory/i.test(error.message)){delete upd.subcategory;({error}=await supabaseClient.from('listings').update(upd).eq('id',editing.id));}
  if(error){err.textContent=error.message;err.style.display='block';return;}
  $('editOverlay').classList.remove('show');
  await openMine();loadListings();
@@ -191,6 +217,7 @@ window.submitListing=async function(){
  const files=Array.from(si.files||[]).slice(0,MAXP);
  const btn=$('sellSubmitBtn');btn.disabled=true;btn.textContent='Posting...';
  const fail=m=>{err.textContent=m;err.style.display='block';btn.disabled=false;btn.textContent='Post listing';};
+ if(SUBCATS[$('sellCategory').value]&&!$('sellSub').value)return fail('Choose the type of '+(CATEGORY_LABELS[$('sellCategory').value]||'item')+' you are listing.');
  const images=[];
  for(let i=0;i<files.length;i++){
   btn.textContent='Uploading photo '+(i+1)+' of '+files.length+'...';
@@ -201,9 +228,10 @@ window.submitListing=async function(){
   images.push(supabaseClient.storage.from('listing-images').getPublicUrl(path).data.publicUrl);
  }
  btn.textContent='Posting...';
- const row={seller_id:session.user.id,title,description:$('sellDesc').value.trim(),price,category_id:$('sellCategory').value,state:$('sellState').value,city:$('sellCity').value.trim()||null,negotiable:$('sellNeg').checked,condition:$('sellCondition').value,image_url:images[0]||null,images};
+ const row={seller_id:session.user.id,title,description:$('sellDesc').value.trim(),price,category_id:$('sellCategory').value,state:$('sellState').value,city:$('sellCity').value.trim()||null,negotiable:$('sellNeg').checked,condition:$('sellCondition').value,image_url:images[0]||null,images,subcategory:SUBCATS[$('sellCategory').value]?($('sellSub').value||null):null};
  let{error}=await supabaseClient.from('listings').insert(row);
  if(error&&/condition/i.test(error.message)){delete row.condition;({error}=await supabaseClient.from('listings').insert(row));}
+ if(error&&/subcategory/i.test(error.message)){delete row.subcategory;({error}=await supabaseClient.from('listings').insert(row));}
  if(error)return fail(error.message);
  btn.disabled=false;btn.textContent='Post listing';ok.textContent='Listing posted!';ok.style.display='block';
  ['sellTitle','sellPrice','sellDesc','sellCity'].forEach(id=>$(id).value='');$('sellNeg').checked=false;si.value='';
@@ -224,7 +252,7 @@ const openDetailCore=async function(l){
  '<h3>'+esc(l.title)+'</h3>'+
  '<p class="price" style="font-size:18px;margin:6px 0 6px">₦'+Number(l.price).toLocaleString()+(l.negotiable?'<span class="bq-neg">Negotiable</span>':'')+'</p>'+
  '<p class="bq-meta">👁 <span id="dViews">'+(l.views||0)+'</span> views · Posted '+ago(l.created_at)+'</p>'+
- '<span class="detail-tag">📍 '+esc(where)+'</span><span class="detail-tag">'+esc(CATEGORY_LABELS[l.category_id]||l.category_id)+'</span>'+(l.condition?'<span class="detail-tag">'+(l.condition==='new'?'New':'Used')+'</span>':'')+
+ '<span class="detail-tag">📍 '+esc(where)+'</span><span class="detail-tag">'+esc(CATEGORY_LABELS[l.category_id]||l.category_id)+'</span>'+(subLabel(l)?'<span class="detail-tag">'+esc(subLabel(l))+'</span>':'')+(l.condition?'<span class="detail-tag">'+(l.condition==='new'?'New':'Used')+'</span>':'')+
  (l.status&&l.status!=='active'?'<p style="color:#c0392b !important;font-weight:bold;margin:8px 0">This listing is '+esc(l.status)+'.</p>':'')+
  '<p class="detail-desc" style="white-space:pre-wrap">'+esc(l.description||'No description provided.')+'</p>'+
  '<p class="bq-meta">Seller: <b id="dSeller">...</b></p>'+
