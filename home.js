@@ -1378,3 +1378,24 @@ const prev=window.renderListings;
 window.renderListings=function(){prev.apply(this,arguments);try{renderRecent();applyView();}catch(e){}};
 window.renderListings();
 })();
+
+/* Back arrow (←) instead of ✕ on every popup screen */
+(function(){
+const css=document.createElement('style');
+css.textContent='.modal>.close{float:none!important;position:static!important;display:inline-block!important;margin:0 12px 0 0!important;vertical-align:middle;font-size:30px!important;line-height:1;cursor:pointer;color:inherit}'+
+'.modal>.close+h3,.modal>.close+h2{display:inline-block!important;vertical-align:middle;margin:0!important}'+
+'#bqVClose{right:auto!important;left:16px!important}';
+document.head.appendChild(css);
+const GLYPHS=['✕','×','✖','✗','X','x'];
+function fix(){
+ document.querySelectorAll('.close,#subClose,#bqVClose').forEach(el=>{
+  if(GLYPHS.includes(el.textContent.trim())){el.textContent='←';el.setAttribute('aria-label','Back');}
+  if(el.id==='subClose'&&!el.dataset.moved){
+   const p=el.parentElement;
+   if(p){p.insertBefore(el,p.firstChild);p.style.justifyContent='flex-start';p.style.gap='10px';el.dataset.moved='1';el.style.fontSize='28px';}
+  }
+ });
+}
+fix();
+new MutationObserver(fix).observe(document.body,{childList:true,subtree:true});
+})();
