@@ -347,7 +347,7 @@ const SUPPORT_EMAIL='princelongmoney@gmail.com';
 const $=id=>document.getElementById(id);
 const PAGES={
 terms:['Terms of Use',`<p><i>Last updated: October 2026</i></p>
-<h4>1. About BuyQora</h4><p>BuyQora is an online marketplace where people in Nigeria post items and services and contact each other. BuyQora is only a platform. We are not the buyer or the seller, and we do not handle payments, delivery or returns.</p>
+<h4>1. About BuyQora</h4><p>BuyQora is an online marketplace where people in Nigeria post items and services and contact each other. BuyQora is only a platform. We are not the buyer or the seller, and we do not handle payments between buyers and sellers, delivery or returns. Fees for BuyQora's own services (extra listings, promotions and business verification) are explained in the Advertising Terms.</p>
 <h4>2. Your account</h4><p>You must be 18 or older. Give correct details and keep your password safe. You are responsible for everything done with your account.</p>
 <h4>3. Posting listings</h4><p>Only post items you own or are allowed to sell. Use an honest title, price, photos and description. Mark an item as sold or remove it when it is gone.</p>
 <h4>4. Not allowed</h4><p>Illegal items, weapons, drugs, stolen goods, fake or counterfeit goods, adult content, fake listings, scams, spam, harassment, impersonation, and sharing other people's private details.</p>
@@ -1398,4 +1398,38 @@ function fix(){
 }
 fix();
 new MutationObserver(fix).observe(document.body,{childList:true,subtree:true});
+})();
+
+
+/* Verified sellers only filter */
+(function(){
+const $=id=>document.getElementById(id);
+const anchor=document.querySelector('.bq-filter2')||document.querySelector('.bq-filter');
+if(!anchor||typeof supabaseClient==='undefined')return;
+const css=document.createElement('style');
+css.textContent='#bqVerRow{padding:0 12px 8px}#bqVerBtn{padding:7px 14px;border-radius:18px;border:1px solid #888;background:transparent;color:inherit;font-size:14px}#bqVerBtn.on{background:#1b8a3a;border-color:#1b8a3a;color:#fff}';
+document.head.appendChild(css);
+const row=document.createElement('div');row.id='bqVerRow';row.innerHTML='<button type="button" id="bqVerBtn">✅ Verified sellers only</button>';
+anchor.insertAdjacentElement('afterend',row);
+let on=false,ids=null;
+async function load(){
+ try{
+  const{data,error}=await supabaseClient.from('profiles').select('id').eq('verification_status','verified');
+  if(error)throw error;
+  ids=new Set((data||[]).map(r=>String(r.id)));
+ }catch(e){ids=null;}
+}
+const prev=window.renderListings;
+window.renderListings=function(){
+ const all=currentListings;
+ if(on&&ids)currentListings=all.filter(l=>ids.has(String(l.seller_id)));
+ try{prev.apply(this,arguments);}finally{currentListings=all;}
+};
+$('bqVerBtn').onclick=async()=>{
+ on=!on;$('bqVerBtn').classList.toggle('on',on);
+ if(on&&!ids)await load();
+ if(on&&!ids){on=false;$('bqVerBtn').classList.remove('on');alert('Could not load verified sellers right now. Please try again.');}
+ renderListings();
+};
+load();
 })();
