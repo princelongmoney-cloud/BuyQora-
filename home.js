@@ -1273,3 +1273,42 @@ window.renderListings=function(){
 };
 window.renderListings();
 })();
+
+/* Vehicles: brand chips + year filter (matches words in the title/description) */
+(function(){
+const BR=[['Toyota',['toyota']],['Lexus',['lexus']],['Mercedes-Benz',['mercedes','benz']],['Honda',['honda']],['Nissan',['nissan']],['Hyundai',['hyundai']],['Kia',['kia']],['Ford',['ford']],['BMW',['bmw']],['Peugeot',['peugeot']],['Volkswagen',['volkswagen']],['Other',null]];
+const known=BR.filter(b=>b[1]).flatMap(b=>b[1]);
+let brand='';
+const css=document.createElement('style');
+css.textContent='.bq-veh{display:none;padding:6px 12px}.bq-veh.on{display:block}.bq-vb{display:flex;gap:8px;overflow-x:auto;padding-bottom:8px}.bq-vb button{flex:0 0 auto;padding:7px 14px;border-radius:18px;border:1px solid #888;background:transparent;color:inherit;font-size:14px}.bq-vb button.on{background:#f97316;border-color:#f97316;color:#fff}.bq-vy{display:flex;gap:8px}.bq-vy input{flex:1;min-width:0;padding:8px;border-radius:8px;border:1px solid #888;background:transparent;color:inherit}';
+document.head.appendChild(css);
+const bar=document.createElement('div');bar.className='bq-veh';
+bar.innerHTML='<div class="bq-vb">'+BR.map(b=>'<button data-b="'+b[0]+'">'+b[0]+'</button>').join('')+'</div><div class="bq-vy"><input id="bqYf" type="number" inputmode="numeric" placeholder="Year from"><input id="bqYt" type="number" inputmode="numeric" placeholder="Year to"></div>';
+const anchor=document.querySelector('.bq-filter2')||document.querySelector('.bq-filter');
+anchor.insertAdjacentElement('afterend',bar);
+const hasW=(t,w)=>new RegExp('\\b'+w+'\\b').test(t);
+const yearOf=l=>{const re=/\b(19[89]\d|20[0-3]\d)\b/;const m=re.exec(l.title||'')||re.exec(l.description||'');return m?+m[1]:0;};
+const prev=window.renderListings;
+window.renderListings=function(){
+ const on=activeCategory==='vehicles';
+ bar.classList.toggle('on',on);
+ if(!on){brand='';document.getElementById('bqYf').value='';document.getElementById('bqYt').value='';}
+ bar.querySelectorAll('.bq-vb button').forEach(b=>b.classList.toggle('on',b.dataset.b===brand));
+ const yf=parseInt(document.getElementById('bqYf').value),yt=parseInt(document.getElementById('bqYt').value);
+ const all=currentListings;
+ if(on&&(brand||yf>0||yt>0)){
+  const def=BR.find(b=>b[0]===brand);
+  currentListings=all.filter(l=>{
+   const t=((l.title||'')+' '+(l.description||'')).toLowerCase();
+   if(brand){const words=def[1]||null;
+    if(words){if(!words.some(w=>hasW(t,w)))return false;}
+    else if(known.some(w=>hasW(t,w)))return false;}
+   if(yf>0||yt>0){const y=yearOf(l);if(!y)return false;if(yf>0&&y<yf)return false;if(yt>0&&y>yt)return false;}
+   return true;});
+ }
+ try{prev.apply(this,arguments);}finally{currentListings=all;}
+};
+bar.addEventListener('click',e=>{const b=e.target.closest('button[data-b]');if(!b)return;brand=(brand===b.dataset.b)?'':b.dataset.b;renderListings();});
+['bqYf','bqYt'].forEach(id=>document.getElementById(id).addEventListener('input',()=>renderListings()));
+window.renderListings();
+})();
