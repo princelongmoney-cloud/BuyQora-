@@ -1312,3 +1312,69 @@ bar.addEventListener('click',e=>{const b=e.target.closest('button[data-b]');if(!
 ['bqYf','bqYt'].forEach(id=>document.getElementById(id).addEventListener('input',()=>renderListings()));
 window.renderListings();
 })();
+
+/* Bundle: Advertising terms page + grid/list toggle + Recently viewed row */
+(function(){
+const $=id=>document.getElementById(id);
+const store={get(k){try{return localStorage.getItem(k);}catch(e){return null;}},set(k,v){try{localStorage.setItem(k,v);}catch(e){}}};
+
+/* 1. Advertising terms */
+const EMAIL='princelongmoney@gmail.com';
+document.body.insertAdjacentHTML('beforeend','<div class="modal-overlay" id="adTermsOverlay"><div class="modal" style="color:#222;max-width:600px"><span class="close" id="adTermsClose">✕</span><h3>Advertising Terms</h3><div id="adTermsBody" style="font-size:14px;line-height:1.6"></div></div></div>');
+$('adTermsBody').innerHTML='<p><i>Last updated: October 2026</i></p>'+
+'<h4>1. Who can advertise</h4><p>Any registered BuyQora seller, business, company or brand aged 18 or over can promote a listing or place an advert, as long as the content follows our Terms of Use.</p>'+
+'<h4>2. Promotion and advert types</h4><p>BuyQora offers paid listing promotions (Basic Boost, Featured, Premium and Top Advert) and business adverts such as banners and video. Promoted items are clearly labelled, for example Promoted, Featured, Premium or Sponsored.</p>'+
+'<h4>3. Prices and duration</h4><p>Prices and durations are shown before you pay and may be changed by BuyQora at any time. A change does not affect a promotion you have already paid for.</p>'+
+'<h4>4. Payment</h4><p>A promotion or advert starts only after BuyQora has received and confirmed your payment. Payments are currently made by bank transfer and confirmed by our team. Keep your proof of payment.</p>'+
+'<h4>5. Refunds</h4><p>Once a promotion or advert is active, the fee is not refundable. If we fail to show a paid promotion, contact us and we will extend it or refund you.</p>'+
+'<h4>6. Advert content</h4><p>Adverts must be honest and lawful. No illegal, fake, counterfeit, misleading or adult content, no scams, and no content that harms or insults others. You must have the right to use all text, images and video in your advert.</p>'+
+'<h4>7. Our right to reject or remove</h4><p>BuyQora may reject, pause or remove any advert or promotion that breaks these terms or our Terms of Use, without a refund where the breach is serious.</p>'+
+'<h4>8. No guarantee of results</h4><p>A promotion increases visibility but we cannot guarantee a number of views, messages or sales.</p>'+
+'<h4>9. Verified business badge</h4><p>The verified badge is a paid service. We may remove it if the business information turns out to be false.</p>'+
+'<h4>10. Contact</h4><p>For any advertising question, email '+EMAIL+'.</p>';
+$('adTermsBody').querySelectorAll('h4').forEach(h=>{h.style.margin='14px 0 4px';});
+$('adTermsClose').onclick=()=>$('adTermsOverlay').classList.remove('show');
+const links=$('legalLinks');
+if(links){
+ links.insertAdjacentHTML('beforeend',' &nbsp;·&nbsp; <a id="adTermsLink" style="color:#ff6b00;cursor:pointer">Advertising</a>');
+ $('adTermsLink').onclick=()=>$('adTermsOverlay').classList.add('show');
+}
+
+/* 2. Grid / list toggle */
+const css=document.createElement('style');
+css.textContent='#bqView{display:flex;justify-content:flex-end;padding:0 12px 8px}#bqView button{padding:7px 14px;border-radius:18px;border:1px solid #888;background:transparent;color:inherit;font-size:14px}'+
+'#productGrid.bq-list{display:flex!important;flex-direction:column;gap:10px}'+
+'#productGrid.bq-list .product{display:grid!important;grid-template-columns:120px 1fr;column-gap:12px;align-items:start;width:100%}'+
+'#productGrid.bq-list .product>.product-image{grid-column:1;grid-row:1/span 10;width:120px;height:120px;min-height:0}'+
+'#productGrid.bq-list .product>.product-image img{width:100%;height:100%;object-fit:cover}'+
+'#productGrid.bq-list .product>*:not(.product-image){grid-column:2}';
+document.head.appendChild(css);
+const grid=$('productGrid');
+const vb=document.createElement('div');vb.id='bqView';vb.innerHTML='<button type="button"></button>';
+grid.before(vb);
+const btn=vb.firstChild;
+function applyView(){const list=store.get('bq_view')==='list';grid.classList.toggle('bq-list',list);btn.textContent=list?'▦ Grid view':'☰ List view';}
+btn.onclick=()=>{store.set('bq_view',store.get('bq_view')==='list'?'grid':'list');applyView();};
+applyView();
+
+/* 3. Recently viewed */
+const rec=$('bqRec');
+const rh=document.createElement('h3');rh.className='bq-h';rh.id='bqRvH';rh.textContent='🕘 Recently viewed';rh.style.display='none';
+const rr=document.createElement('div');rr.className='bq-rec';rr.id='bqRv';
+if(rec){rec.after(rr);rec.after(rh);}
+rr.onclick=e=>{const d=e.target.closest('[data-id]');if(!d)return;const l=currentListings.find(x=>String(x.id)===d.dataset.id);if(l)openDetail(l);};
+const ids=()=>{try{return JSON.parse(store.get('bq_recent')||'[]');}catch(e){return [];}};
+function renderRecent(){
+ const items=ids().map(id=>currentListings.find(l=>String(l.id)===String(id))).filter(Boolean).slice(0,10);
+ rh.style.display=items.length?'':'none';
+ rr.innerHTML=items.map(l=>'<div data-id="'+l.id+'">'+(l.image_url?'<img src="'+String(l.image_url).replace(/"/g,'&quot;')+'" alt="" loading="lazy">':'')+'<span>'+String(l.title||'').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]))+'</span></div>').join('');
+}
+const od=window.openDetail;
+window.openDetail=async function(l){
+ try{if(l&&l.id!=null){const a=ids().filter(x=>String(x)!==String(l.id));a.unshift(l.id);store.set('bq_recent',JSON.stringify(a.slice(0,12)));}}catch(e){}
+ try{return await od.apply(this,arguments);}finally{try{renderRecent();}catch(e){}}
+};
+const prev=window.renderListings;
+window.renderListings=function(){prev.apply(this,arguments);try{renderRecent();applyView();}catch(e){}};
+window.renderListings();
+})();
