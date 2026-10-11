@@ -179,3 +179,4 @@ html, body {
 #revForm>div{background:#1e1e1e !important}
 #revComment{background:#1e1e1e !important;color:#fff !important;border-color:#333 !important}
 #revOverlay,#revOverlay>div{background:#121212 !important}
+#revOverlay,#revOverlay>*,#revOverlay>*>*{background:#121212 !important}
