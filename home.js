@@ -1433,3 +1433,283 @@ $('bqVerBtn').onclick=async()=>{
 };
 load();
 })();
+/* Banner ads: Advertise form, home banner, My ads, admin Banner ads */
+(function(){
+const $=id=>document.getElementById(id);
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const naira=n=>'₦'+Number(n||0).toLocaleString();
+const dt=d=>d?new Date(d).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):'-';
+async function getCfg(){
+ const{data}=await supabaseClient.from('app_settings').select('key,value');
+ const o={};(data||[]).forEach(r=>{o[r.key]=r.value;});
+ return{price:parseFloat(o.banner_price_per_day)||5000,instr:(o.payment_instructions||'').trim()};
+}
+function fixLink(raw){
+ const v=String(raw||'').trim();if(!v)return null;
+ const d=v.replace(/[\s+()-]/g,'');
+ if(/^\d{10,15}$/.test(d)){return 'https://wa.me/'+(d.startsWith('0')?'234'+d.slice(1):d);}
+ if(/^https?:\/\//i.test(v))return v;
+ if(/^[^\s]+\.[^\s]+$/.test(v))return 'https://'+v;
+ return undefined;
+}
+function cropBanner(file){return new Promise(res=>{
+ const img=new Image(),u=URL.createObjectURL(file);
+ img.onload=()=>{const W=1200,H=400,r=Math.max(W/img.width,H/img.height),w=img.width*r,h=img.height*r;
+  const c=document.createElement('canvas');c.width=W;c.height=H;
+  c.getContext('2d').drawImage(img,(W-w)/2,(H-h)/2,w,h);URL.revokeObjectURL(u);
+  c.toBlob(b=>res(b||file),'image/jpeg',0.85);};
+ img.onerror=()=>{URL.revokeObjectURL(u);res(file);};
+ img.src=u;});}
+
+/* ---------- Home banner ---------- */
+const box=document.createElement('div');box.id='bqAds';box.style.cssText='margin:0 12px 12px';
+document.querySelector('.bq-chips').insertAdjacentElement('afterend',box);
+let ads=[],shown=[],cur=0,timer=null,key='';
+async function loadAds(){
+ try{
+  const{data}=await supabaseClient.from('ad_campaigns').select('id,title,image_url,link_url,states').eq('status','active').gt('expires_at',new Date().toISOString());
+  ads=(data||[]).sort(()=>Math.random()-0.5);
+ }catch(e){ads=[];}
+ drawAds();
+}
+function show(i){
+ cur=(i+shown.length)%shown.length;
+ box.querySelectorAll('img[data-ad]').forEach((im,j)=>{im.style.opacity=j===cur?1:0;im.style.pointerEvents=j===cur?'auto':'none';});
+ const d=$('bqAdDots');
+ if(d)d.innerHTML=shown.map((a,j)=>'<span style="display:inline-block;width:6px;height:6px;border-radius:50%;margin:0 2px;background:'+(j===cur?'#fff':'rgba(255,255,255,.4)')+'"></span>').join('');
+ const a=shown[cur];
+ try{const k='bqad'+a.id;if(!sessionStorage.getItem(k)){sessionStorage.setItem(k,'1');supabaseClient.rpc('banner_view',{p_id:a.id}).then(()=>{},()=>{});}}catch(e){}
+}
+function drawAds(){
+ const st=(typeof activeState!=='undefined')?activeState:'all';
+ shown=ads.filter(a=>st==='all'||!a.states||!a.states.length||a.states.includes(st));
+ const k=shown.map(a=>a.id).join(',');
+ if(k===key&&box.firstChild)return;
+ key=k;cur=0;clearInterval(timer);
+ if(!shown.length){
+  box.innerHTML='<div id="bqAdsEmpty" style="border:1px dashed #888;border-radius:12px;padding:14px;text-align:center;font-size:14px;cursor:pointer">📢 Advertise your business here<div style="font-size:12px;opacity:.7;margin-top:2px">Reach buyers across Nigeria. Tap to learn more.</div></div>';
+  return;
+ }
+ box.innerHTML='<div style="position:relative;border-radius:12px;overflow:hidden;aspect-ratio:3/1;background:#222">'+
+  shown.map((a,i)=>'<img data-ad="'+a.id+'" src="'+esc(a.image_url)+'" alt="'+esc(a.title)+'" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:'+(i?0:1)+';transition:opacity .5s;'+(a.link_url?'cursor:pointer':'')+'">').join('')+
+  '<span style="position:absolute;top:6px;left:6px;background:rgba(0,0,0,.6);color:#fff;font-size:10px;padding:2px 7px;border-radius:999px">Sponsored</span>'+
+  (shown.length>1?'<div id="bqAdDots" style="position:absolute;bottom:6px;left:0;right:0;text-align:center"></div>':'')+
+  '</div><div style="text-align:right;font-size:12px;margin-top:4px"><a id="bqAdsHere" style="color:#ff6b00;cursor:pointer">📢 Advertise here</a></div>';
+ show(0);
+ if(shown.length>1)timer=setInterval(()=>show(cur+1),5000);
+}
+box.onclick=e=>{
+ if(e.target.closest('#bqAdsHere,#bqAdsEmpty')){openForm();return;}
+ const im=e.target.closest('img[data-ad]');if(!im)return;
+ const a=shown.find(x=>x.id===im.dataset.ad);
+ if(!a||!a.link_url)return;
+ supabaseClient.rpc('banner_click',{p_id:a.id}).then(()=>{},()=>{});
+ window.open(a.link_url,'_blank','noopener');
+};
+const prevR=window.renderListings;
+window.renderListings=function(){prevR.apply(this,arguments);try{drawAds();}catch(e){}};
+loadAds();
+
+/* ---------- Advertise form ---------- */
+document.body.insertAdjacentHTML('beforeend','<div class="modal-overlay" id="adFormOverlay" style="z-index:10001"><div class="modal" style="color:#222"><span class="close" id="adFormClose">✕</span><h3>Advertise on BuyQora</h3><p style="font-size:13.5px;line-height:1.5;margin-bottom:10px">Show your banner on the home screen to buyers in the states you choose. Your ad goes live after we confirm your payment.</p><p class="error" id="adFormError"></p>'+
+'<label>Ad title</label><input id="adTitle" maxlength="60" placeholder="e.g. Ada Fashion Store - New arrivals">'+
+'<label>Banner image (wide, best size 1200 x 400)</label><input type="file" id="adImage" accept="image/*"><img id="adPrev" alt="" style="display:none;width:100%;aspect-ratio:3/1;object-fit:cover;border-radius:10px;margin-bottom:12px">'+
+'<label>Link when tapped (optional)</label><input id="adLink" placeholder="WhatsApp number or website link">'+
+'<label>Show in</label><div id="adStates" style="max-height:150px;overflow:auto;border:1px solid #ddd;border-radius:8px;padding:8px;margin-bottom:12px"></div>'+
+'<label>Duration</label><select id="adDays"><option value="1">1 day</option><option value="7" selected>7 days</option><option value="14">14 days</option><option value="30">30 days</option></select>'+
+'<div id="adTotal" style="font-size:16px;font-weight:bold;color:#ff6b00;margin:4px 0 12px"></div><div id="adPayInfo" style="font-size:14px;line-height:1.6;margin-bottom:10px"></div>'+
+'<label>Payment reference</label><input id="adRef" placeholder="Sender name or transaction ID"><button class="button" id="adSubmit">I have paid, submit ad</button></div></div>');
+$('adFormClose').onclick=()=>$('adFormOverlay').classList.remove('show');
+let cfg={price:5000,instr:''},blob=null;
+function renderStates(){
+ $('adStates').innerHTML='<label style="display:flex;gap:8px;align-items:center;margin-bottom:6px;font-weight:bold"><input type="checkbox" id="adAll" checked style="width:auto;margin:0"> All states</label>'+
+ BUYQORA_STATES.map(s=>'<label style="display:flex;gap:8px;align-items:center;margin-bottom:6px"><input type="checkbox" class="adSt" value="'+esc(s)+'" style="width:auto;margin:0"> '+esc(s)+'</label>').join('');
+}
+$('adStates').onchange=e=>{
+ const all=$('adAll'),sts=[...document.querySelectorAll('.adSt')];
+ if(e.target===all&&all.checked)sts.forEach(x=>x.checked=false);
+ else if(e.target!==all&&e.target.checked)all.checked=false;
+ if(!sts.some(x=>x.checked))all.checked=true;
+};
+function total(){return cfg.price*parseInt($('adDays').value,10);}
+function showTotal(){$('adTotal').textContent='Total: '+naira(total())+' ('+naira(cfg.price)+' per day)';}
+$('adDays').onchange=showTotal;
+$('adImage').onchange=async()=>{
+ const f=$('adImage').files[0];blob=null;$('adPrev').style.display='none';
+ if(!f)return;
+ blob=await cropBanner(f);
+ $('adPrev').src=URL.createObjectURL(blob);$('adPrev').style.display='block';
+};
+async function openForm(){
+ const{data:{session}}=await supabaseClient.auth.getSession();
+ if(!session){openAuth('login');return;}
+ cfg=await getCfg();
+ $('adFormError').style.display='none';
+ ['adTitle','adLink','adRef'].forEach(id=>$(id).value='');
+ $('adImage').value='';blob=null;$('adPrev').style.display='none';$('adDays').value='7';
+ renderStates();showTotal();
+ $('adPayInfo').innerHTML=cfg.instr?'<p><b>Pay by bank transfer to:</b></p><p style="white-space:pre-wrap;background:#f7f7f7;border-radius:8px;padding:10px">'+esc(cfg.instr)+'</p>':'<p style="color:#c0392b">Payment details are not set up yet. Please contact support.</p>';
+ $('adFormOverlay').classList.add('show');
+}
+window.openAdForm=openForm;
+$('adSubmit').onclick=async()=>{
+ const err=$('adFormError');err.style.display='none';
+ const bad=m=>{err.textContent=m;err.style.display='block';};
+ const title=$('adTitle').value.trim(),ref=$('adRef').value.trim(),link=fixLink($('adLink').value);
+ if(title.length<3)return bad('Enter an ad title.');
+ if(!blob)return bad('Choose a banner image.');
+ if(link===undefined)return bad('The link is not valid. Use a WhatsApp number or a website address.');
+ if(!cfg.instr)return bad('Payment details are not set up yet. Please contact support.');
+ if(ref.length<3)return bad('Enter your payment reference (sender name or transaction ID).');
+ const b=$('adSubmit');b.disabled=true;b.textContent='Submitting...';
+ const reset=()=>{b.disabled=false;b.textContent='I have paid, submit ad';};
+ const{data:{session}}=await supabaseClient.auth.getSession();
+ if(!session){reset();return;}
+ const path=session.user.id+'/'+Date.now()+'.jpg';
+ const{error:ue}=await supabaseClient.storage.from('ad-banners').upload(path,blob,{contentType:'image/jpeg'});
+ if(ue){reset();return bad('Image upload failed: '+ue.message);}
+ const image_url=supabaseClient.storage.from('ad-banners').getPublicUrl(path).data.publicUrl;
+ const states=$('adAll').checked?[]:[...document.querySelectorAll('.adSt:checked')].map(x=>x.value);
+ const{data:ad,error:ae}=await supabaseClient.from('ad_campaigns').insert({title,image_url,link_url:link,states,days:parseInt($('adDays').value,10)}).select('id,amount').single();
+ if(ae){reset();return bad('Could not create ad: '+ae.message);}
+ const{error:pe}=await supabaseClient.from('payments').insert({user_id:session.user.id,purpose:'banner',related_id:ad.id,amount:ad.amount,reference:ref,status:'submitted'});
+ reset();
+ if(pe)return bad('Ad saved but the payment record failed: '+pe.message+'. Please contact support.');
+ $('adFormOverlay').classList.remove('show');
+ alert('Ad submitted. It goes live once we confirm your payment.');
+};
+
+/* ---------- My ads ---------- */
+document.body.insertAdjacentHTML('beforeend','<div class="modal-overlay" id="myAdsOverlay" style="z-index:10000"><div class="modal" style="color:#222"><span class="close" id="myAdsClose">✕</span><h3>My ads</h3><div id="myAdsList"></div></div></div>');
+$('myAdsClose').onclick=()=>$('myAdsOverlay').classList.remove('show');
+async function openMyAds(){
+ const l=$('myAdsList');l.innerHTML='<p style="color:#999">Loading...</p>';
+ $('myAdsOverlay').classList.add('show');
+ const{data:{session}}=await supabaseClient.auth.getSession();
+ if(!session){l.innerHTML='<p>Please log in.</p>';return;}
+ const{data,error}=await supabaseClient.from('ad_campaigns').select('*').eq('advertiser_id',session.user.id).order('created_at',{ascending:false});
+ if(error){l.innerHTML='<p style="color:#c0392b">'+esc(error.message)+'</p>';return;}
+ if(!data.length){l.innerHTML='<p style="color:#999">You have no ads yet.</p>';return;}
+ const{data:py}=await supabaseClient.from('payments').select('related_id,status').eq('purpose','banner').in('related_id',data.map(r=>r.id));
+ const paid={};(py||[]).forEach(p=>{paid[p.related_id]=p.status;});
+ l.innerHTML=data.map(r=>{
+  let t;
+  if(r.status==='active'&&new Date(r.expires_at)>new Date())t='🟢 Live until '+dt(r.expires_at);
+  else if(r.status==='pending_payment')t=paid[r.id]?'⏳ Payment submitted, awaiting confirmation':'Awaiting payment';
+  else if(r.status==='active'||r.status==='expired')t='Ended '+dt(r.expires_at);
+  else if(r.status==='rejected')t='Not approved. Contact support if you paid.';
+  else t='Paused by BuyQora';
+  return '<div style="padding:12px 0;border-bottom:1px solid #eee"><img src="'+esc(r.image_url)+'" alt="" style="width:100%;aspect-ratio:3/1;object-fit:cover;border-radius:8px"><div style="font-weight:bold;margin-top:6px">'+esc(r.title)+'</div><div style="font-size:13px;color:#666">'+r.days+' day(s) · '+naira(r.amount)+'</div><div style="font-size:13px;margin-top:2px">'+t+'</div><div style="font-size:12.5px;color:#666;margin-top:2px">👁 '+r.views+' views · 👆 '+r.clicks+' taps</div></div>';
+ }).join('');
+}
+const lo=$('bqLogout');
+if(lo){
+ lo.insertAdjacentHTML('beforebegin','<button class="button" id="bqAdBtn" style="margin-top:10px;background:#8e24aa">📢 Advertise on BuyQora</button><button class="button" id="bqMyAds" style="margin-top:10px;background:#555">My ads</button>');
+ $('bqAdBtn').onclick=()=>{closeProfile();openForm();};
+ $('bqMyAds').onclick=()=>{closeProfile();openMyAds();};
+}
+
+/* ---------- Admin: Banner ads ---------- */
+const sty=document.createElement('style');
+sty.textContent='.modal-overlay#adsAdmOverlay>.modal{position:fixed !important;inset:0 !important;width:100% !important;height:100% !important;max-width:none !important;max-height:none !important;margin:0 !important;border-radius:0 !important;box-sizing:border-box !important;overflow-y:auto !important;padding:calc(env(safe-area-inset-top,0px) + 12px) 16px calc(env(safe-area-inset-bottom,0px) + 12px) !important}';
+document.head.appendChild(sty);
+document.body.insertAdjacentHTML('beforeend','<div class="modal-overlay" id="adsAdmOverlay" style="z-index:10000"><div class="modal" style="color:#222"><span class="close" id="adsAdmClose">✕</span><h3>Banner ads</h3><details style="margin-bottom:12px"><summary style="cursor:pointer;font-weight:bold;color:#0277bd;padding:6px 0">⚙️ Banner price</summary><label style="margin-top:8px">Price per day (₦)</label><input type="number" id="adsAdmPrice" inputmode="numeric"><button class="button" id="adsAdmSave">Save price</button></details><div class="filter-row" id="adsAdmTabs" style="justify-content:flex-start"><div class="filter-chip active" data-t="pending">Pending</div><div class="filter-chip" data-t="active">Active</div><div class="filter-chip" data-t="expired">Expired</div><div class="filter-chip" data-t="other">Rejected</div></div><div id="adsAdmList"></div></div></div>');
+$('adsAdmClose').onclick=()=>$('adsAdmOverlay').classList.remove('show');
+let tab='pending',rows=[],pays={},names={};
+function grp(r){
+ if(r.status==='pending_payment')return 'pending';
+ if(r.status==='active')return new Date(r.expires_at)>new Date()?'active':'expired';
+ if(r.status==='expired')return 'expired';
+ return 'other';
+}
+function bt(a,id,t,c){return '<button data-a="'+a+'" data-id="'+id+'" style="background:'+c+';color:#fff;border:0;border-radius:6px;padding:7px 12px;font-size:12px;font-weight:bold;margin:6px 6px 0 0">'+t+'</button>';}
+function admRender(){
+ const l=$('adsAdmList'),f=rows.filter(r=>grp(r)===tab);
+ if(!f.length){l.innerHTML='<p style="color:#999">None in this list.</p>';return;}
+ l.innerHTML=f.map(r=>{
+  const p=pays[r.id],g=grp(r);
+  const pl=p?'💳 '+naira(p.amount)+' · Ref: <b>'+esc(p.reference)+'</b> · '+esc(p.status):'💳 No payment submitted';
+  let b='';
+  if(g==='pending'){
+   if(p&&p.status==='submitted')b+=bt('paid',r.id,'Payment received &amp; activate','#2e7d32');
+   else if(p&&p.status==='confirmed')b+=bt('activate',r.id,'Activate','#2e7d32');
+   b+=bt('reject',r.id,'Reject','#c0392b');
+  }else if(g==='active'){
+   b+=bt('extend',r.id,'Extend +7 days','#0277bd')+bt('suspend',r.id,'Suspend','#777');
+  }else if(r.status==='suspended'){
+   b+=bt('reinstate',r.id,'Reinstate','#2e7d32');
+  }
+  return '<div style="padding:14px 0;border-bottom:1px solid #eee"><img src="'+esc(r.image_url)+'" alt="" style="width:100%;aspect-ratio:3/1;object-fit:cover;border-radius:8px"><div style="font-weight:bold;font-size:15px;margin-top:6px">'+esc(r.title)+'</div><div style="color:#666;font-size:13px">Advertiser: '+esc(names[r.advertiser_id]||'')+'</div><div style="font-size:13px">'+r.days+' day(s) · '+naira(r.amount)+' · '+((r.states&&r.states.length)?esc(r.states.join(', ')):'All states')+'</div><div style="font-size:12.5px;color:#666;word-break:break-all">Link: '+esc(r.link_url||'none')+'</div><div style="font-size:12.5px;color:#666">'+(r.starts_at?'Starts '+dt(r.starts_at)+' · Expires '+dt(r.expires_at)+' · ':'Requested '+dt(r.created_at)+' · ')+'👁 '+r.views+' · 👆 '+r.clicks+'</div><div style="background:#f7f7f7;border-radius:8px;padding:6px 10px;font-size:12.5px;margin-top:6px">'+pl+'</div>'+b+'</div>';
+ }).join('');
+}
+async function admLoad(){
+ $('adsAdmList').innerHTML='<p style="color:#999">Loading...</p>';
+ const{data,error}=await supabaseClient.from('ad_campaigns').select('*').order('created_at',{ascending:false}).limit(200);
+ if(error){$('adsAdmList').innerHTML='<p style="color:#c0392b">'+esc(error.message)+'</p>';return;}
+ rows=data||[];pays={};
+ if(rows.length){
+  const{data:py}=await supabaseClient.from('payments').select('id,related_id,amount,reference,status').eq('purpose','banner').in('related_id',rows.map(r=>r.id));
+  (py||[]).forEach(p=>{pays[p.related_id]=p;});
+ }
+ for(const uid of [...new Set(rows.map(r=>r.advertiser_id))]){names[uid]=await getProfileName(uid);}
+ admRender();
+}
+$('adsAdmTabs').onclick=e=>{
+ const c=e.target.closest('.filter-chip');if(!c)return;
+ tab=c.dataset.t;
+ document.querySelectorAll('#adsAdmTabs .filter-chip').forEach(x=>x.classList.toggle('active',x===c));
+ admRender();
+};
+async function note(r,t,m){try{await supabaseClient.from('notifications').insert({user_id:r.advertiser_id,title:t,message:m});}catch(x){}}
+$('adsAdmList').onclick=async e=>{
+ const b=e.target.closest('button[data-a]');if(!b)return;
+ const r=rows.find(x=>x.id===b.dataset.id);if(!r)return;
+ const a=b.dataset.a;
+ b.disabled=true;
+ let err=null;
+ if(a==='paid'){
+  if(!confirm('Have you checked your bank and received '+naira(r.amount)+'? This will start the ad "'+r.title+'".')){b.disabled=false;return;}
+  const{data:{session}}=await supabaseClient.auth.getSession();
+  ({error:err}=await supabaseClient.from('payments').update({status:'confirmed',confirmed_by:session.user.id,confirmed_at:new Date().toISOString()}).eq('id',pays[r.id].id));
+  if(!err)({error:err}=await supabaseClient.rpc('activate_banner',{p_id:r.id}));
+  if(!err)await note(r,'Your ad is live','Payment confirmed. Your banner "'+r.title+'" is now showing on BuyQora.');
+ }else if(a==='activate'){
+  ({error:err}=await supabaseClient.rpc('activate_banner',{p_id:r.id}));
+  if(!err)await note(r,'Your ad is live','Your banner "'+r.title+'" is now showing on BuyQora.');
+ }else if(a==='reject'){
+  if(!confirm('Reject this ad? If the advertiser already paid, you must refund them yourself.')){b.disabled=false;return;}
+  ({error:err}=await supabaseClient.from('ad_campaigns').update({status:'rejected'}).eq('id',r.id));
+  if(!err)await note(r,'Ad not approved','We could not approve your banner "'+r.title+'". Contact support if you paid.');
+ }else if(a==='suspend'){
+  if(!confirm('Suspend this ad?')){b.disabled=false;return;}
+  ({error:err}=await supabaseClient.from('ad_campaigns').update({status:'suspended'}).eq('id',r.id));
+ }else if(a==='reinstate'){
+  ({error:err}=await supabaseClient.from('ad_campaigns').update({status:'active'}).eq('id',r.id));
+ }else if(a==='extend'){
+  const nx=new Date(new Date(r.expires_at).getTime()+7*86400000).toISOString();
+  ({error:err}=await supabaseClient.from('ad_campaigns').update({expires_at:nx}).eq('id',r.id));
+ }
+ if(err){alert('Could not update: '+err.message);b.disabled=false;return;}
+ admLoad();loadAds();
+};
+$('adsAdmSave').onclick=async()=>{
+ const v=parseFloat($('adsAdmPrice').value);
+ if(isNaN(v)||v<=0){alert('Enter a valid price.');return;}
+ const b=$('adsAdmSave');b.disabled=true;
+ const now=new Date().toISOString();
+ let{data,error}=await supabaseClient.from('app_settings').update({value:String(v),updated_at:now}).eq('key','banner_price_per_day').select();
+ if(!error&&(!data||!data.length))({error}=await supabaseClient.from('app_settings').insert({key:'banner_price_per_day',value:String(v)}));
+ b.disabled=false;
+ if(error){alert('Could not save: '+error.message);return;}
+ alert('Price saved. New ads will use it.');
+};
+const anc=$('bqLpAdmin')||$('bqPromoAdmin')||document.querySelector('#adminOverlay .modal h3');
+if(anc){
+ anc.insertAdjacentHTML('afterend','<button class="button" id="bqAdsAdmin" style="margin-bottom:12px;background:#d81b60">📢 Banner ads</button>');
+ $('bqAdsAdmin').onclick=async()=>{
+  $('adsAdmOverlay').classList.add('show');
+  const c=await getCfg();$('adsAdmPrice').value=c.price;
+  admLoad();
+ };
+}
+})();
