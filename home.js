@@ -1804,3 +1804,20 @@ window.openDetail=async function(l){
  return r;
 };
 })();
+/* Fix: rating line on listing screen */
+(function(){
+const $=id=>document.getElementById(id);
+const stars=n=>{const r=Math.round(n||0);return '★'.repeat(r)+'☆'.repeat(5-r);};
+async function fill(){
+ const t=$('bqRateTxt');
+ if(!t||t.dataset.f||typeof currentDetailListing==='undefined'||!currentDetailListing)return;
+ t.dataset.f='1';
+ let d=null;
+ try{({data:d}=await supabaseClient.from('seller_ratings').select('avg_rating,review_count').eq('seller_id',currentDetailListing.seller_id).maybeSingle());}catch(e){}
+ t.innerHTML=d&&d.review_count>0?'<span style="color:#f5a623">'+stars(d.avg_rating)+'</span> <b>'+Number(d.avg_rating).toFixed(1)+'</b> ('+d.review_count+' review'+(d.review_count>1?'s':'')+')':'No reviews yet';
+}
+new MutationObserver(fill).observe($('detailContent'),{childList:true,subtree:true});
+new MutationObserver(()=>{
+ if(!$('revOverlay').classList.contains('show')){const t=$('bqRateTxt');if(t){delete t.dataset.f;fill();}}
+}).observe($('revOverlay'),{attributes:true,attributeFilter:['class']});
+})();
