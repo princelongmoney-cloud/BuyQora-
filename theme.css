@@ -178,3 +178,4 @@ html, body {
 #revOverlay div,#revOverlay p,#revOverlay h2,#revOverlay h3,#revOverlay b{color:#f2f2f2 !important}
 #revForm>div{background:#1e1e1e !important}
 #revComment{background:#1e1e1e !important;color:#fff !important;border-color:#333 !important}
+#revOverlay,#revOverlay>div{background:#121212 !important}
