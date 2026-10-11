@@ -1833,3 +1833,39 @@ new MutationObserver(()=>{
  if(!$('revOverlay').classList.contains('show')){const t=$('bqRateTxt');if(t){delete t.dataset.f;fill();}}
 }).observe($('revOverlay'),{attributes:true,attributeFilter:['class']});
 })();
+
+/* Phone alerts (web push) */
+(function(){
+const $=id=>document.getElementById(id);
+const VAPID='BBi-GQBfLogfGYbiqT7vNTSCfm7T8zTOOp6LYqAlbhRJaSSu8x0-AVa_vDWsODJF_TY3wGHNusgKI5c1iagj9gw';
+function toKey(s){const p='='.repeat((4-s.length%4)%4);const raw=atob((s+p).replace(/-/g,'+').replace(/_/g,'/'));return Uint8Array.from([...raw].map(c=>c.charCodeAt(0)));}
+const lo=$('bqLogout');
+if(!lo)return;
+lo.insertAdjacentHTML('beforebegin','<button class="button" id="bqPush" style="margin-top:10px;background:#00897b">🔔 Turn on phone alerts</button>');
+async function getReg(){
+ let r=await navigator.serviceWorker.getRegistration();
+ if(!r)r=await navigator.serviceWorker.register('service-worker.js');
+ await navigator.serviceWorker.ready;
+ return r;
+}
+$('bqPush').onclick=async()=>{
+ const b=$('bqPush');
+ try{
+  if(!('serviceWorker' in navigator)||!('PushManager' in window)||!('Notification' in window)){alert('Phone alerts are not supported on this browser. Try Chrome on Android.');return;}
+  const{data:{session}}=await supabaseClient.auth.getSession();
+  if(!session){alert('Please log in first.');return;}
+  const perm=await Notification.requestPermission();
+  if(perm!=='granted'){alert('Alerts were not allowed. You can allow them in your phone browser settings.');return;}
+  b.disabled=true;b.textContent='Turning on...';
+  const r=await getReg();
+  let sub=await r.pushManager.getSubscription();
+  if(!sub)sub=await r.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:toKey(VAPID)});
+  const j=sub.toJSON();
+  const{error}=await supabaseClient.from('push_subscriptions').upsert({user_id:session.user.id,endpoint:j.endpoint,p256dh:j.keys.p256dh,auth:j.keys.auth},{onConflict:'endpoint'});
+  if(error){b.textContent='🔔 Turn on phone alerts';alert('Could not save: '+error.message);return;}
+  b.textContent='🔔 Phone alerts are on';
+  alert('Phone alerts are on.');
+ }catch(e){b.textContent='🔔 Turn on phone alerts';alert('Could not turn on alerts: '+e.message);}
+ finally{b.disabled=false;}
+};
+})();
