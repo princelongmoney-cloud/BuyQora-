@@ -1467,14 +1467,14 @@ document.querySelector('.bq-chips').insertAdjacentElement('afterend',box);
 let ads=[],shown=[],cur=0,timer=null,key='';
 async function loadAds(){
  try{
-  const{data}=await supabaseClient.from('ad_campaigns').select('id,title,image_url,link_url,states').eq('status','active').gt('expires_at',new Date().toISOString());
+  const{data}=await supabaseClient.from('ad_campaigns').select('id,title,image_url,video_url,link_url,states').eq('status','active').gt('expires_at',new Date().toISOString());
   ads=(data||[]).sort(()=>Math.random()-0.5);
  }catch(e){ads=[];}
  drawAds();
 }
 function show(i){
  cur=(i+shown.length)%shown.length;
- box.querySelectorAll('img[data-ad]').forEach((im,j)=>{im.style.opacity=j===cur?1:0;im.style.pointerEvents=j===cur?'auto':'none';});
+ box.querySelectorAll('[data-ad]').forEach((im,j)=>{im.style.opacity=j===cur?1:0;im.style.pointerEvents=j===cur?'auto':'none';});
  const d=$('bqAdDots');
  if(d)d.innerHTML=shown.map((a,j)=>'<span style="display:inline-block;width:6px;height:6px;border-radius:50%;margin:0 2px;background:'+(j===cur?'#fff':'rgba(255,255,255,.4)')+'"></span>').join('');
  const a=shown[cur];
@@ -1491,16 +1491,17 @@ function drawAds(){
   return;
  }
  box.innerHTML='<div style="position:relative;border-radius:12px;overflow:hidden;aspect-ratio:3/1;background:#222">'+
-  shown.map((a,i)=>'<img data-ad="'+a.id+'" src="'+esc(a.image_url)+'" alt="'+esc(a.title)+'" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:'+(i?0:1)+';transition:opacity .5s;'+(a.link_url?'cursor:pointer':'')+'">').join('')+
+  shown.map((a,i)=>{const st='position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:'+(i?0:1)+';transition:opacity .5s;'+(a.link_url?'cursor:pointer':'');return a.video_url?'<video data-ad="'+a.id+'" src="'+esc(a.video_url)+'" poster="'+esc(a.image_url)+'" muted autoplay loop playsinline preload="metadata" style="'+st+'"></video>':'<img data-ad="'+a.id+'" src="'+esc(a.image_url)+'" alt="'+esc(a.title)+'" style="'+st+'">';}).join('')+
   '<span style="position:absolute;top:6px;left:6px;background:rgba(0,0,0,.6);color:#fff;font-size:10px;padding:2px 7px;border-radius:999px">Sponsored</span>'+
   (shown.length>1?'<div id="bqAdDots" style="position:absolute;bottom:6px;left:0;right:0;text-align:center"></div>':'')+
   '</div><div style="text-align:right;font-size:12px;margin-top:4px"><a id="bqAdsHere" style="color:#ff6b00;cursor:pointer">📢 Advertise here</a></div>';
  show(0);
+ try{box.querySelectorAll('video').forEach(v=>{v.muted=true;v.play().catch(()=>{});});}catch(e){}
  if(shown.length>1)timer=setInterval(()=>show(cur+1),5000);
 }
 box.onclick=e=>{
  if(e.target.closest('#bqAdsHere,#bqAdsEmpty')){openForm();return;}
- const im=e.target.closest('img[data-ad]');if(!im)return;
+ const im=e.target.closest('[data-ad]');if(!im)return;
  const a=shown.find(x=>x.id===im.dataset.ad);
  if(!a||!a.link_url)return;
  supabaseClient.rpc('banner_click',{p_id:a.id}).then(()=>{},()=>{});
@@ -1514,6 +1515,7 @@ loadAds();
 document.body.insertAdjacentHTML('beforeend','<div class="modal-overlay" id="adFormOverlay" style="z-index:10001"><div class="modal" style="color:#222"><span class="close" id="adFormClose">✕</span><h3>Advertise on BuyQora</h3><p style="font-size:13.5px;line-height:1.5;margin-bottom:10px">Show your banner on the home screen to buyers in the states you choose. Your ad goes live after we confirm your payment.</p><p class="error" id="adFormError"></p>'+
 '<label>Ad title</label><input id="adTitle" maxlength="60" placeholder="e.g. Ada Fashion Store - New arrivals">'+
 '<label>Banner image (wide, best size 1200 x 400)</label><input type="file" id="adImage" accept="image/*"><img id="adPrev" alt="" style="display:none;width:100%;aspect-ratio:3/1;object-fit:cover;border-radius:10px;margin-bottom:12px">'+
+'<label>Video (optional, up to 20 MB, plays muted on the banner)</label><input type="file" id="adVideo" accept="video/*" style="margin-bottom:12px">'+
 '<label>Link when tapped (optional)</label><input id="adLink" placeholder="WhatsApp number or website link">'+
 '<label>Show in</label><div id="adStates" style="max-height:150px;overflow:auto;border:1px solid #ddd;border-radius:8px;padding:8px;margin-bottom:12px"></div>'+
 '<label>Duration</label><select id="adDays"><option value="1">1 day</option><option value="7" selected>7 days</option><option value="14">14 days</option><option value="30">30 days</option></select>'+
@@ -1546,7 +1548,7 @@ async function openForm(){
  cfg=await getCfg();
  $('adFormError').style.display='none';
  ['adTitle','adLink','adRef'].forEach(id=>$(id).value='');
- $('adImage').value='';blob=null;$('adPrev').style.display='none';$('adDays').value='7';
+ $('adImage').value='';$('adVideo').value='';blob=null;$('adPrev').style.display='none';$('adDays').value='7';
  renderStates();showTotal();
  $('adPayInfo').innerHTML=cfg.instr?'<p><b>Pay by bank transfer to:</b></p><p style="white-space:pre-wrap;background:#f7f7f7;border-radius:8px;padding:10px">'+esc(cfg.instr)+'</p>':'<p style="color:#c0392b">Payment details are not set up yet. Please contact support.</p>';
  $('adFormOverlay').classList.add('show');
@@ -1558,6 +1560,7 @@ $('adSubmit').onclick=async()=>{
  const title=$('adTitle').value.trim(),ref=$('adRef').value.trim(),link=fixLink($('adLink').value);
  if(title.length<3)return bad('Enter an ad title.');
  if(!blob)return bad('Choose a banner image.');
+ if($('adVideo').files[0]&&$('adVideo').files[0].size>20*1024*1024)return bad('The video is too big. Maximum 20 MB.');
  if(link===undefined)return bad('The link is not valid. Use a WhatsApp number or a website address.');
  if(!cfg.instr)return bad('Payment details are not set up yet. Please contact support.');
  if(ref.length<3)return bad('Enter your payment reference (sender name or transaction ID).');
@@ -1569,8 +1572,17 @@ $('adSubmit').onclick=async()=>{
  const{error:ue}=await supabaseClient.storage.from('ad-banners').upload(path,blob,{contentType:'image/jpeg'});
  if(ue){reset();return bad('Image upload failed: '+ue.message);}
  const image_url=supabaseClient.storage.from('ad-banners').getPublicUrl(path).data.publicUrl;
+ let video_url=null;
+ const vf=$('adVideo').files[0];
+ if(vf){
+  const ext=(vf.name.split('.').pop()||'mp4').toLowerCase().replace(/[^a-z0-9]/g,'')||'mp4';
+  const vpath=session.user.id+'/'+Date.now()+'.'+ext;
+  const{error:ve}=await supabaseClient.storage.from('ad-videos').upload(vpath,vf,{contentType:vf.type||'video/mp4'});
+  if(ve){reset();return bad('Video upload failed: '+ve.message);}
+  video_url=supabaseClient.storage.from('ad-videos').getPublicUrl(vpath).data.publicUrl;
+ }
  const states=$('adAll').checked?[]:[...document.querySelectorAll('.adSt:checked')].map(x=>x.value);
- const{data:ad,error:ae}=await supabaseClient.from('ad_campaigns').insert({title,image_url,link_url:link,states,days:parseInt($('adDays').value,10)}).select('id,amount').single();
+ const{data:ad,error:ae}=await supabaseClient.from('ad_campaigns').insert({title,image_url,video_url,media_type:video_url?'video':'image',link_url:link,states,days:parseInt($('adDays').value,10)}).select('id,amount').single();
  if(ae){reset();return bad('Could not create ad: '+ae.message);}
  const{error:pe}=await supabaseClient.from('payments').insert({user_id:session.user.id,purpose:'banner',related_id:ad.id,amount:ad.amount,reference:ref,status:'submitted'});
  reset();
