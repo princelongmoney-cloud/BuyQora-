@@ -1713,3 +1713,94 @@ if(anc){
  };
 }
 })();
+/* Reviews & ratings */
+(function(){
+const $=id=>document.getElementById(id);
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const dt=d=>d?new Date(d).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):'';
+const stars=n=>{const r=Math.round(n||0);return '★'.repeat(r)+'☆'.repeat(5-r);};
+document.body.insertAdjacentHTML('beforeend','<div class="modal-overlay" id="revOverlay" style="z-index:10002"><div class="modal" style="color:#222"><span class="close" id="revClose">✕</span><h3 id="revTitle">Reviews</h3><div id="revSum" style="font-size:15px;margin:8px 0 12px"></div><div id="revForm"></div><div id="revList"></div></div></div>');
+$('revClose').onclick=()=>$('revOverlay').classList.remove('show');
+let sid=null,sname='',pick=0,mine=null;
+
+async function getSummary(id){
+ try{const{data}=await supabaseClient.from('seller_ratings').select('avg_rating,review_count').eq('seller_id',id).maybeSingle();return data;}catch(e){return null;}
+}
+function sumText(s){return s&&s.review_count>0?'<span style="color:#f5a623">'+stars(s.avg_rating)+'</span> <b>'+Number(s.avg_rating).toFixed(1)+'</b> ('+s.review_count+' review'+(s.review_count>1?'s':'')+')':'No reviews yet';}
+
+function drawPick(){
+ document.querySelectorAll('#revStars button').forEach(b=>{b.style.color=(+b.dataset.s<=pick)?'#f5a623':'#bbb';});
+}
+async function openReviews(id,name){
+ sid=id;sname=name||'this seller';pick=0;mine=null;
+ $('revTitle').textContent='Reviews: '+sname;
+ $('revSum').textContent='Loading...';$('revForm').innerHTML='';$('revList').innerHTML='';
+ $('revOverlay').classList.add('show');
+ const{data:{session}}=await supabaseClient.auth.getSession();
+ const[{data:rows,error},sum]=await Promise.all([
+  supabaseClient.from('reviews').select('id,reviewer_id,rating,comment,created_at').eq('seller_id',id).order('created_at',{ascending:false}).limit(100),
+  getSummary(id)
+ ]);
+ if(error){$('revSum').textContent='';$('revList').innerHTML='<p style="color:#c0392b">'+esc(error.message)+'</p>';return;}
+ $('revSum').innerHTML=sumText(sum);
+ const list=rows||[];
+ const names={};
+ for(const u of [...new Set(list.map(r=>r.reviewer_id))]){names[u]=await getProfileName(u);}
+ const me=session?session.user.id:null;
+ mine=me?list.find(r=>r.reviewer_id===me):null;
+ if(mine)pick=mine.rating;
+ if(!me){
+  $('revForm').innerHTML='<button class="button" id="revLogin">Log in to leave a review</button>';
+  $('revLogin').onclick=()=>{$('revOverlay').classList.remove('show');openAuth('login');};
+ }else if(me===id){
+  $('revForm').innerHTML='<p style="color:#777;font-size:13px">You cannot review yourself.</p>';
+ }else{
+  $('revForm').innerHTML='<div style="background:#f7f7f7;border-radius:10px;padding:12px;margin-bottom:12px"><div style="font-weight:bold;margin-bottom:6px">'+(mine?'Update your review':'Rate this seller')+'</div><div id="revStars" style="font-size:34px;line-height:1;margin-bottom:8px">'+[1,2,3,4,5].map(n=>'<button type="button" data-s="'+n+'" style="background:none;border:0;font-size:34px;padding:0 4px;cursor:pointer">★</button>').join('')+'</div><textarea id="revComment" maxlength="500" placeholder="Share your experience (optional)" style="width:100%;min-height:70px;margin-bottom:8px"></textarea><p class="error" id="revErr"></p><button class="button" id="revSend">'+(mine?'Update review':'Submit review')+'</button></div>';
+  $('revComment').value=mine&&mine.comment?mine.comment:'';
+  drawPick();
+  $('revStars').onclick=e=>{const b=e.target.closest('button[data-s]');if(!b)return;pick=+b.dataset.s;drawPick();};
+  $('revSend').onclick=async()=>{
+   const err=$('revErr');err.style.display='none';
+   if(pick<1){err.textContent='Tap a star to choose your rating.';err.style.display='block';return;}
+   const b=$('revSend');b.disabled=true;
+   const{error:ue}=await supabaseClient.from('reviews').upsert({seller_id:id,reviewer_id:me,rating:pick,comment:$('revComment').value.trim()||null},{onConflict:'seller_id,reviewer_id'});
+   b.disabled=false;
+   if(ue){err.textContent='Could not save: '+ue.message;err.style.display='block';return;}
+   openReviews(id,sname);refreshLine();
+  };
+ }
+ if(!list.length){$('revList').innerHTML='<p style="color:#999">No reviews yet. Be the first.</p>';return;}
+ $('revList').innerHTML=list.map(r=>{
+  const own=r.reviewer_id===me;
+  const del=(own||isAdmin)?'<a data-del="'+r.id+'" style="color:#c0392b;cursor:pointer;font-size:12.5px;float:right">'+(own?'Delete':'Remove')+'</a>':'';
+  return '<div style="padding:12px 0;border-bottom:1px solid #eee">'+del+'<div style="font-weight:bold">'+esc(names[r.reviewer_id]||'User')+(own?' (you)':'')+'</div><div style="color:#f5a623;font-size:15px">'+stars(r.rating)+' <span style="color:#999;font-size:12px">'+dt(r.created_at)+'</span></div>'+(r.comment?'<div style="font-size:14px;margin-top:4px;white-space:pre-wrap">'+esc(r.comment)+'</div>':'')+'</div>';
+ }).join('');
+}
+$('revList').onclick=async e=>{
+ const a=e.target.closest('[data-del]');if(!a)return;
+ if(!confirm('Delete this review?'))return;
+ const{error}=await supabaseClient.from('reviews').delete().eq('id',a.dataset.del);
+ if(error){alert('Could not delete: '+error.message);return;}
+ openReviews(sid,sname);refreshLine();
+};
+
+/* rating line on the listing screen */
+async function refreshLine(){
+ const t=$('bqRateTxt');if(!t||!window.currentDetailListing)return;
+ const s=await getSummary(currentDetailListing.seller_id);
+ t.innerHTML=sumText(s);
+}
+function addLine(l){
+ const sel=$('dSeller');
+ if(!sel||$('bqRate'))return;
+ sel.parentElement.insertAdjacentHTML('afterend','<div id="bqRate" style="margin:6px 0 10px;font-size:14px"><span id="bqRateTxt" style="color:#999">Loading rating...</span> <a id="bqRateLink" style="color:#ff6b00;cursor:pointer;font-weight:bold;margin-left:6px">Reviews</a></div>');
+ $('bqRateLink').onclick=()=>openReviews(l.seller_id,($('dSeller')&&$('dSeller').textContent!=='...')?$('dSeller').textContent:'this seller');
+ refreshLine();
+}
+const od=window.openDetail;
+window.openDetail=async function(l){
+ const r=await od.apply(this,arguments);
+ try{addLine(l);}catch(e){}
+ return r;
+};
+})();
