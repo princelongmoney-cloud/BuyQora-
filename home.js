@@ -764,7 +764,7 @@ list.addEventListener('click',async e=>{
 const $=id=>document.getElementById(id);
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 const naira=n=>'₦'+Number(n||0).toLocaleString();
-const NAMES={basic:'Basic Boost',featured:'Featured',premium:'Premium',top:'Top Advert'};
+const NAMES={basic:'Basic Boost',featured:'Featured',premium:'Premium',top:'Top Advert',vip:'VIP',diamond:'Diamond'};
 document.body.insertAdjacentHTML('beforeend','<div class="modal-overlay" id="promoOverlay"><div class="modal" style="color:#222"><span class="close" id="promoClose">✕</span><h3>Promote this listing</h3><p id="promoTitle" style="font-weight:bold;margin-bottom:10px"></p><p class="error" id="promoError"></p><label>Package</label><div id="promoPkgs"></div><label>Duration</label><select id="promoDays"></select><div id="promoTotal" style="font-size:16px;font-weight:bold;color:#ff6b00;margin:4px 0 12px"></div><div id="promoPay" style="font-size:14px;line-height:1.6"></div><label>Payment reference</label><input type="text" id="promoRef" placeholder="Sender name or transaction ID"><button class="button" id="promoSubmit">I have paid, submit promotion</button></div></div>');
 $('promoClose').onclick=()=>$('promoOverlay').classList.remove('show');
 const st={listing:null,pkgs:[],durs:[],pkg:null,instr:''};
@@ -890,7 +890,7 @@ const $=id=>document.getElementById(id);
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 const naira=n=>'₦'+Number(n||0).toLocaleString();
 const dt=d=>d?new Date(d).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):'-';
-const NAMES={basic:'Basic Boost',featured:'Featured',premium:'Premium',top:'Top Advert'};
+const NAMES={basic:'Basic Boost',featured:'Featured',premium:'Premium',top:'Top Advert',vip:'VIP',diamond:'Diamond'};
 const sty=document.createElement('style');
 sty.textContent='.modal-overlay#aprOverlay>.modal{position:fixed !important;inset:0 !important;width:100% !important;height:100% !important;max-width:none !important;max-height:none !important;margin:0 !important;border-radius:0 !important;box-sizing:border-box !important;overflow-y:auto !important;padding:calc(env(safe-area-inset-top,0px) + 12px) 16px calc(env(safe-area-inset-bottom,0px) + 12px) !important}';
 document.head.appendChild(sty);
@@ -1011,9 +1011,11 @@ if(anchor){
 (function(){
 const $=id=>document.getElementById(id);
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-const LBL={basic:['Promoted','#0277bd'],featured:['Featured','#ff6b00'],premium:['Premium','#8e24aa'],top:['Sponsored','#c62828']};
-const RANK={basic:1,featured:2,premium:3,top:4};
+const LBL={basic:['Promoted','#0277bd'],featured:['Featured','#ff6b00'],premium:['Premium','#8e24aa'],top:['Sponsored','#c62828'],vip:['⭐ VIP','#b8860b'],diamond:['💎 Diamond','#00838f']};
+const RANK={basic:1,featured:2,premium:3,top:4,vip:5,diamond:6};
 let promoMap={};
+window.bqPromoOf=l=>promoMap[l.id]||null;
+window.bqPromoLbl=LBL;
 
 async function loadPromos(){
  try{
@@ -1043,7 +1045,7 @@ fr.onclick=e=>{
  if(l)openDetail(l);
 };
 function renderFeatured(){
- const items=currentListings.filter(l=>{const p=promoMap[l.id];return p&&(p.package_id==='featured'||p.package_id==='premium'||p.package_id==='top');})
+ const items=currentListings.filter(l=>{const p=promoMap[l.id];return p&&(p.package_id==='featured'||p.package_id==='premium'||p.package_id==='top'||p.package_id==='vip'||p.package_id==='diamond');})
   .sort((a,b)=>RANK[promoMap[b.id].package_id]-RANK[promoMap[a.id].package_id]).slice(0,10);
  fh.style.display=fr.style.display=items.length?'':'none';
  fr.innerHTML=items.map(l=>'<div data-id="'+l.id+'" style="position:relative">'+(l.image_url?'<img src="'+esc(l.image_url)+'" alt="" loading="lazy">':'<img alt="" style="background:#eee">')+'<span>'+esc(l.title)+'</span>'+tag(promoMap[l.id].package_id,'top:6px;left:6px')+'</div>').join('');
@@ -2094,7 +2096,10 @@ async function enhance(l){
   const where=l.city?l.city+', '+l.state:l.state;
   const row=document.createElement('div');row.className='bq-locrow';
   const verified=prof&&prof.verification_status==='verified';
-  row.innerHTML='<span>📍 '+esc(where||'')+' · '+esc(ago(l.created_at))+'</span>'+(verified?'<span class="bq-badge2">✔ Verified seller</span>':'');
+  const pr=window.bqPromoOf?window.bqPromoOf(l):null;
+  const pl=pr&&window.bqPromoLbl?window.bqPromoLbl[pr.package_id]:null;
+  const promoBadge=pl?'<span class="bq-badge2" style="background:'+pl[1]+';color:#fff">'+esc(pl[0])+'</span>':'';
+  row.innerHTML='<span>📍 '+esc(where||'')+' · '+esc(ago(l.created_at))+'</span><span style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">'+promoBadge+(verified?'<span class="bq-badge2">✔ Verified seller</span>':'')+'</span>';
   h3.parentNode.insertBefore(row,h3);
   root.querySelectorAll('.detail-tag').forEach(t=>{if(t.textContent.trim().startsWith('📍'))t.remove();});
  }
