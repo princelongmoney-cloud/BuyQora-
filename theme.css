@@ -180,3 +180,38 @@ html, body {
 #revComment{background:#1e1e1e !important;color:#fff !important;border-color:#333 !important}
 #revOverlay,#revOverlay>div{background:#121212 !important}
 #revOverlay,#revOverlay>*,#revOverlay>*>*{background:#121212 !important}
+
+/* ===== BuyQora green and white look (added on top; delete from here to the end to go back to the dark look) ===== */
+html,body,#bq,main{background:#f5f7f6!important;color:#1b2a22!important}
+#bq .bq-top{background:linear-gradient(#0a5c33,#0f7a45)!important}
+.bq-search select,.bq-input{background:#fff!important;color:#1b2a22!important}
+.bq-input input{color:#1b2a22!important}
+.bq-input input::placeholder{color:#7a8a82}
+.bq-chips button{background:#fff!important;color:#0b6b3a!important;border:1.5px solid #0b6b3a!important}
+.bq-h{color:#14261c}
+.bq-rec div{color:#33443b!important}
+.bq-cat{color:#33443b!important}
+.bq-cat i{background:#e8f5ee!important}
+.bq-cat.on i{border-color:#0b6b3a!important}
+.products{background:#f5f7f6!important}
+.products h2{color:#14261c!important}
+.product{background:#fff!important;border:1px solid #e3ebe6!important;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.product h3{color:#14261c!important}
+.product .loc{color:#6b7c73!important}
+.price{color:#e65f00!important}
+.empty-state{color:#6b7c73!important}
+#bqNav{background:#fff!important;border-top:1px solid #e3ebe6!important}
+#bqNav button{color:#6b7c73!important}
+#bqNav button.on{color:#0b6b3a!important}
+.bq-seg{background:#e8f5ee!important}
+.bq-seg button{color:#33443b!important}
+.bq-seg button.on{background:#0b6b3a!important;color:#fff!important}
+#bqSort{background:#fff!important;color:#1b2a22!important;border:1px solid #e3ebe6!important}
+.bq-filter2 input{background:#fff!important;color:#1b2a22!important;border:1px solid #e3ebe6!important}
+.bq-filter2 input::placeholder{color:#7a8a82}
+.bq-thumbs img.on{border-color:#0b6b3a!important}
+/* Reviews screen: light again */
+#revOverlay,#revOverlay>*,#revOverlay>*>*{background:#fff!important}
+#revOverlay div,#revOverlay p,#revOverlay h2,#revOverlay h3,#revOverlay b{color:#1b2a22!important}
+#revForm>div{background:#f2f6f4!important}
+#revComment{background:#fff!important;color:#1b2a22!important;border-color:#cfdad4!important}
