@@ -1909,10 +1909,70 @@ function sync(){
   setTimeout(()=>{ignore=0;},500);
  }
 }
-window.addEventListener('popstate',()=>{
+try{if(history.state&&history.state.bqOv)history.replaceState(null,'');}catch(e){}
+window.addEventListener('popstate',(ev)=>{
  if(ignore>0){ignore--;return;}
  const top=stack.pop();
- if(top)closeEl(top);
+ if(top){closeEl(top);return;}
+ if(ev&&ev.state&&ev.state.bqOv){try{history.back();}catch(e){}}
 });
 setInterval(sync,200);
+})();
+
+/* Chat header layout, live chat refresh, and stay on the same screen after refresh */
+(function(){
+const css=document.createElement('style');
+css.textContent='#chatOverlay .modal{display:grid!important;grid-template-columns:auto 1fr auto auto;grid-template-rows:auto minmax(0,1fr) auto;align-items:center;column-gap:8px}'+
+'#chatOverlay .modal>.close{grid-column:1;grid-row:1;margin:0 0 0 -8px!important}'+
+'#chatOverlay #chatTitle{grid-column:2;grid-row:1;margin:0!important;font-size:18px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}'+
+'#chatOverlay #chatBlockBtn{grid-column:3;grid-row:1;float:none!important;margin:0!important}'+
+'#chatOverlay button[onclick="reportCurrentChatUser()"]{grid-column:4;grid-row:1;float:none!important;margin:0!important}'+
+'#chatOverlay .modal>div[style*="clear"]{display:none!important}'+
+'#chatOverlay #chatMessages{grid-column:1/-1;grid-row:2;min-height:0}'+
+'#chatOverlay .modal>div:last-child{grid-column:1/-1;grid-row:3}';
+document.head.appendChild(css);
+
+/* live refresh of messages while a chat is open */
+setInterval(async()=>{
+ try{
+  if(document.hidden)return;
+  const ov=document.getElementById('chatOverlay');
+  if(!ov||!ov.classList.contains('show'))return;
+  if(typeof currentChat==='undefined'||!currentChat||typeof loadChatMessages!=='function')return;
+  const box=document.getElementById('chatMessages');
+  const atBottom=box.scrollHeight-box.scrollTop-box.clientHeight<40;
+  const st=box.scrollTop;
+  await loadChatMessages();
+  if(!atBottom)box.scrollTop=st;
+ }catch(e){}
+},5000);
+
+/* remember the open screen so a page refresh brings the person back to it */
+const KEY='bqScreen';
+const OPEN={profileOverlay:'openProfile',favoritesOverlay:'openFavorites',notifOverlay:'openNotifications',inboxOverlay:'openInbox'};
+function save(){
+ try{
+  const shown=[...document.querySelectorAll('.modal-overlay.show')].map(e=>e.id);
+  if(!shown.length){sessionStorage.removeItem(KEY);return;}
+  if(shown.includes('chatOverlay')&&typeof currentChat!=='undefined'&&currentChat){
+   sessionStorage.setItem(KEY,JSON.stringify({t:'chat',c:currentChat}));return;
+  }
+  const id=shown.find(i=>OPEN[i]);
+  if(id&&shown.length===1)sessionStorage.setItem(KEY,JSON.stringify({t:id}));
+  else sessionStorage.removeItem(KEY);
+ }catch(e){}
+}
+let restored=false;
+setInterval(()=>{if(restored)save();},500);
+setTimeout(async()=>{
+ try{
+  const raw=sessionStorage.getItem(KEY);
+  if(raw){
+   const s=JSON.parse(raw);
+   if(s.t==='chat'&&s.c&&typeof openChat==='function')await openChat(s.c.listingId,s.c.listingTitle,s.c.otherUserId);
+   else if(OPEN[s.t]&&typeof window[OPEN[s.t]]==='function')await window[OPEN[s.t]]();
+  }
+ }catch(e){}
+ restored=true;
+},1500);
 })();
