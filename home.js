@@ -2067,7 +2067,8 @@ function since(d){
  if(!d)return '';
  const t=new Date(d);if(isNaN(t))return '';
  const days=(Date.now()-t)/86400000;
- if(days<30)return 'New on BuyQora';
+ if(days<7)return 'New on BuyQora';
+ if(days<30){const w=Math.floor(days/7);return w+' week'+(w===1?'':'s')+' on BuyQora';}
  const m=Math.floor(days/30.44);
  if(m<12)return m+' month'+(m===1?'':'s')+' on BuyQora';
  const y=Math.floor(days/365.25);
@@ -2084,6 +2085,10 @@ async function enhance(l){
  const {data:{session}}=await supabaseClient.auth.getSession();
  const own=!!session&&session.user.id===l.seller_id;
  const prof=await sellerProfile(l.seller_id);
+ try{
+  const rs=await supabaseClient.rpc('seller_since',{uid:l.seller_id});
+  if(!rs.error&&rs.data&&prof&&(!prof.created_at||new Date(rs.data)<new Date(prof.created_at)))prof.created_at=rs.data;
+ }catch(e){}
 
  /* photo count */
  const img=root.querySelector('.detail-image');
@@ -2148,4 +2153,23 @@ window.openDetail=async function(l){
  try{await enhance(l);}catch(e){}
  return r;
 };
+})();
+
+/* My listings: big, joined action buttons */
+(function(){
+const css=document.createElement('style');
+css.textContent='#myList button[data-a]{border-radius:0!important;padding:14px 4px!important;font-size:14px!important;font-weight:700!important;min-height:48px;white-space:nowrap;cursor:pointer}'+
+'#myList .bqBtnGrid{display:grid!important;grid-template-columns:repeat(auto-fit,minmax(88px,1fr));gap:2px;background:#fff;border-radius:12px;overflow:hidden;margin-top:10px}';
+document.head.appendChild(css);
+function fix(){
+ const box=document.getElementById('myList');
+ if(!box)return;
+ box.querySelectorAll('button[data-a]').forEach(b=>{
+  const p=b.parentElement;
+  if(p&&p!==box&&!p.classList.contains('bqBtnGrid')){p.classList.add('bqBtnGrid');p.removeAttribute('style');}
+ });
+}
+const box=document.getElementById('myList');
+if(box)new MutationObserver(fix).observe(box,{childList:true,subtree:true});
+setInterval(fix,700);
 })();
