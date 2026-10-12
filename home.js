@@ -10,6 +10,15 @@ const $=id=>document.getElementById(id);
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 async function authed(fn){const{data:{session}}=await supabaseClient.auth.getSession();if(!session){openAuth('login');return;}fn(session);}
 let condFilter='all',sortMode='new',activeSub='all';
+window.bqGetView=()=>({cat:activeCategory,sub:activeSub,st:activeState,cond:condFilter,sort:sortMode,q:(document.getElementById('bqQ')?document.getElementById('bqQ').value.trim():'')});
+window.bqSetView=v=>{activeCategory=v.cat;activeSub=v.sub;activeState=v.st;condFilter=v.cond;sortMode=v.sort;
+ const g=id=>document.getElementById(id);
+ if(g('bqQ'))g('bqQ').value=v.q||'';
+ if(g('bqState'))g('bqState').value=v.st;
+ if(g('bqSort'))g('bqSort').value=v.sort;
+ document.querySelectorAll('#bqCond button').forEach(x=>x.classList.toggle('on',x.dataset.v===v.cond));
+ document.querySelectorAll('.bq-cat').forEach(x=>x.classList.toggle('on',v.cat!=='all'&&x.dataset.c===v.cat));
+ if(window.renderListings)window.renderListings();};
 
 const root=document.createElement('div');root.id='bq';
 root.innerHTML=`<div class="bq-top"><div class="bq-bar"><span class="bq-logo">BuyQora</span><button id="bqBell" aria-label="Notifications">🔔<span id="bqBellBadge" class="bq-badge"></span></button></div>
@@ -1911,10 +1920,10 @@ function sync(){
 }
 try{if(history.state&&history.state.bqOv)history.replaceState(null,'');}catch(e){}
 window.addEventListener('popstate',(ev)=>{
- if(ignore>0){ignore--;return;}
+ if(ignore>0){ignore--;window.__bqConsumed=true;return;}
  const top=stack.pop();
- if(top){closeEl(top);return;}
- if(ev&&ev.state&&ev.state.bqOv){try{history.back();}catch(e){}}
+ if(top){window.__bqConsumed=true;closeEl(top);return;}
+ if(ev&&ev.state&&ev.state.bqOv){window.__bqConsumed=true;try{history.back();}catch(e){}}
 });
 setInterval(sync,200);
 })();
@@ -1975,4 +1984,36 @@ setTimeout(async()=>{
  }catch(e){}
  restored=true;
 },1500);
+})();
+
+
+/* Back button goes back one step at a time through searches, categories and filters */
+(function(){
+if(!window.bqGetView||!window.bqSetView||typeof window.renderListings!=='function')return;
+const key=v=>JSON.stringify(v);
+let lastKey=key(window.bqGetView()),timer=null,restoring=false;
+try{if(!history.state)history.replaceState({bqView:window.bqGetView()},'');}catch(e){}
+const orig=window.renderListings;
+function commit(){
+ const v=window.bqGetView(),k=key(v);
+ if(k===lastKey)return;
+ lastKey=k;
+ try{history.pushState({bqView:v},'');}catch(e){}
+}
+window.renderListings=function(){
+ const r=orig.apply(this,arguments);
+ if(!restoring){clearTimeout(timer);timer=setTimeout(commit,700);}
+ return r;
+};
+window.addEventListener('popstate',ev=>{
+ if(window.__bqConsumed){window.__bqConsumed=false;return;}
+ const st=ev&&ev.state;
+ if(st&&st.bqView){
+  clearTimeout(timer);
+  restoring=true;
+  try{window.bqSetView(st.bqView);}catch(e){}
+  lastKey=key(window.bqGetView());
+  restoring=false;
+ }
+});
 })();
