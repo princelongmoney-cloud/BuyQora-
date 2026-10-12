@@ -215,3 +215,6 @@ html,body,#bq,main{background:#f5f7f6!important;color:#1b2a22!important}
 #revOverlay div,#revOverlay p,#revOverlay h2,#revOverlay h3,#revOverlay b{color:#1b2a22!important}
 #revForm>div{background:#f2f6f4!important}
 #revComment{background:#fff!important;color:#1b2a22!important;border-color:#cfdad4!important}
+/* My listings: bigger, separated action buttons */
+#myList button[data-a]{padding:13px 20px!important;font-size:16px!important;border-radius:10px!important;margin:0 10px 10px 0!important;min-height:46px;line-height:1.1}
+#myList div:has(>button[data-a]){display:flex!important;flex-wrap:wrap!important;margin-top:10px}
