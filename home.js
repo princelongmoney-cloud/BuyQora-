@@ -2042,3 +2042,105 @@ window.addEventListener('popstate',ev=>{
  }
 });
 })();
+
+/* Product page, top half: photo count, location row, Call button, chat with the seller, seller time on BuyQora */
+(function(){
+const $=id=>document.getElementById(id);
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const ago=d=>{const s=(Date.now()-new Date(d))/1000;if(!(s>=0))return '';if(s<3600)return Math.max(1,Math.round(s/60))+' min ago';if(s<86400)return Math.round(s/3600)+' hr ago';const n=Math.round(s/86400);if(n<30)return n+' day'+(n===1?'':'s')+' ago';const m=Math.round(n/30);if(m<12)return m+' month'+(m===1?'':'s')+' ago';const y=Math.round(n/365);return y+' year'+(y===1?'':'s')+' ago';};
+const css=document.createElement('style');
+css.textContent='.bq-photocount{position:absolute;left:10px;bottom:10px;background:rgba(0,0,0,.6);color:#fff;font-size:13px;font-weight:700;padding:4px 10px;border-radius:99px}'+
+'.bq-locrow{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:10px 0 4px;color:#5d6d64;font-size:14px}'+
+'.bq-badge2{background:#e8f5ee;color:#0b6b3a;font-weight:700;font-size:12.5px;padding:4px 10px;border-radius:99px;white-space:nowrap}'+
+'.bq-call{display:flex;align-items:center;justify-content:center;gap:8px;background:#0b6b3a;color:#fff!important;text-decoration:none;font-weight:700;font-size:17px;border-radius:12px;padding:13px;margin:10px 0}'+
+'.bq-chatbox{background:#f5f7f6;border:1px solid #e3ebe6;border-radius:14px;padding:14px;margin:12px 0}'+
+'.bq-chatbox h4{margin:0 0 10px;font-size:16px;color:#14261c}'+
+'.bq-qchips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px}'+
+'.bq-qchips button{background:#fff;color:#0b6b3a;border:1.5px solid #0b6b3a;border-radius:99px;padding:8px 12px;font-size:13.5px;font-weight:600;cursor:pointer}'+
+'.bq-chatbox textarea{width:100%;box-sizing:border-box;min-height:64px;border:1px solid #cfdad4;border-radius:12px;padding:12px;font-size:15px;background:#fff;color:#1b2a22;resize:vertical;margin-bottom:10px}'+
+'.bq-chatbox .bq-start{width:100%;background:#ff6b00;color:#fff;border:0;border-radius:12px;padding:14px;font-size:16px;font-weight:700;cursor:pointer}';
+document.head.appendChild(css);
+
+function since(d){
+ if(!d)return '';
+ const t=new Date(d);if(isNaN(t))return '';
+ const days=(Date.now()-t)/86400000;
+ if(days<30)return 'New on BuyQora';
+ const m=Math.floor(days/30.44);
+ if(m<12)return m+' month'+(m===1?'':'s')+' on BuyQora';
+ const y=Math.floor(days/365.25);
+ return y+(m%12?'+':'')+' year'+(y===1?'':'s')+' on BuyQora';
+}
+async function sellerProfile(id){
+ let r=await supabaseClient.from('profiles').select('full_name,business_name,logo_url,phone,show_phone,verification_status,created_at').eq('id',id).maybeSingle();
+ if(r.error){r=await supabaseClient.from('profiles').select('full_name,business_name,logo_url,phone,show_phone,verification_status').eq('id',id).maybeSingle();}
+ return r.data||null;
+}
+async function enhance(l){
+ const root=$('detailContent');
+ if(!root||!l)return;
+ const {data:{session}}=await supabaseClient.auth.getSession();
+ const own=!!session&&session.user.id===l.seller_id;
+ const prof=await sellerProfile(l.seller_id);
+
+ /* photo count */
+ const img=root.querySelector('.detail-image');
+ const n=root.querySelectorAll('.bq-thumbs img').length||(l.image_url?1:0);
+ if(img&&n>1&&!img.querySelector('.bq-photocount')){const b=document.createElement('span');b.className='bq-photocount';b.textContent='📷 '+n;img.appendChild(b);}
+
+ /* location + time row, verified badge */
+ const h3=root.querySelector('h3');
+ if(h3&&!root.querySelector('.bq-locrow')){
+  const where=l.city?l.city+', '+l.state:l.state;
+  const row=document.createElement('div');row.className='bq-locrow';
+  const verified=prof&&prof.verification_status==='verified';
+  row.innerHTML='<span>📍 '+esc(where||'')+' · '+esc(ago(l.created_at))+'</span>'+(verified?'<span class="bq-badge2">✔ Verified seller</span>':'');
+  h3.parentNode.insertBefore(row,h3);
+  root.querySelectorAll('.detail-tag').forEach(t=>{if(t.textContent.trim().startsWith('📍'))t.remove();});
+ }
+
+ /* seller line: name and time on BuyQora */
+ const ds=$('dSeller');
+ if(ds&&prof){
+  const nm=prof.business_name||prof.full_name||'User';
+  const sn=since(prof.created_at);
+  ds.textContent=nm;
+  if(sn&&!ds.parentNode.querySelector('.bq-since')){const s=document.createElement('span');s.className='bq-since';s.textContent=' · '+sn;ds.parentNode.appendChild(s);}
+ }
+
+ if(own||root.querySelector('.bq-chatbox'))return;
+
+ /* Call button (only when the seller chose to show their number) */
+ const priceP=root.querySelector('p.price');
+ let anchor=priceP;
+ if(prof&&prof.show_phone&&prof.phone){
+  const tel=String(prof.phone).replace(/[^0-9+]/g,'');
+  if(tel){const a=document.createElement('a');a.className='bq-call';a.href='tel:'+tel;a.innerHTML='📞 Call';anchor.insertAdjacentElement('afterend',a);anchor=a;}
+ }
+
+ /* Chat with the seller */
+ const box=document.createElement('div');box.className='bq-chatbox';
+ box.innerHTML='<h4>Chat with the seller</h4><div class="bq-qchips"><button data-m="Hello, I would like to make an offer for this item.">Make an offer</button><button data-m="Hello, is this still available?">Is this available</button><button data-m="Hello, what is your last price?">Last price</button></div><textarea id="bqMsgBox" placeholder="Write your message here"></textarea><button class="bq-start" id="bqStartChat">Start chat</button>';
+ anchor.insertAdjacentElement('afterend',box);
+ box.querySelectorAll('.bq-qchips button').forEach(b=>b.onclick=()=>{$('bqMsgBox').value=b.dataset.m;$('bqMsgBox').focus();});
+ $('bqStartChat').onclick=async()=>{
+  const text=$('bqMsgBox').value.trim();
+  const {data:{session:s2}}=await supabaseClient.auth.getSession();
+  if(!s2){alert('Please log in first.');if(typeof openAuth==='function')openAuth('login');return;}
+  const btn=$('bqStartChat');btn.disabled=true;
+  try{
+   closeDetail();
+   await openChat(l.id,l.title,l.seller_id);
+   if(text){const ci=$('chatInput');if(ci){ci.value=text;await sendChatMessage();}}
+  }catch(e){}
+  btn.disabled=false;
+ };
+ const old=$('contactSellerBtn');if(old)old.style.display='none';
+}
+const prevOD=window.openDetail;
+window.openDetail=async function(l){
+ const r=await prevOD.apply(this,arguments);
+ try{await enhance(l);}catch(e){}
+ return r;
+};
+})();
