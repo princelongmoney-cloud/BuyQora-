@@ -2378,3 +2378,49 @@ window.openInbox=async function(){
  render();
 };
 })();
+
+/* Post form: red "required" messages under each empty field */
+(function(){
+const $=id=>document.getElementById(id);
+const css=document.createElement('style');
+css.textContent='.bq-invalid{border:2px solid #c62828!important;background:#fff6f6!important}'+
+'.bq-req-err{color:#c62828;font-size:13.5px;margin:4px 0 10px;font-weight:600}';
+document.head.appendChild(css);
+function clearOne(id){
+ const el=$(id);if(!el)return;
+ el.classList.remove('bq-invalid');
+ const m=document.querySelector('.bq-req-err[data-for="'+id+'"]');if(m)m.remove();
+}
+function clearAll(){['sellTitle','sellPrice','sellSub'].forEach(clearOne);}
+function setErr(id,msg){
+ const el=$(id);if(!el)return null;
+ clearOne(id);
+ el.classList.add('bq-invalid');
+ const d=document.createElement('div');d.className='bq-req-err';d.dataset.for=id;d.textContent=msg;
+ el.insertAdjacentElement('afterend',d);
+ return el;
+}
+['sellTitle','sellPrice'].forEach(id=>{const el=$(id);if(el)el.addEventListener('input',()=>clearOne(id));});
+const sub=$('sellSub');if(sub)sub.addEventListener('change',()=>clearOne('sellSub'));
+const prev=window.submitListing;
+window.submitListing=async function(){
+ clearAll();
+ let first=null;
+ const title=($('sellTitle').value||'').trim();
+ if(!title)first=setErr('sellTitle','Enter a title for your listing.')||first;
+ const raw=($('sellPrice').value||'').trim();
+ const price=parseFloat(raw.replace(/[^0-9.]/g,''));
+ if(!raw||isNaN(price)||price<=0)first=setErr('sellPrice','Enter a valid price in naira, for example 85000.')||first;
+ const cat=$('sellCategory')?$('sellCategory').value:'';
+ if(window.SUBCATS&&SUBCATS[cat]&&$('sellSub')&&!$('sellSub').value){
+  const label=(window.CATEGORY_LABELS&&CATEGORY_LABELS[cat])||'item';
+  first=setErr('sellSub','Choose the type of '+label+' you are listing.')||first;
+ }
+ if(first){
+  const err=$('sellError');if(err){err.style.display='none';}
+  try{first.scrollIntoView({behavior:'smooth',block:'center'});}catch(e){}
+  return;
+ }
+ return prev.apply(this,arguments);
+};
+})();
