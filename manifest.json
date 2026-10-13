@@ -7,10 +7,12 @@
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#12161a",
-  "theme_color": "#8a3300",
+  "background_color": "#ffffff",
+  "theme_color": "#0b6b3a",
   "lang": "en-NG",
-  "categories": ["shopping"],
+  "categories": [
+    "shopping"
+  ],
   "icons": [
     {
       "src": "icon-192.png",
