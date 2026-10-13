@@ -2276,3 +2276,105 @@ css.textContent='.bq-logo{display:flex!important;align-items:center;gap:10px}'+
 document.head.appendChild(css);
 logo.innerHTML='<span class="bq-mark">B</span><span class="bq-word">BuyQora<small>Buy. Sell. Discover. Promote. Grow.</small></span>';
 })();
+
+/* Messages inbox: search, tabs, thumbnails, unread counts, closed ads */
+(function(){
+const $=id=>document.getElementById(id);
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const css=document.createElement('style');
+css.textContent='.bq-isearch{width:100%;box-sizing:border-box;padding:12px 14px;border:1px solid #cfdad4;border-radius:12px;font-size:15px;margin:6px 0 10px;background:#fff;color:#1b2a22}'+
+'.bq-tabs{display:flex;gap:4px;border-bottom:1px solid #e3ebe6;margin-bottom:4px;overflow-x:auto}'+
+'.bq-tabs button{background:none;border:0;padding:10px 12px;font-size:15px;color:#6b7c73;font-weight:600;border-bottom:3px solid transparent;white-space:nowrap;cursor:pointer}'+
+'.bq-tabs button.on{color:#0b6b3a;border-bottom-color:#0b6b3a}'+
+'.bq-badge3{background:#e53935;color:#fff;border-radius:99px;font-size:11px;padding:1px 6px;margin-left:4px}'+
+'#inboxList .bq-ir{display:flex!important;gap:12px;align-items:center;padding:12px 0!important}'+
+'.bq-thumb{position:relative;width:64px;height:64px;flex:none}'+
+'.bq-thumb img.m{width:64px;height:64px;border-radius:12px;object-fit:cover;background:#e8ece9;display:block}'+
+'.bq-av2{position:absolute;right:-6px;bottom:-6px;width:28px;height:28px;border-radius:50%;background:#0b6b3a;color:#fff;border:2px solid #fff;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;overflow:hidden}'+
+'.bq-av2 img{width:100%;height:100%;object-fit:cover}'+
+'.bq-imain{flex:1;min-width:0}'+
+'.bq-irow1{display:flex;justify-content:space-between;gap:8px;align-items:baseline}'+
+'.bq-iname{font-size:15px;color:#33443b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}'+
+'.bq-iname.u{font-weight:800;color:#14261c}'+
+'.bq-idate{font-size:12.5px;color:#6b7c73;white-space:nowrap}'+
+'.bq-ilast{font-size:14px;color:#6b7c73;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}'+
+'.bq-ilast.u{color:#14261c;font-weight:700}'+
+'.bq-ititle{font-size:13.5px;color:#5d6d64;margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}'+
+'.bq-closed{background:#e8ece9;color:#33443b;font-size:12px;font-weight:700;padding:2px 8px;border-radius:6px;margin-right:6px}'+
+'.bq-strike{text-decoration:line-through}'+
+'.bq-ucount{background:#0b6b3a;color:#fff;min-width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex:none}';
+document.head.appendChild(css);
+
+let tab='all',q='',convos=[];
+function fmt(d){
+ const t=new Date(d),n=new Date();
+ if(t.toDateString()===n.toDateString())return t.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+ return t.toLocaleDateString('en-GB',{day:'numeric',month:'short'});
+}
+function ensureUI(){
+ if($('bqInboxSearch'))return;
+ const h=$('inboxOverlay').querySelector('h3');
+ if(!h)return;
+ h.insertAdjacentHTML('afterend','<input id="bqInboxSearch" class="bq-isearch" placeholder="Search in Messages"><div class="bq-tabs" id="bqInboxTabs"><button data-t="all" class="on">All</button><button data-t="unread">Unread<span id="bqUnreadN"></span></button><button data-t="unanswered">Unanswered</button></div>');
+ $('bqInboxSearch').oninput=e=>{q=e.target.value.trim().toLowerCase();render();};
+ $('bqInboxTabs').onclick=e=>{const b=e.target.closest('button');if(!b)return;tab=b.dataset.t;$('bqInboxTabs').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));render();};
+}
+function render(){
+ const list=$('inboxList');
+ const unreadChats=convos.filter(c=>c.unread>0).length;
+ const un=$('bqUnreadN');if(un)un.innerHTML=unreadChats?'<span class="bq-badge3">'+unreadChats+'</span>':'';
+ const rows=convos.map((c,i)=>({c,i})).filter(({c})=>{
+  if(tab==='unread'&&!c.unread)return false;
+  if(tab==='unanswered'&&!c.unanswered)return false;
+  if(q&&!(c.otherName+' '+c.listingTitle+' '+c.lastBody).toLowerCase().includes(q))return false;
+  return true;
+ });
+ if(!rows.length){list.innerHTML='<p style="color:#999;font-size:14px;padding:14px 0">'+(convos.length?'No conversations here.':'No conversations yet.')+'</p>';return;}
+ list.innerHTML=rows.map(({c,i})=>{
+  const u=c.unread>0;
+  const tick=c.lastMine?(c.lastRead?'<span style="color:#0b6b3a"> ✓✓</span>':'<span style="color:#9aa7a0"> ✓</span>'):'';
+  const av=c.logo?'<img src="'+esc(c.logo)+'" alt="">':esc((c.otherName||'?').charAt(0).toUpperCase());
+  return '<div class="inbox-row bq-ir" data-idx="'+i+'"><div class="bq-thumb"><img class="m" '+(c.image?'src="'+esc(c.image)+'"':'')+' alt=""><span class="bq-av2">'+av+'</span></div>'+
+   '<div class="bq-imain"><div class="bq-irow1"><span class="bq-iname'+(u?' u':'')+'">'+esc(c.otherName)+'</span><span class="bq-idate">'+esc(fmt(c.lastTime))+tick+'</span></div>'+
+   '<div class="bq-ilast'+(u?' u':'')+'">'+esc(c.lastBody)+'</div>'+
+   '<div class="bq-ititle">'+(c.closed?'<span class="bq-closed">CLOSED AD</span>':'')+'<span class="'+(c.closed?'bq-strike':'')+'">'+esc(c.listingTitle)+'</span></div></div>'+
+   (u?'<span class="bq-ucount">'+c.unread+'</span>':'')+'</div>';
+ }).join('');
+}
+window.openInbox=async function(){
+ ensureUI();
+ const list=$('inboxList');
+ list.innerHTML='<p style="color:#999;font-size:14px;">Loading...</p>';
+ $('inboxOverlay').classList.add('show');
+ const {data:{session}}=await supabaseClient.auth.getSession();
+ if(!session)return;
+ const me=session.user.id;
+ let r=await supabaseClient.from('messages').select('*, listings(title,status,image_url)').or('sender_id.eq.'+me+',recipient_id.eq.'+me).order('created_at',{ascending:false});
+ if(r.error)r=await supabaseClient.from('messages').select('*, listings(title)').or('sender_id.eq.'+me+',recipient_id.eq.'+me).order('created_at',{ascending:false});
+ if(r.error){list.innerHTML='<p style="color:#c0392b;font-size:13px;">'+esc(r.error.message)+'</p>';return;}
+ const data=r.data||[];
+ if(!data.length){convos=[];currentConversations=[];render();return;}
+ const map={};
+ for(const m of data){
+  const other=m.sender_id===me?m.recipient_id:m.sender_id;
+  const key=m.listing_id+'::'+other;
+  let c=map[key];
+  if(!c){
+   const L=m.listings;
+   c=map[key]={listingId:m.listing_id,listingTitle:(L&&L.title)||'Listing',otherId:other,lastBody:m.body,lastTime:m.created_at,lastMine:m.sender_id===me,lastRead:!!m.read,unread:0,
+    image:L&&L.image_url||'',closed:!L||(L.status!==undefined&&L.status!=='active'),logo:'',otherName:'',unanswered:m.sender_id!==me};
+  }
+  if(m.recipient_id===me&&!m.read)c.unread++;
+ }
+ convos=Object.values(map);
+ const ids=[...new Set(convos.map(c=>c.otherId))];
+ try{
+  const {data:ps}=await supabaseClient.from('profiles').select('id,full_name,business_name,logo_url').in('id',ids);
+  const pm={};(ps||[]).forEach(p=>{pm[p.id]=p;});
+  for(const c of convos){const p=pm[c.otherId];if(p){c.otherName=p.business_name||p.full_name||'';c.logo=p.logo_url||'';}}
+ }catch(e){}
+ for(const c of convos){if(!c.otherName){try{c.otherName=await getProfileName(c.otherId)||'User';}catch(e){c.otherName='User';}}}
+ currentConversations=convos;
+ render();
+};
+})();
