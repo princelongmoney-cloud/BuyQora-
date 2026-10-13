@@ -2263,3 +2263,16 @@ const box=document.getElementById('myList');
 if(box)new MutationObserver(fix).observe(box,{childList:true,subtree:true});
 setInterval(fix,700);
 })();
+
+/* BuyQora logo and tagline in the header */
+(function(){
+const logo=document.querySelector('.bq-logo');
+if(!logo||logo.querySelector('.bq-mark'))return;
+const css=document.createElement('style');
+css.textContent='.bq-logo{display:flex!important;align-items:center;gap:10px}'+
+'.bq-mark{width:42px;height:42px;border-radius:12px;background:#ff6b00;color:#fff;display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:900;box-shadow:0 2px 6px rgba(0,0,0,.25);flex:none;font-family:inherit}'+
+'.bq-word{display:flex;flex-direction:column;line-height:1.1;font-size:24px;font-weight:800;letter-spacing:.2px}'+
+'.bq-word small{font-size:11px;font-weight:500;letter-spacing:.2px;color:#d6efe0;margin-top:3px;white-space:nowrap}';
+document.head.appendChild(css);
+logo.innerHTML='<span class="bq-mark">B</span><span class="bq-word">BuyQora<small>Buy. Sell. Discover. Promote. Grow.</small></span>';
+})();
