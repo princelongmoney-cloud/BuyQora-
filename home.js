@@ -1335,7 +1335,7 @@ const EMAIL='princelongmoney@gmail.com';
 document.body.insertAdjacentHTML('beforeend','<div class="modal-overlay" id="adTermsOverlay"><div class="modal" style="color:#222;max-width:600px"><span class="close" id="adTermsClose">✕</span><h3>Advertising Terms</h3><div id="adTermsBody" style="font-size:14px;line-height:1.6"></div></div></div>');
 $('adTermsBody').innerHTML='<p><i>Last updated: October 2026</i></p>'+
 '<h4>1. Who can advertise</h4><p>Any registered BuyQora seller, business, company or brand aged 18 or over can promote a listing or place an advert, as long as the content follows our Terms of Use.</p>'+
-'<h4>2. Promotion and advert types</h4><p>BuyQora offers paid listing promotions (Basic Boost, Featured, Premium and Top Advert) and business adverts such as banners and video. Promoted items are clearly labelled, for example Promoted, Featured, Premium or Sponsored.</p>'+
+'<h4>2. Promotion and advert types</h4><p>BuyQora offers paid listing promotions (Basic Boost, Featured, Premium, VIP, Diamond and Top Advert) and business adverts such as banners and video. Promoted items are clearly labelled, for example Promoted, Featured, Premium, VIP, Diamond or Sponsored.</p>'+
 '<h4>3. Prices and duration</h4><p>Prices and durations are shown before you pay and may be changed by BuyQora at any time. A change does not affect a promotion you have already paid for.</p>'+
 '<h4>4. Payment</h4><p>A promotion or advert starts only after BuyQora has received and confirmed your payment. Payments are currently made by bank transfer and confirmed by our team. Keep your proof of payment.</p>'+
 '<h4>5. Refunds</h4><p>Once a promotion or advert is active, the fee is not refundable. If we fail to show a paid promotion, contact us and we will extend it or refund you.</p>'+
@@ -1343,7 +1343,8 @@ $('adTermsBody').innerHTML='<p><i>Last updated: October 2026</i></p>'+
 '<h4>7. Our right to reject or remove</h4><p>BuyQora may reject, pause or remove any advert or promotion that breaks these terms or our Terms of Use, without a refund where the breach is serious.</p>'+
 '<h4>8. No guarantee of results</h4><p>A promotion increases visibility but we cannot guarantee a number of views, messages or sales.</p>'+
 '<h4>9. Verified business badge</h4><p>The verified badge is a paid service. We may remove it if the business information turns out to be false.</p>'+
-'<h4>10. Contact</h4><p>For any advertising question, email '+EMAIL+'.</p>';
+'<h4>10. Extra listing fee</h4><p>Every seller can post 3 listings for free. After that, a fee applies for each extra listing and is shown before you pay. Listings you delete still count towards the 3 free listings. A listing is published only after BuyQora has received and confirmed your payment.</p>'+
+'<h4>11. Contact</h4><p>For any advertising question, email '+EMAIL+'.</p>';
 $('adTermsBody').querySelectorAll('h4').forEach(h=>{h.style.margin='14px 0 4px';});
 $('adTermsClose').onclick=()=>$('adTermsOverlay').classList.remove('show');
 const links=$('legalLinks');
