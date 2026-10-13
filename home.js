@@ -2060,7 +2060,19 @@ css.textContent='.bq-photocount{position:absolute;left:10px;bottom:10px;backgrou
 '.bq-qchips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px}'+
 '.bq-qchips button{background:#fff;color:#0b6b3a;border:1.5px solid #0b6b3a;border-radius:99px;padding:8px 12px;font-size:13.5px;font-weight:600;cursor:pointer}'+
 '.bq-chatbox textarea{width:100%;box-sizing:border-box;min-height:64px;border:1px solid #cfdad4;border-radius:12px;padding:12px;font-size:15px;background:#fff;color:#1b2a22;resize:vertical;margin-bottom:10px}'+
-'.bq-chatbox .bq-start{width:100%;background:#ff6b00;color:#fff;border:0;border-radius:12px;padding:14px;font-size:16px;font-weight:700;cursor:pointer}';
+'.bq-chatbox .bq-start{width:100%;background:#ff6b00;color:#fff;border:0;border-radius:12px;padding:14px;font-size:16px;font-weight:700;cursor:pointer}'+
+'.bq-clamp{display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}'+
+'.bq-more{display:inline-block;color:#0b6b3a;font-weight:700;margin:2px 0 8px;cursor:pointer}'+
+'.bq-seller{display:flex;align-items:center;gap:12px;background:#fff;border:1px solid #e3ebe6;border-radius:14px;padding:12px;margin:12px 0}'+
+'.bq-av{width:54px;height:54px;border-radius:50%;background:#e8f5ee;color:#0b6b3a;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:22px;overflow:hidden;flex:none}'+
+'.bq-av img{width:100%;height:100%;object-fit:cover}'+
+'.bq-sinfo{flex:1;min-width:0}.bq-sinfo b{font-size:16px;color:#14261c;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}'+
+'.bq-sinfo .bq-sub{font-size:13px;color:#5d6d64;margin-top:2px}'+
+'.bq-viewads{color:#0b6b3a;font-weight:700;font-size:14px;white-space:nowrap;cursor:pointer}'+
+'.bq-fb{background:#fff;border:1px solid #e3ebe6;border-radius:14px;padding:12px;margin:12px 0}.bq-fb h4{margin:0 0 8px;font-size:16px;color:#14261c}'+
+'.bq-fbcard{background:#f5f7f6;border-radius:12px;padding:10px 12px;font-size:14px;color:#1b2a22}.bq-fbcard .st{color:#f5a623}'+
+'.bq-viewall{display:block;margin-top:8px;color:#0b6b3a;font-weight:700;cursor:pointer}'+
+'.bq-act{display:block;width:100%;box-sizing:border-box;text-align:center;background:#fff;border-radius:12px;padding:14px;font-size:16px;font-weight:700;margin:10px 0;cursor:pointer}';
 document.head.appendChild(css);
 
 function since(d){
@@ -2078,6 +2090,82 @@ async function sellerProfile(id){
  let r=await supabaseClient.from('profiles').select('full_name,business_name,logo_url,phone,show_phone,verification_status,created_at').eq('id',id).maybeSingle();
  if(r.error){r=await supabaseClient.from('profiles').select('full_name,business_name,logo_url,phone,show_phone,verification_status').eq('id',id).maybeSingle();}
  return r.data||null;
+}
+async function bottom(l,prof,own){
+ const root=$('detailContent');
+ if(!root||root.querySelector('.bq-bottom'))return;
+ /* description: show more */
+ const desc=root.querySelector('.detail-desc');
+ if(desc&&(desc.textContent||'').length>180){
+  desc.classList.add('bq-clamp');
+  const t=document.createElement('a');t.className='bq-more';t.textContent='Show more ▾';
+  t.onclick=()=>{const c=desc.classList.toggle('bq-clamp');t.textContent=c?'Show more ▾':'Show less ▴';};
+  desc.insertAdjacentElement('afterend',t);
+ }
+ /* seller card */
+ const sp=$('dSeller')?$('dSeller').closest('p'):null;
+ const nm=prof?(prof.business_name||prof.full_name||'User'):'User';
+ const ver=prof&&prof.verification_status==='verified';
+ const all=(typeof currentListings!=='undefined'&&currentListings)?currentListings.filter(x=>x.seller_id===l.seller_id):[];
+ const others=all.filter(x=>String(x.id)!==String(l.id)).slice(0,10);
+ const total=Math.max(all.length,1);
+ const card=document.createElement('div');card.className='bq-bottom bq-seller';
+ card.innerHTML='<div class="bq-av">'+(prof&&prof.logo_url?'<img src="'+esc(prof.logo_url)+'" alt="">':esc(nm.charAt(0).toUpperCase()))+'</div>'+
+  '<div class="bq-sinfo"><b>'+esc(nm)+'</b>'+(ver?'<span class="bq-badge2" style="display:inline-block;margin-top:3px">✔ Verified</span>':'')+'<div class="bq-sub">'+esc(since(prof&&prof.created_at))+'</div></div>'+
+  '<a class="bq-viewads">View ads ('+total+') ›</a>';
+ if(sp){sp.insertAdjacentElement('beforebegin',card);sp.style.display='none';}
+ else root.appendChild(card);
+ /* more from this seller */
+ let moreH=null;
+ if(others.length){
+  moreH=document.createElement('div');moreH.className='bq-bottom';
+  moreH.innerHTML='<h4 class="bq-simh">More from this seller</h4><div class="bq-sim">'+others.map(x=>'<div data-id="'+x.id+'">'+(x.image_url?'<img src="'+esc(x.image_url)+'" alt="">':'<img alt="" style="background:#eee">')+'<span>'+esc(x.title)+'</span><b>₦'+Number(x.price).toLocaleString()+'</b></div>').join('')+'</div>';
+  const simh=root.querySelector('.bq-simh');
+  if(simh)simh.insertAdjacentElement('beforebegin',moreH);else root.appendChild(moreH);
+  moreH.querySelectorAll('.bq-sim div').forEach(d=>d.onclick=()=>{const x=currentListings.find(z=>String(z.id)===d.dataset.id);if(x)openDetail(x);});
+ }
+ card.querySelector('.bq-viewads').onclick=()=>{(moreH||card).scrollIntoView({behavior:'smooth',block:'center'});};
+ /* feedback preview */
+ try{
+  const {data:rv}=await supabaseClient.from('reviews').select('rating,comment,created_at,reviewer_id').eq('seller_id',l.seller_id).order('created_at',{ascending:false}).limit(1);
+  const {data:sm}=await supabaseClient.from('seller_ratings').select('review_count').eq('seller_id',l.seller_id).maybeSingle();
+  if(rv&&rv.length){
+   const r=rv[0];let who='Buyer';
+   try{if(typeof getProfileName==='function')who=await getProfileName(r.reviewer_id)||'Buyer';}catch(e){}
+   const n=Math.round(r.rating||0);
+   const fb=document.createElement('div');fb.className='bq-bottom bq-fb';
+   fb.innerHTML='<h4>Feedback about seller</h4><div class="bq-fbcard"><b>'+esc(who)+'</b> · '+esc(new Date(r.created_at).toLocaleDateString())+'<div class="st">'+'★'.repeat(n)+'☆'.repeat(5-n)+'</div>'+(r.comment?'<div>'+esc(r.comment)+'</div>':'')+'</div><a class="bq-viewall">View all'+(sm&&sm.review_count?' ('+sm.review_count+')':'')+' ›</a>';
+   const anchor=$('bqRate')||sp||card;
+   anchor.insertAdjacentElement('afterend',fb);
+   fb.querySelector('.bq-viewall').onclick=()=>{const a=$('bqRateLink');if(a)a.click();};
+   setTimeout(()=>{const br=$('bqRate');if(br&&fb.previousElementSibling!==br)br.insertAdjacentElement('afterend',fb);},700);
+  }
+ }catch(e){}
+ /* buttons */
+ const end=document.createElement('div');end.className='bq-bottom';
+ end.innerHTML=(own?'<button class="bq-act" id="bqUnavail" style="color:#0277bd;border:2px solid #0277bd">Mark unavailable</button>':'')+'<button class="bq-act" id="bqPostLike" style="color:#0b6b3a;border:2px solid #0b6b3a">Post ad like this</button>';
+ const rep=root.querySelector('.report-btn')||$('dManage')||$('dShare');
+ if(rep)rep.insertAdjacentElement('afterend',end);else root.appendChild(end);
+ if($('bqUnavail'))$('bqUnavail').onclick=async()=>{
+  if(!confirm('Mark this listing as unavailable (sold)? Buyers will no longer see it.'))return;
+  const {error}=await supabaseClient.from('listings').update({status:'sold'}).eq('id',l.id);
+  if(error){alert('Could not update: '+error.message);return;}
+  closeDetail();
+  try{if(typeof loadListings==='function')loadListings();}catch(e){}
+  alert('Marked as unavailable.');
+ };
+ $('bqPostLike').onclick=()=>{
+  closeDetail();
+  const sb=document.querySelector('#bqNav [data-n="sell"]');
+  if(sb)sb.click();else if(typeof openSell==='function')openSell();
+  setTimeout(()=>{try{
+   const c=$('sellCategory');if(c&&l.category_id){c.value=l.category_id;c.dispatchEvent(new Event('change'));}
+   setTimeout(()=>{try{if(l.subcategory&&$('sellSub')){$('sellSub').value=l.subcategory;$('sellSub').dispatchEvent(new Event('change'));}}catch(e){}},250);
+   if(l.condition&&$('sellCondition'))$('sellCondition').value=l.condition;
+   if(l.state&&$('sellState'))$('sellState').value=l.state;
+   if(l.city&&$('sellCity'))$('sellCity').value=l.city;
+  }catch(e){}},400);
+ };
 }
 async function enhance(l){
  const root=$('detailContent');
@@ -2118,6 +2206,7 @@ async function enhance(l){
   if(sn&&!ds.parentNode.querySelector('.bq-since')){const s=document.createElement('span');s.className='bq-since';s.textContent=' · '+sn;ds.parentNode.appendChild(s);}
  }
 
+ try{await bottom(l,prof,own);}catch(e){}
  if(own||root.querySelector('.bq-chatbox'))return;
 
  /* Call button (only when the seller chose to show their number) */
