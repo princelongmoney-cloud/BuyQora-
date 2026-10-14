@@ -204,11 +204,11 @@ $('editSave').onclick=async()=>{
 (function(){
 const $=id=>document.getElementById(id);
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-const MAXP=5;
+const MAXP=8;
 $('sellPrice').insertAdjacentHTML('afterend','<label style="display:flex;gap:8px;align-items:center;margin-bottom:12px"><input type="checkbox" id="sellNeg" style="width:auto;margin:0"> Price is negotiable</label>');
 $('sellState').insertAdjacentHTML('afterend','<label>City / area</label><input type="text" id="sellCity" placeholder="e.g. Owerri, Ikeja, Onitsha">');
 const si=$('sellImage');si.multiple=true;
-if(si.previousElementSibling)si.previousElementSibling.textContent='Photos (up to 5)';
+if(si.previousElementSibling)si.previousElementSibling.textContent='Photos (at least 2, up to 8)';
 function shrink(file){return new Promise(res=>{
  const img=new Image(),u=URL.createObjectURL(file);
  img.onload=()=>{const r=Math.min(1,1280/Math.max(img.width,img.height));
@@ -2379,52 +2379,6 @@ window.openInbox=async function(){
 };
 })();
 
-/* Post form: red "required" messages under each empty field */
-(function(){
-const $=id=>document.getElementById(id);
-const css=document.createElement('style');
-css.textContent='.bq-invalid{border:2px solid #c62828!important;background:#fff6f6!important}'+
-'.bq-req-err{color:#c62828;font-size:13.5px;margin:4px 0 10px;font-weight:600}';
-document.head.appendChild(css);
-function clearOne(id){
- const el=$(id);if(!el)return;
- el.classList.remove('bq-invalid');
- const m=document.querySelector('.bq-req-err[data-for="'+id+'"]');if(m)m.remove();
-}
-function clearAll(){['sellTitle','sellPrice','sellSub'].forEach(clearOne);}
-function setErr(id,msg){
- const el=$(id);if(!el)return null;
- clearOne(id);
- el.classList.add('bq-invalid');
- const d=document.createElement('div');d.className='bq-req-err';d.dataset.for=id;d.textContent=msg;
- el.insertAdjacentElement('afterend',d);
- return el;
-}
-['sellTitle','sellPrice'].forEach(id=>{const el=$(id);if(el)el.addEventListener('input',()=>clearOne(id));});
-const sub=$('sellSub');if(sub)sub.addEventListener('change',()=>clearOne('sellSub'));
-const prev=window.submitListing;
-window.submitListing=async function(){
- clearAll();
- let first=null;
- const title=($('sellTitle').value||'').trim();
- if(!title)first=setErr('sellTitle','Enter a title for your listing.')||first;
- const raw=($('sellPrice').value||'').trim();
- const price=parseFloat(raw.replace(/[^0-9.]/g,''));
- if(!raw||isNaN(price)||price<=0)first=setErr('sellPrice','Enter a valid price in naira, for example 85000.')||first;
- const cat=$('sellCategory')?$('sellCategory').value:'';
- if(window.SUBCATS&&SUBCATS[cat]&&$('sellSub')&&!$('sellSub').value){
-  const label=(window.CATEGORY_LABELS&&CATEGORY_LABELS[cat])||'item';
-  first=setErr('sellSub','Choose the type of '+label+' you are listing.')||first;
- }
- if(first){
-  const err=$('sellError');if(err){err.style.display='none';}
-  try{first.scrollIntoView({behavior:'smooth',block:'center'});}catch(e){}
-  return;
- }
- return prev.apply(this,arguments);
-};
-})();
-
 /* Post an item: red "required" messages under empty fields */
 (function(){
 const $=id=>document.getElementById(id);
@@ -2446,7 +2400,7 @@ function mark(el,msg){
 function validate(){
  let first=null;
  const bad=(el,msg)=>{mark(el,msg);if(!first)first=el;};
- ['sellTitle','sellPrice','sellSub','sellDesc'].forEach(id=>clearOne($(id)));
+ ['sellTitle','sellPrice','sellSub','sellDesc','sellImage'].forEach(id=>clearOne($(id)));
  const t=$('sellTitle'),p=$('sellPrice'),s=$('sellSub'),d=$('sellDesc');
  if(t&&!t.value.trim())bad(t,'This field is required. Enter a title for your item.');
  if(p){
@@ -2456,6 +2410,8 @@ function validate(){
  }
  if(s&&s.style.display!=='none'&&!s.value)bad(s,'This field is required. Choose the type.');
  if(d&&d.value.trim().length<10)bad(d,'This field is required. Add a short description (at least 10 characters).');
+ const im=$('sellImage');
+ if(im){const n=(im.files||[]).length;if(n<2)bad(im,'This field is required. Add at least 2 photos (up to 8).');else if(n>8)bad(im,'You can add up to 8 photos. Only the first 8 will be used.');}
  if(first){
   const err=$('sellError');if(err)err.style.display='none';
   first.scrollIntoView({behavior:'smooth',block:'center'});
@@ -2471,6 +2427,6 @@ document.addEventListener('click',e=>{
 },true);
 ['input','change'].forEach(ev=>document.addEventListener(ev,e=>{
  const el=e.target;
- if(el&&['sellTitle','sellPrice','sellSub','sellDesc'].includes(el.id))clearOne(el);
+ if(el&&['sellTitle','sellPrice','sellSub','sellDesc','sellImage'].includes(el.id))clearOne(el);
 }));
 })();
