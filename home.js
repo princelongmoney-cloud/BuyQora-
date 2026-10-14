@@ -2424,3 +2424,53 @@ window.submitListing=async function(){
  return prev.apply(this,arguments);
 };
 })();
+
+/* Post an item: red "required" messages under empty fields */
+(function(){
+const $=id=>document.getElementById(id);
+const css=document.createElement('style');
+css.textContent='.bq-bad{border-color:#e53935!important;background:#fff5f5!important}'+
+'.bq-req{color:#e53935;font-size:13px;font-weight:600;margin:-6px 0 12px}';
+document.head.appendChild(css);
+function clearOne(el){
+ if(!el)return;
+ el.classList.remove('bq-bad');
+ const n=el.nextElementSibling;
+ if(n&&n.classList.contains('bq-req'))n.remove();
+}
+function mark(el,msg){
+ clearOne(el);
+ el.classList.add('bq-bad');
+ el.insertAdjacentHTML('afterend','<div class="bq-req">'+msg+'</div>');
+}
+function validate(){
+ let first=null;
+ const bad=(el,msg)=>{mark(el,msg);if(!first)first=el;};
+ ['sellTitle','sellPrice','sellSub','sellDesc'].forEach(id=>clearOne($(id)));
+ const t=$('sellTitle'),p=$('sellPrice'),s=$('sellSub'),d=$('sellDesc');
+ if(t&&!t.value.trim())bad(t,'This field is required. Enter a title for your item.');
+ if(p){
+  const raw=p.value.trim(),num=parseFloat(raw.replace(/[^0-9.]/g,''));
+  if(!raw)bad(p,'This field is required. Enter a price, for example 85000.');
+  else if(isNaN(num)||num<=0)bad(p,'Enter a valid price in naira.');
+ }
+ if(s&&s.style.display!=='none'&&!s.value)bad(s,'This field is required. Choose the type.');
+ if(d&&d.value.trim().length<10)bad(d,'This field is required. Add a short description (at least 10 characters).');
+ if(first){
+  const err=$('sellError');if(err)err.style.display='none';
+  first.scrollIntoView({behavior:'smooth',block:'center'});
+  try{first.focus({preventScroll:true});}catch(e){}
+  return false;
+ }
+ return true;
+}
+document.addEventListener('click',e=>{
+ const b=e.target&&e.target.closest?e.target.closest('#sellSubmitBtn'):null;
+ if(!b)return;
+ if(!validate()){e.stopImmediatePropagation();e.preventDefault();}
+},true);
+['input','change'].forEach(ev=>document.addEventListener(ev,e=>{
+ const el=e.target;
+ if(el&&['sellTitle','sellPrice','sellSub','sellDesc'].includes(el.id))clearOne(el);
+}));
+})();
