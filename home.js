@@ -2918,16 +2918,16 @@ const PHB=['Apple (iPhone)','Samsung','Tecno','Infinix','Itel','Xiaomi','Oppo','
 const ELB=['Apple','Samsung','HP','Dell','Lenovo','LG','Sony','Hisense','TCL','Other'];
 /* tiles: key stored in details, full list, 3 shown tiles, word */
 const TILES={
- an_dogs:{k:'breed',all:DOGB,top:['Rottweiler','German Shepherd','Lhasa Apso'],w:'Breed',ic:'🐕'},
- an_cats:{k:'breed',all:CATB,top:['Persian','Siamese','Maine Coon'],w:'Breed',ic:'🐈'},
- cars:{k:'make',all:CARB,top:['Toyota','Honda','Lexus'],w:'Make'},
- buses:{k:'make',all:CARB,top:['Toyota','Honda','Hyundai'],w:'Make'},
- trucks:{k:'make',all:CARB,top:['Toyota','Ford','Nissan'],w:'Make'},
- motorcycles:{k:'make',all:CARB,top:['Honda','Suzuki','Toyota'],w:'Make'},
- ph_phones:{k:'brand',all:PHB,top:['Apple (iPhone)','Samsung','Tecno'],w:'Brand'},
- ph_tablets:{k:'brand',all:PHB,top:['Apple (iPhone)','Samsung','Tecno'],w:'Brand'},
- el_laptops:{k:'brand',all:ELB,top:['Apple','HP','Dell'],w:'Brand'},
- el_tv:{k:'brand',all:ELB,top:['Samsung','LG','Sony'],w:'Brand'},
+ an_dogs:{k:'breed',all:DOGB,top:['Rottweiler','German Shepherd','Lhasa Apso','Caucasian Shepherd','Cane Corso','Boerboel'],w:'Breed',ic:'🐕'},
+ an_cats:{k:'breed',all:CATB,top:['Persian','Siamese','Maine Coon','British Shorthair'],w:'Breed',ic:'🐈'},
+ cars:{k:'make',all:CARB,top:['Toyota','Honda','Lexus','Mercedes-Benz','Hyundai','Kia'],w:'Make'},
+ buses:{k:'make',all:CARB,top:['Toyota','Hyundai','Honda','Mercedes-Benz','Kia','Nissan'],w:'Make'},
+ trucks:{k:'make',all:CARB,top:['Toyota','Ford','Nissan','Mercedes-Benz','Hyundai','Kia'],w:'Make'},
+ motorcycles:{k:'make',all:CARB,top:['Honda','Suzuki','Toyota','Kia','Hyundai'],w:'Make'},
+ ph_phones:{k:'brand',all:PHB,top:['Apple (iPhone)','Samsung','Tecno','Infinix','Itel','Xiaomi'],w:'Brand'},
+ ph_tablets:{k:'brand',all:PHB,top:['Apple (iPhone)','Samsung','Tecno','Huawei','Xiaomi'],w:'Brand'},
+ el_laptops:{k:'brand',all:ELB,top:['Apple','HP','Dell','Lenovo','Samsung','Sony'],w:'Brand'},
+ el_tv:{k:'brand',all:ELB,top:['Samsung','LG','Sony','Hisense','TCL'],w:'Brand'},
  el_audio:{k:'brand',all:ELB,top:['Sony','Samsung','LG'],w:'Brand'},
  el_head:{k:'brand',all:ELB,top:['Apple','Sony','Samsung'],w:'Brand'},
  el_cam:{k:'brand',all:ELB,top:['Sony','Samsung','Apple'],w:'Brand'},
@@ -2985,11 +2985,11 @@ function paint(){
  else if(sort==='hi')f.sort((a,b)=>Number(b.price)-Number(a.price));
  else f.sort((a,b)=>new Date(b.created_at||0)-new Date(a.created_at||0));
  shown=f;
- const tile=(lbl,ic,on,attr)=>'<button '+attr+' style="padding:10px 4px 8px;border-radius:14px;background:#fff;border:2px solid '+(on?'#0b6b3a':'#e3e8e5')+';display:flex;flex-direction:column;align-items:center;gap:6px;min-width:0"><span style="width:52px;height:52px;border-radius:50%;background:'+(on?'#e8f5ee':'#f1f4f2')+';display:flex;align-items:center;justify-content:center;font-size:28px">'+ic+'</span><span style="font-size:12.5px;font-weight:600;color:#222;line-height:1.2;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(lbl)+'</span></button>';
- const pill=(t,on,act)=>'<button data-act="'+act+'" style="flex:none;padding:10px 16px;border-radius:12px;font-size:15px;font-weight:600;border:1.5px solid '+(on?'#0b6b3a':'#cfd8d3')+';background:'+(on?'#e8f5ee':'#fff')+';color:'+(on?'#0b6b3a':'#333')+'">'+t+'</button>';
+ const tile=(lbl,ic,on,attr)=>'<button '+attr+' style="flex:none;width:calc(25% - 6px);padding:10px 4px 8px;border-radius:14px;background:#fff;border:2px solid '+(on?'#0b6b3a':'#e3e8e5')+';display:flex;flex-direction:column;align-items:center;gap:6px;min-width:0"><span style="width:52px;height:52px;border-radius:50%;background:'+(on?'#e8f5ee':'#f1f4f2')+';display:flex;align-items:center;justify-content:center;font-size:28px">'+ic+'</span><span style="font-size:12.5px;font-weight:600;color:#222;line-height:1.2;max-width:100%;min-height:2.4em;white-space:normal;word-break:break-word;text-align:center">'+esc(lbl)+'</span></button>';
+ const pill=(t,on,act)=>'<button data-act="'+act+'" style="flex:none;padding:8px 13px;border-radius:12px;font-size:14px;font-weight:600;border:1.5px solid '+(on?'#0b6b3a':'#cfd8d3')+';background:'+(on?'#e8f5ee':'#fff')+';color:'+(on?'#0b6b3a':'#333')+'">'+t+'</button>';
  let top='';
- if(T)top+='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:12px 12px 0">'+T.top.map(x=>tile(x,T.ic||('<b style="font-size:26px;color:#0b6b3a">'+esc(String(x).charAt(0))+'</b>'),tileSel===x,'data-tile="'+esc(x)+'"')).join('')+tile('Other','⋯',false,'data-act="o:tile"')+'</div>';
- top+='<div style="display:flex;gap:8px;overflow-x:auto;padding:10px 12px 4px">';
+ if(T)top+='<div style="display:flex;gap:8px;overflow-x:auto;padding:12px 12px 4px">'+T.top.map(x=>tile(x,T.ic||('<b style="font-size:26px;color:#0b6b3a">'+esc(String(x).charAt(0))+'</b>'),tileSel===x,'data-tile="'+esc(x)+'"')).join('')+tile('Other','⋯',false,'data-act="o:tile"')+'</div>';
+ top+='<div style="display:flex;flex-wrap:wrap;gap:8px;padding:10px 12px 4px">';
  if(T&&tileSel&&T.top.indexOf(tileSel)<0)top+=pill('✓ '+esc(tileSel)+' ✕',true,'x:tile');
  X.forEach(fd=>{const v=vals[fd.k];top+=v?pill('✓ '+esc(v)+' ✕',true,'x:'+fd.k):pill(esc(fd.l)+' ▾',false,'o:'+fd.k);});
  if(!NOCOND[cat])top+=cond?pill('✓ '+(cond==='new'?'New':'Used')+' ✕',true,'x:cond'):pill('Condition ▾',false,'o:cond');
