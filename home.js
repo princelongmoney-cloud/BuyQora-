@@ -2908,7 +2908,15 @@ setInterval(draw,600);
 const $=id=>document.getElementById(id);
 const esc=x=>String(x==null?'':x).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 const BREEDS={an_dogs:['Rottweiler','German Shepherd','Lhasa Apso','Caucasian Shepherd','Cane Corso','Boerboel','Other'],an_cats:['Persian','Siamese','Maine Coon','Other']};
+const CARB=['Toyota','Honda','Lexus','Mercedes-Benz','Hyundai','Kia','Nissan','Ford','Peugeot','Volkswagen','BMW','Mazda','Suzuki','Other'];
+const PHB=['Apple (iPhone)','Samsung','Tecno','Infinix','Itel','Xiaomi','Oppo','Nokia','Huawei','Google Pixel','Other'];
+const ELB=['Apple','Samsung','HP','Dell','Lenovo','LG','Sony','Hisense','TCL','Other'];
+const TOP={cars:['Toyota','Honda','Lexus'],ph_phones:['Apple (iPhone)','Samsung','Tecno'],ph_tablets:['Apple (iPhone)','Samsung','Tecno'],el_laptops:['Apple','HP','Dell'],el_tv:['Samsung','LG','Sony']};
+BREEDS.cars=CARB;BREEDS.ph_phones=PHB;BREEDS.ph_tablets=PHB;BREEDS.el_laptops=ELB;BREEDS.el_tv=ELB;
+const KEYS={cars:'make',ph_phones:'brand',ph_tablets:'brand',el_laptops:'brand',el_tv:'brand'};
+const WORD={cars:'Make',ph_phones:'Brand',ph_tablets:'Brand',el_laptops:'Brand',el_tv:'Brand'};
 const ICON={an_dogs:'🐕',an_cats:'🐈'};
+const HASG=s=>s==='an_dogs'||s==='an_cats';
 let cat='',sub='',sel={breed:'',gender:''},sort='new',pop='',q='',onlyVer=false,view='grid',profs={},shown=[];
 {const st=document.createElement('style');st.textContent='body.bq-kb #bqCatScr{bottom:0 !important}';document.head.appendChild(st);}
 function close(){const o=$('bqCatScr');if(o)o.remove();}
@@ -2918,9 +2926,9 @@ function matches(l){
  if(q){const t=((l.title||'')+' '+(l.description||'')).toLowerCase();if(t.indexOf(q)<0)return false;}
  if(!sel.breed&&!sel.gender)return true;
  const d=(l&&l.details&&typeof l.details==='object')?l.details:{};
- if(sel.breed){const known=(BREEDS[sub]||[]).filter(x=>x!=='Other');const b=d.breed||'';
+ if(sel.breed){const known=(BREEDS[sub]||[]).filter(x=>x!=='Other');const b=d[KEYS[sub]||'breed']||'';
   if(sel.breed==='Other'){if(!b||known.indexOf(b)>-1)return false;}else if(b!==sel.breed)return false;}
- if(sel.gender&&d.gender!==sel.gender)return false;
+ if(sel.gender&&HASG(sub)&&d.gender!==sel.gender)return false;
  return true;
 }
 function since(t){
@@ -2954,12 +2962,12 @@ function paint(){
  const tile=(lbl,ic,on,attr)=>'<button '+attr+' style="padding:10px 4px 8px;border-radius:14px;background:#fff;border:2px solid '+(on?'#0b6b3a':'#e3e8e5')+';display:flex;flex-direction:column;align-items:center;gap:6px;min-width:0"><span style="width:52px;height:52px;border-radius:50%;background:'+(on?'#e8f5ee':'#f1f4f2')+';display:flex;align-items:center;justify-content:center;font-size:28px">'+ic+'</span><span style="font-size:12.5px;font-weight:600;color:#222;line-height:1.2;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(lbl)+'</span></button>';
  const pill=(t,on,act)=>'<button data-act="'+act+'" style="flex:none;padding:10px 16px;border-radius:12px;font-size:15px;font-weight:600;border:1.5px solid '+(on?'#0b6b3a':'#cfd8d3')+';background:'+(on?'#e8f5ee':'#fff')+';color:'+(on?'#0b6b3a':'#333')+'">'+t+'</button>';
  let top='';
- const t3=list?list.slice(0,3):[];
- if(list)top+='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:12px 12px 0">'+t3.map(x=>tile(x,ICON[sub]||'🐾',sel.breed===x,'data-breed="'+esc(x)+'"')).join('')+tile('Other','⋯',false,'data-act="more"')+'</div>';
+ const t3=list?(TOP[sub]||list.slice(0,3)):[];
+ if(list)top+='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:12px 12px 0">'+t3.map(x=>tile(x,ICON[sub]||('<b style="font-size:26px;color:#0b6b3a">'+esc(String(x).charAt(0))+'</b>'),sel.breed===x,'data-breed="'+esc(x)+'"')).join('')+tile('Other','⋯',false,'data-act="more"')+'</div>';
  top+='<div style="display:flex;gap:8px;overflow-x:auto;padding:10px 12px 4px">';
  if(list){
   if(sel.breed&&t3.indexOf(sel.breed)<0)top+=pill('✓ '+esc(sel.breed)+' ✕',true,'xbreed');
-  top+=(sel.gender?pill('✓ '+esc(sel.gender)+' ✕',true,'xgender'):pill('Gender ▾',false,'gender'));
+  if(HASG(sub))top+=(sel.gender?pill('✓ '+esc(sel.gender)+' ✕',true,'xgender'):pill('Gender ▾',false,'gender'));
  }
  top+=pill(onlyVer?'✓ Verified sellers ✕':'Verified sellers ▾',onlyVer,'ver');
  if(list)top+=pill('More ▾',false,'more');
@@ -2968,7 +2976,7 @@ function paint(){
  const wrap=inner=>'<div data-act="shClose" style="position:fixed;left:0;right:0;top:0;bottom:var(--bqnavh,72px);z-index:5;background:rgba(0,0,0,.45);display:flex;align-items:flex-end"><div style="background:#fff;width:100%;max-height:75%;overflow-y:auto;border-radius:18px 18px 0 0;padding:18px 16px 24px">'+inner+'</div></div>';
  const opt=(attr,txt,on)=>'<button '+attr+' style="display:block;width:100%;text-align:left;padding:14px;margin-bottom:8px;border-radius:12px;font-size:17px;border:1.5px solid '+(on?'#0b6b3a':'#e0e0e0')+';background:'+(on?'#e8f5ee':'#fff')+';color:#222">'+esc(txt)+'</button>';
  if(pop==='gender')sheet=wrap('<div style="font-weight:bold;font-size:18px;margin-bottom:12px">Gender</div>'+['Male','Female'].map(x=>opt('data-g="'+x+'"',x,sel.gender===x)).join('')+'<button data-g="" style="display:block;width:100%;padding:14px;border-radius:12px;font-size:16px;border:0;background:#f1f1f1;color:#444">Any gender</button>');
- else if(pop==='more'&&list)sheet=wrap('<div style="font-weight:bold;font-size:18px;margin-bottom:12px">Breed</div>'+list.map(x=>opt('data-b="'+esc(x)+'"',x,sel.breed===x)).join('')+'<button data-b="" style="display:block;width:100%;padding:14px;border-radius:12px;font-size:16px;border:0;background:#f1f1f1;color:#444">Any breed</button>');
+ else if(pop==='more'&&list)sheet=wrap('<div style="font-weight:bold;font-size:18px;margin-bottom:12px">'+(WORD[sub]||'Breed')+'</div>'+list.map(x=>opt('data-b="'+esc(x)+'"',x,sel.breed===x)).join('')+'<button data-b="" style="display:block;width:100%;padding:14px;border-radius:12px;font-size:16px;border:0;background:#f1f1f1;color:#444">Any '+(WORD[sub]||'breed').toLowerCase()+'</button>');
  body.innerHTML=top+
   '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:14px 12px 8px"><div style="font-weight:bold;font-size:16px">Found '+f.length+' ad'+(f.length===1?'':'s')+'</div><div style="display:flex;gap:8px"><select id="bqCatSort" style="padding:9px 10px;border-radius:10px;border:1.5px solid #cfd8d3;background:#fff;font-size:14px"><option value="new"'+(sort==='new'?' selected':'')+'>Newest</option><option value="lo"'+(sort==='lo'?' selected':'')+'>Price: low to high</option><option value="hi"'+(sort==='hi'?' selected':'')+'>Price: high to low</option></select><button data-act="view" style="padding:9px 14px;border-radius:10px;border:1.5px solid #cfd8d3;background:#fff;font-size:18px">'+(view==='grid'?'☰':'▦')+'</button></div></div>'+
   (f.length?'<div style="display:grid;grid-template-columns:'+(view==='grid'?'1fr 1fr':'1fr')+';gap:12px;padding:0 12px 24px">'+f.map(card).join('')+'</div>':'<div style="padding:30px 20px;color:#666;text-align:center">No listings match yet. Try another filter, or post one yourself.</div>')+sheet;
