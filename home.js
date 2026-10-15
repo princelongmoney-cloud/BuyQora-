@@ -2681,3 +2681,32 @@ function addTile(){
 }
 setInterval(addTile,1000);
 })();
+
+/* ===== Bottom menu stays visible on every screen ===== */
+(function(){
+const nav=document.getElementById('bqNav');
+if(!nav)return;
+const css=document.createElement('style');
+css.textContent=
+ '#bqNav{z-index:100000 !important}'+
+ '.modal-overlay,#bqPayOv,#bqSavedOv,#bqAlertOv{bottom:var(--bqnavh,72px) !important;height:auto !important}'+
+ 'body.bq-kb #bqNav{display:none !important}'+
+ 'body.bq-kb .modal-overlay,body.bq-kb #bqPayOv,body.bq-kb #bqSavedOv,body.bq-kb #bqAlertOv{bottom:0 !important}';
+document.head.appendChild(css);
+function size(){const h=nav.offsetHeight;if(h)document.documentElement.style.setProperty('--bqnavh',h+'px');}
+size();window.addEventListener('resize',size);setInterval(size,1500);
+/* hide the menu while typing so the keyboard has room */
+let t;
+document.addEventListener('focusin',e=>{const k=e.target&&e.target.tagName;if(k==='INPUT'||k==='TEXTAREA'){clearTimeout(t);if(e.target.type!=='checkbox'&&e.target.type!=='file'&&e.target.type!=='radio')document.body.classList.add('bq-kb');}});
+document.addEventListener('focusout',()=>{clearTimeout(t);t=setTimeout(()=>document.body.classList.remove('bq-kb'),250);});
+/* hide the menu under the full-screen photo viewer */
+setInterval(()=>{const v=document.getElementById('bqViewer');nav.style.visibility=(v&&v.style.display!=='none'&&v.style.display!=='')?'hidden':'';},500);
+/* tapping a menu button first closes whatever screen is open */
+document.addEventListener('click',e=>{
+ const b=e.target&&e.target.closest?e.target.closest('#bqNav [data-n]'):null;
+ if(!b)return;
+ document.querySelectorAll('.modal-overlay.show').forEach(o=>o.classList.remove('show'));
+ ['bqPayOv','bqSavedOv','bqAlertOv'].forEach(id=>{const o=document.getElementById(id);if(o)o.remove();});
+ try{document.body.style.overflow='';}catch(x){}
+},true);
+})();
