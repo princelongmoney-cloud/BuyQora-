@@ -2859,6 +2859,16 @@ function openOv(sub){
  }
  paint();document.body.appendChild(ov);
 }
+const ICON={an_dogs:'🐕',an_cats:'🐈'};
+function sheet(){
+ closeOv();
+ const ov=document.createElement('div');ov.id='bqPetOv';
+ ov.style.cssText='position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.45);display:flex;align-items:flex-end';
+ ov.innerHTML='<div style="background:#fff;width:100%;border-radius:18px 18px 0 0;padding:18px 16px 30px"><div style="font-weight:bold;font-size:18px;margin-bottom:12px">Gender</div>'+['Male','Female'].map(x=>'<button data-g="'+x+'" style="display:block;width:100%;text-align:left;padding:14px;margin-bottom:8px;border-radius:12px;font-size:17px;border:1.5px solid '+(sel.gender===x?'#0b6b3a':'#e0e0e0')+';background:'+(sel.gender===x?'#e8f5ee':'#fff')+';color:#222">'+x+'</button>').join('')+'<button data-g="" style="display:block;width:100%;padding:14px;border-radius:12px;font-size:16px;border:0;background:#f1f1f1;color:#444">Any gender</button></div>';
+ ov.onclick=e=>{const g=e.target.closest('[data-g]');if(g){sel.gender=g.dataset.g;closeOv();if(window.renderListings)window.renderListings();const bb=document.getElementById('bqPetBar');if(bb)bb.dataset.sig='';draw();return;}if(e.target===ov)closeOv();};
+ document.body.appendChild(ov);
+}
+function pill(txt,on,act){return '<button data-act="'+act+'" style="flex:none;padding:10px 16px;border-radius:12px;font-size:15px;font-weight:600;border:1.5px solid '+(on?'#0b6b3a':'#cfd8d3')+';background:'+(on?'#e8f5ee':'#fff')+';color:'+(on?'#0b6b3a':'#333')+'">'+txt+'</button>';}
 function draw(){
  let sub='all';try{sub=window.bqGetView().sub;}catch(e){}
  let bar=document.getElementById('bqPetBar');
@@ -2866,12 +2876,29 @@ function draw(){
  if(sub!==lastSub){lastSub=sub;sel={breed:'',gender:''};if(window.renderListings)window.renderListings();}
  if(!list){if(bar)bar.remove();return;}
  const h=document.querySelector('#products h2');if(!h)return;
- if(!bar){bar=document.createElement('div');bar.id='bqPetBar';bar.style.cssText='margin:6px 0 12px';h.insertAdjacentElement('afterend',bar);}
- const n=(sel.breed?1:0)+(sel.gender?1:0);
+ if(!bar){
+  bar=document.createElement('div');bar.id='bqPetBar';bar.style.cssText='margin:6px 0 12px';h.insertAdjacentElement('afterend',bar);
+  bar.onclick=e=>{
+   const t=e.target.closest('[data-breed]');
+   if(t){const v=t.dataset.breed;sel.breed=sel.breed===v?'':v;bar.dataset.sig='';if(window.renderListings)window.renderListings();draw();return;}
+   const p=e.target.closest('[data-act]');if(!p)return;
+   const act=p.dataset.act;
+   if(act==='more')openOv(lastSub);
+   else if(act==='gender')sheet();
+   else if(act==='xgender'){sel.gender='';bar.dataset.sig='';if(window.renderListings)window.renderListings();draw();}
+   else if(act==='xbreed'){sel.breed='';bar.dataset.sig='';if(window.renderListings)window.renderListings();draw();}
+  };
+ }
  const sig=sub+'|'+sel.breed+'|'+sel.gender;
  if(bar.dataset.sig===sig)return;bar.dataset.sig=sig;
- bar.innerHTML='<button id="bqPetBtn" style="padding:10px 18px;border-radius:22px;font-size:15px;font-weight:600;border:1.5px solid #0b6b3a;background:'+(n?'#0b6b3a':'#fff')+';color:'+(n?'#fff':'#0b6b3a')+'">⚙️ Filters'+(n?' ('+n+')':'')+'</button>'+(n?'<span style="margin-left:10px;font-size:14px;color:#555">'+esc([sel.breed,sel.gender].filter(Boolean).join(', '))+'</span>':'');
- document.getElementById('bqPetBtn').onclick=()=>openOv(sub);
+ const top3=list.slice(0,3);
+ const tile=(lbl,ic,on,attr)=>'<button '+attr+' style="padding:10px 4px 8px;border-radius:14px;background:#fff;border:2px solid '+(on?'#0b6b3a':'#e3e8e5')+';display:flex;flex-direction:column;align-items:center;gap:6px;min-width:0"><span style="width:52px;height:52px;border-radius:50%;background:'+(on?'#e8f5ee':'#f1f4f2')+';display:flex;align-items:center;justify-content:center;font-size:28px">'+ic+'</span><span style="font-size:13px;font-weight:600;color:#222;line-height:1.2;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(lbl)+'</span></button>';
+ let html='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:10px">'+top3.map(x=>tile(x,ICON[sub]||'🐾',sel.breed===x,'data-breed="'+esc(x)+'"')).join('')+tile('Other','⋯',false,'data-act="more"')+'</div>';
+ html+='<div style="display:flex;gap:8px;overflow-x:auto;padding-bottom:4px">';
+ if(sel.breed&&top3.indexOf(sel.breed)<0)html+=pill('✓ '+esc(sel.breed)+' ✕',true,'xbreed');
+ html+=sel.gender?pill('✓ '+esc(sel.gender)+' ✕',true,'xgender'):pill('Gender ▾',false,'gender');
+ html+=pill('More ▾',!!sel.breed&&top3.indexOf(sel.breed)<0,'more')+'</div>';
+ bar.innerHTML=html;
 }
 setInterval(draw,600);
 })();
