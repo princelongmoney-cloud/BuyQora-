@@ -2823,12 +2823,11 @@ function fix(){
 setInterval(fix,600);
 })();
 
-/* ===== Dogs & Cats: breed and gender filter chips ===== */
+/* ===== Dogs & Cats: Filters button + screen (breed, gender) ===== */
 (function(){
 let sel={breed:'',gender:''},lastSub='';
 const BREEDS={an_dogs:['Rottweiler','German Shepherd','Lhasa Apso','Caucasian Shepherd','Cane Corso','Boerboel','Other'],an_cats:['Persian','Siamese','Maine Coon','Other']};
 const esc=s=>String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-function chip(k,v,on){return '<button data-k="'+k+'" data-v="'+esc(v)+'" style="flex:none;padding:8px 14px;border-radius:20px;font-size:14px;font-weight:600;border:1.5px solid '+(on?'#0b6b3a':'#cfd8d3')+';background:'+(on?'#0b6b3a':'#fff')+';color:'+(on?'#fff':'#333')+'">'+esc(v)+'</button>';}
 window.bqExtraFilter=function(l){
  if(!sel.breed&&!sel.gender)return true;
  const d=(l&&l.details&&typeof l.details==='object')?l.details:{};
@@ -2841,6 +2840,25 @@ window.bqExtraFilter=function(l){
  if(sel.gender&&d.gender!==sel.gender)return false;
  return true;
 };
+function chip(k,v,on){return '<button data-k="'+k+'" data-v="'+esc(v)+'" style="padding:11px 18px;margin:0 8px 10px 0;border-radius:22px;font-size:16px;font-weight:600;border:1.5px solid '+(on?'#0b6b3a':'#cfd8d3')+';background:'+(on?'#0b6b3a':'#fff')+';color:'+(on?'#fff':'#333')+'">'+esc(v)+'</button>';}
+function closeOv(){const o=document.getElementById('bqPetOv');if(o)o.remove();}
+function openOv(sub){
+ closeOv();
+ const tmp={breed:sel.breed,gender:sel.gender};
+ const ov=document.createElement('div');ov.id='bqPetOv';
+ ov.style.cssText='position:fixed;inset:0;z-index:99999;background:#fff;overflow-y:auto;padding:16px 16px 110px;color:#222;font-family:inherit';
+ function paint(){
+  ov.innerHTML='<div style="display:flex;align-items:center;gap:14px;margin-bottom:14px"><button id="bqPetX" style="font-size:30px;background:none;border:0;padding:6px 10px;color:#222">←</button><h2 style="margin:0;font-size:20px">Filters</h2></div>'+
+  '<div style="font-weight:bold;margin:12px 0 10px">Breed</div><div>'+BREEDS[sub].map(x=>chip('breed',x,tmp.breed===x)).join('')+'</div>'+
+  '<div style="font-weight:bold;margin:14px 0 10px">Gender</div><div>'+['Male','Female'].map(x=>chip('gender',x,tmp.gender===x)).join('')+'</div>'+
+  '<div style="position:fixed;left:0;right:0;bottom:0;background:#fff;padding:12px 16px;border-top:1px solid #e3e3e3;display:flex;gap:10px"><button id="bqPetClear" style="flex:1;padding:14px;border-radius:12px;border:1.5px solid #0b6b3a;background:#fff;color:#0b6b3a;font-weight:bold;font-size:16px">Clear</button><button id="bqPetApply" style="flex:2;padding:14px;border-radius:12px;border:0;background:#0b6b3a;color:#fff;font-weight:bold;font-size:16px">Show results</button></div>';
+  document.getElementById('bqPetX').onclick=closeOv;
+  document.getElementById('bqPetClear').onclick=()=>{tmp.breed='';tmp.gender='';paint();};
+  document.getElementById('bqPetApply').onclick=()=>{sel={breed:tmp.breed,gender:tmp.gender};closeOv();if(window.renderListings)window.renderListings();const b=document.getElementById('bqPetBar');if(b)b.dataset.sig='';draw();};
+  ov.querySelectorAll('button[data-k]').forEach(b=>b.onclick=()=>{const k=b.dataset.k,v=b.dataset.v;tmp[k]=tmp[k]===v?'':v;paint();});
+ }
+ paint();document.body.appendChild(ov);
+}
 function draw(){
  let sub='all';try{sub=window.bqGetView().sub;}catch(e){}
  let bar=document.getElementById('bqPetBar');
@@ -2848,10 +2866,12 @@ function draw(){
  if(sub!==lastSub){lastSub=sub;sel={breed:'',gender:''};if(window.renderListings)window.renderListings();}
  if(!list){if(bar)bar.remove();return;}
  const h=document.querySelector('#products h2');if(!h)return;
- if(!bar){bar=document.createElement('div');bar.id='bqPetBar';bar.style.cssText='margin:6px 0 12px';bar.onclick=e=>{const b=e.target.closest('button[data-k]');if(!b)return;const k=b.dataset.k,v=b.dataset.v;sel[k]=sel[k]===v?'':v;bar.dataset.sig='';if(window.renderListings)window.renderListings();draw();};h.insertAdjacentElement('afterend',bar);}
+ if(!bar){bar=document.createElement('div');bar.id='bqPetBar';bar.style.cssText='margin:6px 0 12px';h.insertAdjacentElement('afterend',bar);}
+ const n=(sel.breed?1:0)+(sel.gender?1:0);
  const sig=sub+'|'+sel.breed+'|'+sel.gender;
  if(bar.dataset.sig===sig)return;bar.dataset.sig=sig;
- bar.innerHTML='<div style="display:flex;gap:8px;overflow-x:auto;padding-bottom:8px">'+list.map(x=>chip('breed',x,sel.breed===x)).join('')+'</div><div style="display:flex;gap:8px">'+['Male','Female'].map(x=>chip('gender',x,sel.gender===x)).join('')+'</div>';
+ bar.innerHTML='<button id="bqPetBtn" style="padding:10px 18px;border-radius:22px;font-size:15px;font-weight:600;border:1.5px solid #0b6b3a;background:'+(n?'#0b6b3a':'#fff')+';color:'+(n?'#fff':'#0b6b3a')+'">⚙️ Filters'+(n?' ('+n+')':'')+'</button>'+(n?'<span style="margin-left:10px;font-size:14px;color:#555">'+esc([sel.breed,sel.gender].filter(Boolean).join(', '))+'</span>':'');
+ document.getElementById('bqPetBtn').onclick=()=>openOv(sub);
 }
 setInterval(draw,600);
 })();
