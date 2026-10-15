@@ -89,7 +89,7 @@ $('bqRec').onclick=e=>{const d=e.target.closest('[data-id]');if(!d)return;const 
 
 window.renderListings=function(){
  const grid=$('productGrid'),q=$('bqQ').value.trim().toLowerCase();
- const f=currentListings.filter(l=>(activeCategory==='all'||l.category_id===activeCategory)&&(activeSub==='all'||l.subcategory===activeSub)&&(activeState==='all'||l.state===activeState)&&(condFilter==='all'||l.condition===condFilter)&&(!q||(l.title||'').toLowerCase().includes(q)||(l.description||'').toLowerCase().includes(q)));
+ const f=currentListings.filter(l=>(activeCategory==='all'||l.category_id===activeCategory)&&(activeSub==='all'||l.subcategory===activeSub)&&(activeState==='all'||l.state===activeState)&&(condFilter==='all'||l.condition===condFilter)&&(!q||(l.title||'').toLowerCase().includes(q)||(l.description||'').toLowerCase().includes(q))&&(!window.bqExtraFilter||window.bqExtraFilter(l)));
  if(sortMode==='lo')f.sort((a,b)=>Number(a.price)-Number(b.price));
  else if(sortMode==='hi')f.sort((a,b)=>Number(b.price)-Number(a.price));
  else f.sort((a,b)=>new Date(b.created_at||0)-new Date(a.created_at||0));
@@ -2455,6 +2455,9 @@ const F={
  electronics:[['brand','Brand','s',['Apple','Samsung','HP','Dell','Lenovo','LG','Sony','Hisense','TCL','Other']],['model','Model','t','e.g. MacBook Air M1']],
  fashion:[['size','Size','t','e.g. M, L, 42'],['color','Color','t','e.g. Black, Blue']]
 };
+const ages=['Under 1 month','1-3 months','3-6 months','6-12 months','1-2 years','2+ years'];
+const PET={an_dogs:[['breed','Breed','s',['Rottweiler','German Shepherd','Lhasa Apso','Caucasian Shepherd','Cane Corso','Boerboel','Alsatian','Pitbull','Husky','Poodle','Local / Mixed','Other']],['gender','Gender','s',['Male','Female']],['age','Age','s',ages]],
+ an_cats:[['breed','Breed','s',['Persian','Siamese','Maine Coon','British Shorthair','Local / Mixed','Other']],['gender','Gender','s',['Male','Female']],['age','Age','s',ages]]};
 function ready(){
  const d=document.getElementById('sellDesc');
  if(!d)return false;
@@ -2467,9 +2470,11 @@ function build(){
  if(!ready())return;
  const c=document.getElementById('sellCategory'),box=document.getElementById('catFields');
  const cat=c?c.value:'';
- if(box.dataset.cat===cat)return;
- box.dataset.cat=cat;
- const list=F[cat]||[];
+ const sb=document.getElementById('sellSub');const sub=(cat==='animals'&&sb)?sb.value:'';
+ const key=cat+':'+sub;
+ if(box.dataset.cat===key)return;
+ box.dataset.cat=key;
+ const list=(cat==='animals')?(PET[sub]||[]):(F[cat]||[]);
  box.innerHTML=list.map(f=>'<label>'+f[1]+'</label>'+(f[2]==='s'?'<select data-k="'+f[0]+'"><option value="">Choose</option>'+f[3].map(o=>'<option>'+o+'</option>').join('')+'</select>':'<input data-k="'+f[0]+'" placeholder="'+f[3]+'">')).join('');
 }
 document.addEventListener('change',e=>{if(e.target&&e.target.id==='sellCategory')build();});
@@ -2816,4 +2821,37 @@ function fix(){
  });
 }
 setInterval(fix,600);
+})();
+
+/* ===== Dogs & Cats: breed and gender filter chips ===== */
+(function(){
+let sel={breed:'',gender:''},lastSub='';
+const BREEDS={an_dogs:['Rottweiler','German Shepherd','Lhasa Apso','Caucasian Shepherd','Cane Corso','Boerboel','Other'],an_cats:['Persian','Siamese','Maine Coon','Other']};
+const esc=s=>String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+function chip(k,v,on){return '<button data-k="'+k+'" data-v="'+esc(v)+'" style="flex:none;padding:8px 14px;border-radius:20px;font-size:14px;font-weight:600;border:1.5px solid '+(on?'#0b6b3a':'#cfd8d3')+';background:'+(on?'#0b6b3a':'#fff')+';color:'+(on?'#fff':'#333')+'">'+esc(v)+'</button>';}
+window.bqExtraFilter=function(l){
+ if(!sel.breed&&!sel.gender)return true;
+ const d=(l&&l.details&&typeof l.details==='object')?l.details:{};
+ if(sel.breed){
+  const known=(BREEDS[l.subcategory]||[]).filter(x=>x!=='Other');
+  const b=d.breed||'';
+  if(sel.breed==='Other'){if(!b||known.indexOf(b)>-1)return false;}
+  else if(b!==sel.breed)return false;
+ }
+ if(sel.gender&&d.gender!==sel.gender)return false;
+ return true;
+};
+function draw(){
+ let sub='all';try{sub=window.bqGetView().sub;}catch(e){}
+ let bar=document.getElementById('bqPetBar');
+ const list=BREEDS[sub];
+ if(sub!==lastSub){lastSub=sub;sel={breed:'',gender:''};if(window.renderListings)window.renderListings();}
+ if(!list){if(bar)bar.remove();return;}
+ const h=document.querySelector('#products h2');if(!h)return;
+ if(!bar){bar=document.createElement('div');bar.id='bqPetBar';bar.style.cssText='margin:6px 0 12px';bar.onclick=e=>{const b=e.target.closest('button[data-k]');if(!b)return;const k=b.dataset.k,v=b.dataset.v;sel[k]=sel[k]===v?'':v;bar.dataset.sig='';if(window.renderListings)window.renderListings();draw();};h.insertAdjacentElement('afterend',bar);}
+ const sig=sub+'|'+sel.breed+'|'+sel.gender;
+ if(bar.dataset.sig===sig)return;bar.dataset.sig=sig;
+ bar.innerHTML='<div style="display:flex;gap:8px;overflow-x:auto;padding-bottom:8px">'+list.map(x=>chip('breed',x,sel.breed===x)).join('')+'</div><div style="display:flex;gap:8px">'+['Male','Female'].map(x=>chip('gender',x,sel.gender===x)).join('')+'</div>';
+}
+setInterval(draw,600);
 })();
