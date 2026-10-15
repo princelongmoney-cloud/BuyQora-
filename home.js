@@ -3018,7 +3018,7 @@ function open(c,s){
  const title=sub==='all'?(CATEGORY_LABELS[cat]||'Listings'):(SUBLABEL[sub]||'Listings');
  const ov=document.createElement('div');ov.id='bqCatScr';
  ov.style.cssText='position:fixed;left:0;right:0;top:0;bottom:var(--bqnavh,72px);z-index:900;background:#f5f7f6;overflow-y:auto;color:#222;font-family:inherit';
- ov.innerHTML='<div style="position:sticky;top:0;z-index:3;background:#0b6b3a;display:flex;align-items:center;gap:10px;padding:10px 12px"><button data-act="back" style="font-size:26px;background:none;border:0;color:#fff;padding:2px 8px">←</button><input id="bqCatQ" placeholder="Search in '+esc(title)+'" style="flex:1;min-width:0;padding:11px 14px;border-radius:10px;border:0;font-size:16px;background:#fff;color:#222"></div><div id="bqCatBody"></div>';
+ ov.innerHTML='<div style="position:sticky;top:0;z-index:3;background:#0b6b3a;display:flex;align-items:center;gap:10px;padding:10px 12px"><button data-act="back" aria-label="Back" style="flex:none;width:52px;height:52px;font-size:40px;line-height:1;font-weight:bold;background:rgba(255,255,255,.18);border:0;border-radius:14px;color:#fff;display:flex;align-items:center;justify-content:center;padding:0 0 4px">←</button><input id="bqCatQ" placeholder="Search in '+esc(title)+'" style="flex:1;min-width:0;padding:11px 14px;border-radius:10px;border:0;font-size:16px;background:#fff;color:#222"></div><div id="bqCatBody"></div>';
  ov.onclick=e=>{
   const cd=e.target.closest('.product[data-i]');
   if(cd){const l=shown[+cd.dataset.i];if(l){ov.style.display='none';try{window.openDetail(l);}catch(x){}
@@ -3029,7 +3029,7 @@ function open(c,s){
   const t=e.target.closest('[data-tile]');if(t){const v=t.dataset.tile;tileSel=tileSel===v?'':v;paint();return;}
   const a=e.target.closest('[data-act]');if(!a)return;
   const act=a.dataset.act;
-  if(act==='back')close();
+  if(act==='back'){const c0=cat;close();try{window.bqOpenPicker(c0);}catch(x){}}
   else if(act==='ver'){onlyVer=!onlyVer;paint();}
   else if(act==='view'){view=view==='grid'?'list':'grid';paint();}
   else if(act==='shClose'){if(e.target===a){pop=null;paint();}}
