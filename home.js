@@ -2511,3 +2511,46 @@ function add(){
 }
 setInterval(add,1000);
 })();
+
+/* ===== Profile screen: tidy button layout ===== */
+(function(){
+const ORDER=['bqAdBtn','bqMine','bqPayBtn','bqMyAds','bqBlocked','bqPush'];
+const ICON={bqMine:'📦 ',bqMyAds:'📊 ',bqBlocked:'🚫 '};
+const LABEL={bqAdBtn:'📢 Advertise on BuyQora',bqMine:'📦 My listings',bqPayBtn:'🧾 My payments',bqMyAds:'📊 My ads',bqBlocked:'🚫 Blocked users'};
+function css(b,full,bg,color,border){
+ b.style.setProperty('margin','0','important');
+ b.style.setProperty('width','100%','important');
+ b.style.setProperty('min-height','62px','important');
+ b.style.setProperty('padding','10px 8px','important');
+ b.style.setProperty('border-radius','14px','important');
+ b.style.setProperty('font-size','15px','important');
+ b.style.setProperty('font-weight','bold','important');
+ b.style.setProperty('line-height','1.3','important');
+ b.style.setProperty('background',bg,'important');
+ b.style.setProperty('color',color,'important');
+ b.style.setProperty('border',border,'important');
+ b.style.setProperty('grid-column',full?'1 / span 2':'auto','important');
+}
+function tidy(){
+ const lo=document.getElementById('bqLogout');
+ if(!lo)return;
+ let g=document.getElementById('bqProfGrid');
+ if(!g){
+  lo.insertAdjacentHTML('beforebegin','<div id="bqProfTitle" style="margin:22px 0 10px;font-weight:bold;font-size:16px;color:#0b6b3a">My account</div><div id="bqProfGrid" style="display:grid;grid-template-columns:1fr 1fr;gap:12px"></div>');
+  g=document.getElementById('bqProfGrid');
+ }
+ ORDER.forEach(id=>{
+  const b=document.getElementById(id);
+  if(!b)return;
+  if(b.parentElement!==g)g.appendChild(b);
+  if(LABEL[id]&&b.textContent!==LABEL[id])b.textContent=LABEL[id];
+  if(id==='bqAdBtn')css(b,true,'#8e24aa','#fff','0');
+  else if(id==='bqPush')css(b,true,'#e8f5ee','#0b6b3a','1.5px solid #0b6b3a');
+  else css(b,false,'#fff','#0b6b3a','1.5px solid #0b6b3a');
+ });
+ css(lo,true,'#fff','#c0392b','1.5px solid #c0392b');
+ lo.style.setProperty('margin-top','22px','important');
+ lo.style.setProperty('min-height','50px','important');
+}
+setInterval(tidy,700);
+})();
