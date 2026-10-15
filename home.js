@@ -2514,9 +2514,9 @@ setInterval(add,1000);
 
 /* ===== Profile screen: tidy button layout ===== */
 (function(){
-const ORDER=['bqAdBtn','bqMine','bqPayBtn','bqMyAds','bqBlocked','bqSavedBtn','bqPush'];
+const ORDER=['bqAdBtn','bqMine','bqPayBtn','bqMyAds','bqBlocked','bqSavedBtn','bqPush','bqAlertBtn'];
 const ICON={bqMine:'📦 ',bqMyAds:'📊 ',bqBlocked:'🚫 '};
-const LABEL={bqAdBtn:'📢 Advertise on BuyQora',bqMine:'📦 My listings',bqPayBtn:'🧾 My payments',bqMyAds:'📊 My ads',bqBlocked:'🚫 Blocked users',bqSavedBtn:'🔍 Saved searches'};
+const LABEL={bqAdBtn:'📢 Advertise on BuyQora',bqMine:'📦 My listings',bqPayBtn:'🧾 My payments',bqMyAds:'📊 My ads',bqBlocked:'🚫 Blocked users',bqSavedBtn:'🔍 Saved searches',bqAlertBtn:'⚙️ Alert settings'};
 function css(b,full,bg,color,border){
  b.style.setProperty('margin','0','important');
  b.style.setProperty('width','100%','important');
@@ -2546,6 +2546,7 @@ function tidy(){
   if(!b)return;
   if(LABEL[id]&&b.textContent!==LABEL[id])b.textContent=LABEL[id];
   if(id==='bqAdBtn')css(b,true,'#8e24aa','#fff','0');
+  else if(id==='bqAlertBtn')css(b,true,'#fff','#0b6b3a','1.5px solid #0b6b3a');
   else if(id==='bqPush')css(b,false,'#e8f5ee','#0b6b3a','1.5px solid #0b6b3a');
   else css(b,false,'#fff','#0b6b3a','1.5px solid #0b6b3a');
  });
@@ -2635,4 +2636,48 @@ function addTile(){
  g('bqSavedBtn').onclick=openSaved;
 }
 setInterval(()=>{addSaveBtn();addTile();},1000);
+})();
+
+/* ===== Alert settings ===== */
+(function(){
+const g=id=>document.getElementById(id);
+function closeOv(){const o=g('bqAlertOv');if(o)o.remove();}
+function row(id,title,sub,on){
+ return '<label style="display:flex;align-items:center;gap:14px;border:1px solid #e3e3e3;border-radius:12px;padding:14px;margin-bottom:12px"><input type="checkbox" id="'+id+'" '+(on?'checked':'')+' style="width:26px;height:26px;flex:none"><span><b style="font-size:16px">'+title+'</b><br><span style="color:#666;font-size:14px">'+sub+'</span></span></label>';
+}
+async function openAlerts(){
+ closeOv();
+ const ov=document.createElement('div');ov.id='bqAlertOv';
+ ov.style.cssText='position:fixed;inset:0;z-index:99999;background:#fff;overflow-y:auto;padding:16px;color:#222;font-family:inherit';
+ ov.innerHTML='<div style="display:flex;align-items:center;gap:14px;margin-bottom:14px"><button id="bqAlertX" style="font-size:30px;background:none;border:0;padding:6px 10px;color:#222">←</button><h2 style="margin:0;font-size:20px">Alert settings</h2></div><div id="bqAlertBody">Loading...</div>';
+ document.body.appendChild(ov);
+ g('bqAlertX').onclick=closeOv;
+ const body=g('bqAlertBody');
+ try{
+  const{data:{session}}=await supabaseClient.auth.getSession();
+  if(!session){body.textContent='Please log in.';return;}
+  const uid=session.user.id;
+  const r1=await supabaseClient.from('notification_prefs').select('*').eq('user_id',uid).maybeSingle();
+  if(r1.error){body.textContent='Could not load: '+r1.error.message;return;}
+  const pr=r1.data||{};
+  let st='';
+  try{const r2=await supabaseClient.from('profiles').select('state').eq('id',uid).maybeSingle();st=(r2.data&&r2.data.state)||'';}catch(e){}
+  const nl=pr.new_listings!==false,so=!!pr.my_state_only;
+  body.innerHTML=row('bqAlNew','New listing alerts','Get a phone alert when someone posts a new listing.',nl)+row('bqAlState','Only my state','Only alert me about listings in '+(st||'your state')+(st?'':' (set your state in Profile first)')+'.',so)+'<p id="bqAlMsg" style="color:#0b6b3a;font-weight:bold;min-height:22px"></p><p style="color:#666;font-size:13.5px">To receive phone alerts, also turn on "Turn on phone alerts" in your Profile.</p>';
+  async function save(){
+   const m=g('bqAlMsg');m.textContent='Saving...';
+   const{error}=await supabaseClient.from('notification_prefs').upsert({user_id:uid,new_listings:g('bqAlNew').checked,my_state_only:g('bqAlState').checked,updated_at:new Date().toISOString()},{onConflict:'user_id'});
+   m.textContent=error?('Could not save: '+error.message):'Saved ✓';
+  }
+  g('bqAlNew').onchange=save;g('bqAlState').onchange=save;
+ }catch(e){body.textContent='Could not load: '+(e&&e.message?e.message:e);}
+}
+function addTile(){
+ if(g('bqAlertBtn'))return;
+ const a=g('bqPush');
+ if(!a)return;
+ a.insertAdjacentHTML('afterend','<button class="button" id="bqAlertBtn">⚙️ Alert settings</button>');
+ g('bqAlertBtn').onclick=openAlerts;
+}
+setInterval(addTile,1000);
 })();
