@@ -2704,11 +2704,12 @@ css.textContent=
  'html body .modal-overlay:not(#chatOverlay)>.modal,html body #chatOverlay>.modal,html body #inboxOverlay>.modal{bottom:var(--bqnavh,72px) !important;height:auto !important;overflow-y:auto !important}'+
  'html body #chatOverlay>.modal{overflow-y:hidden !important}'+
  '#profileOverlay .modal{padding-bottom:30px !important}'+
+ 'html body .modal-overlay.show{background:#f5f7f6 !important}'+
  'html body.bq-kb .modal-overlay:not(#chatOverlay)>.modal,html body.bq-kb #chatOverlay>.modal,html body.bq-kb #inboxOverlay>.modal{bottom:0 !important}'+
  'body.bq-kb #bqNav{display:none !important}'+
  'body.bq-kb .modal-overlay,body.bq-kb #bqPayOv,body.bq-kb #bqSavedOv,body.bq-kb #bqAlertOv{bottom:0 !important}';
 document.head.appendChild(css);
-function size(){const h=nav.offsetHeight;if(h)document.documentElement.style.setProperty('--bqnavh',h+'px');}
+function size(){const r=nav.getBoundingClientRect();const h=Math.round(document.documentElement.clientHeight-r.top);if(h>20&&h<260)document.documentElement.style.setProperty('--bqnavh',h+'px');}
 size();window.addEventListener('resize',size);setInterval(size,1500);
 /* hide the menu while typing so the keyboard has room */
 let t;
