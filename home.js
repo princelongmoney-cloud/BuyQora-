@@ -2474,3 +2474,40 @@ window.getListingDetails=function(){
  return o;
 };
 })();
+
+/* ===== My payments & receipts ===== */
+(function(){
+const PURP={posting:'Extra listing fee',verification:'Business verification',promotion:'Listing promotion',banner:'Banner / video ad'};
+const STAT={submitted:'⏳ Waiting for confirmation',confirmed:'✅ Confirmed',rejected:'❌ Not confirmed'};
+function rno(id){return 'BQ-'+String(id).replace(/-/g,'').slice(0,8).toUpperCase();}
+function fd(t){try{return new Date(t).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});}catch(e){return '';}}
+function close(){const o=document.getElementById('bqPayOv');if(o)o.remove();}
+async function open(){
+ close();
+ const ov=document.createElement('div');ov.id='bqPayOv';
+ ov.style.cssText='position:fixed;inset:0;z-index:99999;background:#fff;overflow-y:auto;padding:16px;color:#222;font-family:inherit';
+ ov.innerHTML='<div style="display:flex;align-items:center;gap:14px;margin-bottom:14px"><button id="bqPayX" style="font-size:30px;background:none;border:0;padding:6px 10px;color:#222">←</button><h2 style="margin:0;font-size:20px">My payments</h2></div><div id="bqPayBody">Loading...</div>';
+ document.body.appendChild(ov);
+ document.getElementById('bqPayX').onclick=close;
+ const body=document.getElementById('bqPayBody');
+ try{
+  const{data:{session}}=await supabaseClient.auth.getSession();
+  if(!session){body.textContent='Please log in.';return;}
+  const{data,error}=await supabaseClient.from('payments').select('*').eq('user_id',session.user.id).order('created_at',{ascending:false});
+  if(error){body.textContent='Could not load: '+error.message;return;}
+  if(!data||!data.length){body.innerHTML='<p style="color:#666">No payments yet.</p>';return;}
+  body.innerHTML=data.map(p=>'<div style="border:1px solid #e3e3e3;border-radius:12px;padding:12px 14px;margin-bottom:12px">'+
+   '<div style="font-weight:bold;font-size:16px">'+(PURP[p.purpose]||p.purpose||'Payment')+'</div>'+
+   '<div style="color:#ff6b00;font-weight:bold;font-size:18px;margin:4px 0">₦'+Number(p.amount||0).toLocaleString()+'</div>'+
+   '<div style="font-size:14px;line-height:1.7">'+(STAT[p.status]||p.status||'')+'<br>Receipt no: <b>'+rno(p.id)+'</b><br>Your transfer reference: '+(p.reference?String(p.reference).replace(/</g,'&lt;'):'-')+'<br>Date: '+fd(p.created_at)+'</div></div>').join('');
+ }catch(e){body.textContent='Could not load: '+e.message;}
+}
+function add(){
+ if(document.getElementById('bqPayBtn'))return;
+ const a=document.getElementById('bqPush');
+ if(!a)return;
+ a.insertAdjacentHTML('afterend','<button class="button" id="bqPayBtn" style="margin-top:10px;background:#0b6b3a">🧾 My payments</button>');
+ document.getElementById('bqPayBtn').onclick=open;
+}
+setInterval(add,1000);
+})();
