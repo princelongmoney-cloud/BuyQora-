@@ -264,7 +264,7 @@ const openDetailCore=async function(l){
  '<p class="price" style="font-size:18px;margin:6px 0 6px">₦'+Number(l.price).toLocaleString()+(l.negotiable?'<span class="bq-neg">Negotiable</span>':'')+'</p>'+
  '<p class="bq-meta">👁 <span id="dViews">'+(l.views||0)+'</span> views · Posted '+ago(l.created_at)+'</p>'+
  '<span class="detail-tag">📍 '+esc(where)+'</span><span class="detail-tag">'+esc(CATEGORY_LABELS[l.category_id]||l.category_id)+'</span>'+(subLabel(l)?'<span class="detail-tag">'+esc(subLabel(l))+'</span>':'')+(l.condition?'<span class="detail-tag">'+(l.condition==='new'?'New':'Used')+'</span>':'')+
- ((l.details&&typeof l.details==='object')?[['brand',''],['storage',''],['color','Color: ']].map(k=>l.details[k[0]]?'<span class="detail-tag">'+k[1]+esc(l.details[k[0]])+'</span>':'').join(''):'')+
+ ((l.details&&typeof l.details==='object')?Object.keys(l.details).map(k=>{const v=l.details[k];if(!v)return '';const nl=['brand','storage','make','model'].includes(k)?'':(k.charAt(0).toUpperCase()+k.slice(1)+': ');return '<span class="detail-tag">'+nl+esc(v)+'</span>';}).join(''):'')+
  (l.status&&l.status!=='active'?'<p style="color:#c0392b !important;font-weight:bold;margin:8px 0">This listing is '+esc(l.status)+'.</p>':'')+
  '<p class="detail-desc" style="white-space:pre-wrap">'+esc(l.description||'No description provided.')+'</p>'+
  '<p class="bq-meta">Seller: <b id="dSeller">...</b></p>'+
@@ -2433,33 +2433,44 @@ document.addEventListener('click',e=>{
 }));
 })();
 
-/* ===== Category fields: Phones & Tablets ===== */
+/* ===== Category fields (all categories) ===== */
 (function(){
-const BRANDS=['Apple (iPhone)','Samsung','Tecno','Infinix','Itel','Xiaomi','Oppo','Nokia','Huawei','Google Pixel','Other'];
-const STORES=['16GB','32GB','64GB','128GB','256GB','512GB','1TB'];
+const yrs=[];for(let y=new Date().getFullYear()+1;y>=1990;y--)yrs.push(String(y));
+const nums=['1','2','3','4','5','6','7','8+'];
+const F={
+ phones:[['brand','Brand','s',['Apple (iPhone)','Samsung','Tecno','Infinix','Itel','Xiaomi','Oppo','Nokia','Huawei','Google Pixel','Other']],['storage','Storage','s',['16GB','32GB','64GB','128GB','256GB','512GB','1TB']],['color','Color','t','e.g. Black, Blue']],
+ vehicles:[['make','Make','s',['Toyota','Honda','Lexus','Mercedes-Benz','Hyundai','Kia','Nissan','Ford','Peugeot','Volkswagen','BMW','Mazda','Suzuki','Other']],['year','Year','s',yrs],['mileage','Mileage (km)','t','e.g. 85000'],['transmission','Transmission','s',['Automatic','Manual']],['fuel','Fuel','s',['Petrol','Diesel','Electric','Hybrid','Gas']]],
+ property:[['bedrooms','Bedrooms','s',nums],['bathrooms','Bathrooms','s',nums],['furnished','Furnished','s',['Yes','No','Semi-furnished']]],
+ electronics:[['brand','Brand','s',['Apple','Samsung','HP','Dell','Lenovo','LG','Sony','Hisense','TCL','Other']],['model','Model','t','e.g. MacBook Air M1']],
+ fashion:[['size','Size','t','e.g. M, L, 42'],['color','Color','t','e.g. Black, Blue']]
+};
 function ready(){
  const d=document.getElementById('sellDesc');
- if(!d||document.getElementById('phoneFields'))return !!document.getElementById('phoneFields');
+ if(!d)return false;
+ if(document.getElementById('catFields'))return true;
  const lb=d.previousElementSibling&&d.previousElementSibling.tagName==='LABEL'?d.previousElementSibling:d;
- lb.insertAdjacentHTML('beforebegin','<div id="phoneFields" style="display:none"><label>Brand</label><select id="phBrand"><option value="">Choose brand</option>'+BRANDS.map(b=>'<option>'+b+'</option>').join('')+'</select><label>Storage</label><select id="phStorage"><option value="">Choose storage</option>'+STORES.map(b=>'<option>'+b+'</option>').join('')+'</select><label>Color</label><input id="phColor" placeholder="e.g. Black, Blue"></div>');
+ lb.insertAdjacentHTML('beforebegin','<div id="catFields" data-cat=""></div>');
  return true;
 }
-function toggle(){
+function build(){
  if(!ready())return;
- const c=document.getElementById('sellCategory');
- document.getElementById('phoneFields').style.display=(c&&c.value==='phones')?'block':'none';
+ const c=document.getElementById('sellCategory'),box=document.getElementById('catFields');
+ const cat=c?c.value:'';
+ if(box.dataset.cat===cat)return;
+ box.dataset.cat=cat;
+ const list=F[cat]||[];
+ box.innerHTML=list.map(f=>'<label>'+f[1]+'</label>'+(f[2]==='s'?'<select data-k="'+f[0]+'"><option value="">Choose</option>'+f[3].map(o=>'<option>'+o+'</option>').join('')+'</select>':'<input data-k="'+f[0]+'" placeholder="'+f[3]+'">')).join('');
 }
-document.addEventListener('change',e=>{if(e.target&&e.target.id==='sellCategory')toggle();});
-setInterval(toggle,800);
+document.addEventListener('change',e=>{if(e.target&&e.target.id==='sellCategory')build();});
+setInterval(build,800);
 window.getListingDetails=function(){
- const c=document.getElementById('sellCategory');
- const o={};
- if(c&&c.value==='phones'){
-  const b=document.getElementById('phBrand'),st=document.getElementById('phStorage'),co=document.getElementById('phColor');
-  if(b&&b.value)o.brand=b.value;
-  if(st&&st.value)o.storage=st.value;
-  if(co&&co.value.trim())o.color=co.value.trim();
- }
+ const o={},box=document.getElementById('catFields');
+ if(!box)return o;
+ box.querySelectorAll('[data-k]').forEach(el=>{
+  let v=(el.value||'').trim();if(!v)return;
+  if(el.dataset.k==='mileage'){const n=v.replace(/[^0-9]/g,'');if(!n)return;v=Number(n).toLocaleString()+' km';}
+  o[el.dataset.k]=v;
+ });
  return o;
 };
 })();
