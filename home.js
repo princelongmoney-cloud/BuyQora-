@@ -2909,63 +2909,80 @@ const $=id=>document.getElementById(id);
 const esc=x=>String(x==null?'':x).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 const BREEDS={an_dogs:['Rottweiler','German Shepherd','Lhasa Apso','Caucasian Shepherd','Cane Corso','Boerboel','Other'],an_cats:['Persian','Siamese','Maine Coon','Other']};
 const ICON={an_dogs:'🐕',an_cats:'🐈'};
-let cat='',sub='',sel={breed:'',gender:''},sort='new',pop='';
-function isOpen(){return !!$('bqCatScr');}
+let cat='',sub='',sel={breed:'',gender:''},sort='new',pop='',q='',onlyVer=false,view='grid',profs={},shown=[];
+{const st=document.createElement('style');st.textContent='body.bq-kb #bqCatScr{bottom:0 !important}';document.head.appendChild(st);}
 function close(){const o=$('bqCatScr');if(o)o.remove();}
-function base(){
- return (window.currentListings||currentListings||[]).filter(l=>l.category_id===cat&&(sub==='all'||l.subcategory===sub));
-}
+function base(){return (currentListings||[]).filter(l=>l.category_id===cat&&(sub==='all'||l.subcategory===sub));}
 function matches(l){
+ if(onlyVer){const p=profs[l.seller_id];if(!p||p.verification_status!=='verified')return false;}
+ if(q){const t=((l.title||'')+' '+(l.description||'')).toLowerCase();if(t.indexOf(q)<0)return false;}
  if(!sel.breed&&!sel.gender)return true;
  const d=(l&&l.details&&typeof l.details==='object')?l.details:{};
- if(sel.breed){
-  const known=(BREEDS[sub]||[]).filter(x=>x!=='Other');const b=d.breed||'';
-  if(sel.breed==='Other'){if(!b||known.indexOf(b)>-1)return false;}else if(b!==sel.breed)return false;
- }
+ if(sel.breed){const known=(BREEDS[sub]||[]).filter(x=>x!=='Other');const b=d.breed||'';
+  if(sel.breed==='Other'){if(!b||known.indexOf(b)>-1)return false;}else if(b!==sel.breed)return false;}
  if(sel.gender&&d.gender!==sel.gender)return false;
  return true;
 }
-let shown=[];
+function since(t){
+ if(!t)return '';const m=Math.max(0,Math.floor((Date.now()-new Date(t).getTime())/2592000000));
+ if(m<1)return 'New on BuyQora';if(m<12)return m+' month'+(m>1?'s':'')+' on BuyQora';const y=Math.floor(m/12);return y+' year'+(y>1?'s':'')+' on BuyQora';
+}
+async function loadProfs(){
+ const ids=[...new Set(base().map(l=>l.seller_id).filter(x=>x&&!profs[x]))];
+ if(!ids.length)return;
+ try{const{data}=await supabaseClient.from('profiles').select('id,full_name,business_name,logo_url,verification_status,created_at').in('id',ids);
+  (data||[]).forEach(p=>{profs[p.id]=p;});ids.forEach(x=>{if(!profs[x])profs[x]={id:x};});
+  if($('bqCatScr'))paint();}catch(e){}
+}
+function card(l,i){
+ const p=profs[l.seller_id]||{};const ver=p.verification_status==='verified';
+ const nm=p.business_name||p.full_name||'';
+ const img='<div class="product-image" style="'+(view==='list'?'width:130px;flex:0 0 130px;height:130px':'')+'">'+(l.image_url?'<img src="'+esc(l.image_url)+'" alt="" loading="lazy">':(CATEGORY_ICONS[l.category_id]||'🛍️'))+(l.condition?'<span class="bq-cond '+esc(l.condition)+'">'+(l.condition==='new'?'New':'Used')+'</span>':'')+'</div>';
+ const info='<div style="min-width:0;flex:1"><p class="price" style="margin:6px 0 2px;color:#0b6b3a;font-weight:bold">₦'+Number(l.price).toLocaleString()+'</p><h3 style="margin:0 0 3px;font-size:15px;line-height:1.3">'+esc(l.title)+'</h3><p class="loc" style="margin:0 0 6px">'+esc(l.city||l.state||'')+'</p>'+
+  '<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:6px">'+(ver?'<span style="font-size:12px;font-weight:600;padding:3px 8px;border-radius:12px;background:#e8f5ee;color:#0b6b3a">✔ Verified</span>':'')+(p.created_at?'<span style="font-size:12px;padding:3px 8px;border-radius:12px;background:#f1f4f2;color:#444">'+esc(since(p.created_at))+'</span>':'')+'</div>'+
+  (nm?'<div style="display:flex;align-items:center;gap:6px;font-size:13px;color:#444"><span style="width:22px;height:22px;border-radius:50%;background:#dfe7e2;flex:0 0 22px;overflow:hidden;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:bold">'+(p.logo_url?'<img src="'+esc(p.logo_url)+'" alt="" style="width:100%;height:100%;object-fit:cover">':esc(nm.charAt(0).toUpperCase()))+'</span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(nm)+'</span></div>':'')+'</div>';
+ return '<div class="product" data-i="'+i+'" style="'+(view==='list'?'display:flex;gap:12px;align-items:flex-start;padding:10px':'')+'">'+img+info+'</div>';
+}
 function paint(){
- const ov=$('bqCatScr');if(!ov)return;
+ const body=$('bqCatBody');if(!body)return;
  const list=BREEDS[sub];
  let f=base().filter(matches);
  if(sort==='lo')f.sort((a,b)=>Number(a.price)-Number(b.price));
  else if(sort==='hi')f.sort((a,b)=>Number(b.price)-Number(a.price));
  else f.sort((a,b)=>new Date(b.created_at||0)-new Date(a.created_at||0));
  shown=f;
- const title=sub==='all'?(CATEGORY_LABELS[cat]||'Listings'):(SUBLABEL[sub]||'Listings');
  const tile=(lbl,ic,on,attr)=>'<button '+attr+' style="padding:10px 4px 8px;border-radius:14px;background:#fff;border:2px solid '+(on?'#0b6b3a':'#e3e8e5')+';display:flex;flex-direction:column;align-items:center;gap:6px;min-width:0"><span style="width:52px;height:52px;border-radius:50%;background:'+(on?'#e8f5ee':'#f1f4f2')+';display:flex;align-items:center;justify-content:center;font-size:28px">'+ic+'</span><span style="font-size:12.5px;font-weight:600;color:#222;line-height:1.2;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(lbl)+'</span></button>';
  const pill=(t,on,act)=>'<button data-act="'+act+'" style="flex:none;padding:10px 16px;border-radius:12px;font-size:15px;font-weight:600;border:1.5px solid '+(on?'#0b6b3a':'#cfd8d3')+';background:'+(on?'#e8f5ee':'#fff')+';color:'+(on?'#0b6b3a':'#333')+'">'+t+'</button>';
  let top='';
+ const t3=list?list.slice(0,3):[];
+ if(list)top+='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:12px 12px 0">'+t3.map(x=>tile(x,ICON[sub]||'🐾',sel.breed===x,'data-breed="'+esc(x)+'"')).join('')+tile('Other','⋯',false,'data-act="more"')+'</div>';
+ top+='<div style="display:flex;gap:8px;overflow-x:auto;padding:10px 12px 4px">';
  if(list){
-  const t3=list.slice(0,3);
-  top+='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:12px 12px 0">'+t3.map(x=>tile(x,ICON[sub]||'🐾',sel.breed===x,'data-breed="'+esc(x)+'"')).join('')+tile('Other','⋯',false,'data-act="more"')+'</div>';
-  top+='<div style="display:flex;gap:8px;overflow-x:auto;padding:10px 12px 4px">';
   if(sel.breed&&t3.indexOf(sel.breed)<0)top+=pill('✓ '+esc(sel.breed)+' ✕',true,'xbreed');
-  top+=(sel.gender?pill('✓ '+esc(sel.gender)+' ✕',true,'xgender'):pill('Gender ▾',false,'gender'))+pill('More ▾',false,'more')+'</div>';
+  top+=(sel.gender?pill('✓ '+esc(sel.gender)+' ✕',true,'xgender'):pill('Gender ▾',false,'gender'));
  }
- const cards=f.map((l,i)=>'<div class="product" data-i="'+i+'"><div class="product-image">'+(l.image_url?'<img src="'+esc(l.image_url)+'" alt="" loading="lazy">':(CATEGORY_ICONS[l.category_id]||'🛍️'))+(l.condition?'<span class="bq-cond '+esc(l.condition)+'">'+(l.condition==='new'?'New':'Used')+'</span>':'')+'</div><h3>'+esc(l.title)+'</h3><p class="price">₦'+Number(l.price).toLocaleString()+'</p><p class="loc">📍 '+esc(l.state)+'</p></div>').join('');
+ top+=pill(onlyVer?'✓ Verified sellers ✕':'Verified sellers ▾',onlyVer,'ver');
+ if(list)top+=pill('More ▾',false,'more');
+ top+='</div>';
  let sheet='';
- if(pop==='gender'){
-  sheet='<div data-act="shClose" style="position:absolute;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:flex-end"><div style="background:#fff;width:100%;border-radius:18px 18px 0 0;padding:18px 16px 24px"><div style="font-weight:bold;font-size:18px;margin-bottom:12px">Gender</div>'+['Male','Female'].map(x=>'<button data-g="'+x+'" style="display:block;width:100%;text-align:left;padding:14px;margin-bottom:8px;border-radius:12px;font-size:17px;border:1.5px solid '+(sel.gender===x?'#0b6b3a':'#e0e0e0')+';background:'+(sel.gender===x?'#e8f5ee':'#fff')+';color:#222">'+x+'</button>').join('')+'<button data-g="" style="display:block;width:100%;padding:14px;border-radius:12px;font-size:16px;border:0;background:#f1f1f1;color:#444">Any gender</button></div></div>';
- }else if(pop==='more'&&list){
-  sheet='<div data-act="shClose" style="position:absolute;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:flex-end"><div style="background:#fff;width:100%;max-height:75%;overflow-y:auto;border-radius:18px 18px 0 0;padding:18px 16px 24px"><div style="font-weight:bold;font-size:18px;margin-bottom:12px">Breed</div>'+list.map(x=>'<button data-b="'+esc(x)+'" style="display:block;width:100%;text-align:left;padding:14px;margin-bottom:8px;border-radius:12px;font-size:17px;border:1.5px solid '+(sel.breed===x?'#0b6b3a':'#e0e0e0')+';background:'+(sel.breed===x?'#e8f5ee':'#fff')+';color:#222">'+esc(x)+'</button>').join('')+'<button data-b="" style="display:block;width:100%;padding:14px;border-radius:12px;font-size:16px;border:0;background:#f1f1f1;color:#444">Any breed</button></div></div>';
- }
- const st=ov.scrollTop;
- ov.innerHTML='<div style="position:sticky;top:0;z-index:3;background:#0b6b3a;color:#fff;display:flex;align-items:center;gap:12px;padding:12px 14px"><button data-act="back" style="font-size:26px;background:none;border:0;color:#fff;padding:2px 8px">←</button><div style="font-size:19px;font-weight:bold">'+esc(title)+'</div></div>'+top+
-  '<div style="display:flex;align-items:center;justify-content:space-between;padding:14px 12px 8px"><div style="font-weight:bold;font-size:16px">Found '+f.length+' ad'+(f.length===1?'':'s')+'</div><select id="bqCatSort" style="padding:8px 10px;border-radius:10px;border:1.5px solid #cfd8d3;background:#fff;font-size:14px"><option value="new"'+(sort==='new'?' selected':'')+'>Newest</option><option value="lo"'+(sort==='lo'?' selected':'')+'>Price: low to high</option><option value="hi"'+(sort==='hi'?' selected':'')+'>Price: high to low</option></select></div>'+
-  (f.length?'<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:0 12px 20px">'+cards+'</div>':'<div style="padding:30px 20px;color:#666;text-align:center">No listings match yet. Try another filter, or post one yourself.</div>')+sheet;
- ov.scrollTop=st;
+ const wrap=inner=>'<div data-act="shClose" style="position:fixed;left:0;right:0;top:0;bottom:var(--bqnavh,72px);z-index:5;background:rgba(0,0,0,.45);display:flex;align-items:flex-end"><div style="background:#fff;width:100%;max-height:75%;overflow-y:auto;border-radius:18px 18px 0 0;padding:18px 16px 24px">'+inner+'</div></div>';
+ const opt=(attr,txt,on)=>'<button '+attr+' style="display:block;width:100%;text-align:left;padding:14px;margin-bottom:8px;border-radius:12px;font-size:17px;border:1.5px solid '+(on?'#0b6b3a':'#e0e0e0')+';background:'+(on?'#e8f5ee':'#fff')+';color:#222">'+esc(txt)+'</button>';
+ if(pop==='gender')sheet=wrap('<div style="font-weight:bold;font-size:18px;margin-bottom:12px">Gender</div>'+['Male','Female'].map(x=>opt('data-g="'+x+'"',x,sel.gender===x)).join('')+'<button data-g="" style="display:block;width:100%;padding:14px;border-radius:12px;font-size:16px;border:0;background:#f1f1f1;color:#444">Any gender</button>');
+ else if(pop==='more'&&list)sheet=wrap('<div style="font-weight:bold;font-size:18px;margin-bottom:12px">Breed</div>'+list.map(x=>opt('data-b="'+esc(x)+'"',x,sel.breed===x)).join('')+'<button data-b="" style="display:block;width:100%;padding:14px;border-radius:12px;font-size:16px;border:0;background:#f1f1f1;color:#444">Any breed</button>');
+ body.innerHTML=top+
+  '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:14px 12px 8px"><div style="font-weight:bold;font-size:16px">Found '+f.length+' ad'+(f.length===1?'':'s')+'</div><div style="display:flex;gap:8px"><select id="bqCatSort" style="padding:9px 10px;border-radius:10px;border:1.5px solid #cfd8d3;background:#fff;font-size:14px"><option value="new"'+(sort==='new'?' selected':'')+'>Newest</option><option value="lo"'+(sort==='lo'?' selected':'')+'>Price: low to high</option><option value="hi"'+(sort==='hi'?' selected':'')+'>Price: high to low</option></select><button data-act="view" style="padding:9px 14px;border-radius:10px;border:1.5px solid #cfd8d3;background:#fff;font-size:18px">'+(view==='grid'?'☰':'▦')+'</button></div></div>'+
+  (f.length?'<div style="display:grid;grid-template-columns:'+(view==='grid'?'1fr 1fr':'1fr')+';gap:12px;padding:0 12px 24px">'+f.map(card).join('')+'</div>':'<div style="padding:30px 20px;color:#666;text-align:center">No listings match yet. Try another filter, or post one yourself.</div>')+sheet;
  const so=$('bqCatSort');if(so)so.onchange=()=>{sort=so.value;paint();};
 }
 function open(c,s){
- close();cat=c;sub=s;sel={breed:'',gender:''};sort='new';pop='';
+ close();cat=c;sub=s;sel={breed:'',gender:''};sort='new';pop='';q='';onlyVer=false;view='grid';
+ const title=sub==='all'?(CATEGORY_LABELS[cat]||'Listings'):(SUBLABEL[sub]||'Listings');
  const ov=document.createElement('div');ov.id='bqCatScr';
  ov.style.cssText='position:fixed;left:0;right:0;top:0;bottom:var(--bqnavh,72px);z-index:900;background:#f5f7f6;overflow-y:auto;color:#222;font-family:inherit';
+ ov.innerHTML='<div style="position:sticky;top:0;z-index:3;background:#0b6b3a;display:flex;align-items:center;gap:10px;padding:10px 12px"><button data-act="back" style="font-size:26px;background:none;border:0;color:#fff;padding:2px 8px">←</button><input id="bqCatQ" placeholder="Search in '+esc(title)+'" style="flex:1;min-width:0;padding:11px 14px;border-radius:10px;border:0;font-size:16px;background:#fff;color:#222"></div><div id="bqCatBody"></div>';
  ov.onclick=e=>{
-  const card=e.target.closest('.product[data-i]');
-  if(card){const l=shown[+card.dataset.i];if(l){ov.style.display='none';try{window.openDetail(l);}catch(x){}
+  const cd=e.target.closest('.product[data-i]');
+  if(cd){const l=shown[+cd.dataset.i];if(l){ov.style.display='none';try{window.openDetail(l);}catch(x){}
     const iv=setInterval(()=>{const d=$('detailOverlay');if(!$('bqCatScr')){clearInterval(iv);return;}if(!d||!d.classList.contains('show')){clearInterval(iv);ov.style.display='';}},400);}return;}
   const g=e.target.closest('[data-g]');if(g){sel.gender=g.dataset.g;pop='';paint();return;}
   const b=e.target.closest('[data-b]');if(b){sel.breed=b.dataset.b;pop='';paint();return;}
@@ -2977,11 +2994,14 @@ function open(c,s){
   else if(act==='more'){pop='more';paint();}
   else if(act==='xgender'){sel.gender='';paint();}
   else if(act==='xbreed'){sel.breed='';paint();}
+  else if(act==='ver'){onlyVer=!onlyVer;paint();}
+  else if(act==='view'){view=view==='grid'?'list':'grid';paint();}
   else if(act==='shClose'&&e.target===a){pop='';paint();}
  };
- document.body.appendChild(ov);paint();
+ document.body.appendChild(ov);
+ $('bqCatQ').oninput=e=>{q=e.target.value.trim().toLowerCase();paint();};
+ paint();loadProfs();
 }
-/* intercept the sub-category list tap before the old code runs */
 document.addEventListener('click',e=>{
  const r=e.target&&e.target.closest?e.target.closest('#subList .bqSubRow'):null;
  if(!r)return;
