@@ -2439,7 +2439,8 @@ const STORES=['16GB','32GB','64GB','128GB','256GB','512GB','1TB'];
 function ready(){
  const d=document.getElementById('sellDesc');
  if(!d||document.getElementById('phoneFields'))return !!document.getElementById('phoneFields');
- d.insertAdjacentHTML('beforebegin','<div id="phoneFields" style="display:none"><label>Brand</label><select id="phBrand"><option value="">Choose brand</option>'+BRANDS.map(b=>'<option>'+b+'</option>').join('')+'</select><label>Storage</label><select id="phStorage"><option value="">Choose storage</option>'+STORES.map(b=>'<option>'+b+'</option>').join('')+'</select><label>Color</label><input id="phColor" placeholder="e.g. Black, Blue"></div>');
+ const lb=d.previousElementSibling&&d.previousElementSibling.tagName==='LABEL'?d.previousElementSibling:d;
+ lb.insertAdjacentHTML('beforebegin','<div id="phoneFields" style="display:none"><label>Brand</label><select id="phBrand"><option value="">Choose brand</option>'+BRANDS.map(b=>'<option>'+b+'</option>').join('')+'</select><label>Storage</label><select id="phStorage"><option value="">Choose storage</option>'+STORES.map(b=>'<option>'+b+'</option>').join('')+'</select><label>Color</label><input id="phColor" placeholder="e.g. Black, Blue"></div>');
  return true;
 }
 function toggle(){
