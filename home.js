@@ -264,6 +264,7 @@ const openDetailCore=async function(l){
  '<p class="price" style="font-size:18px;margin:6px 0 6px">₦'+Number(l.price).toLocaleString()+(l.negotiable?'<span class="bq-neg">Negotiable</span>':'')+'</p>'+
  '<p class="bq-meta">👁 <span id="dViews">'+(l.views||0)+'</span> views · Posted '+ago(l.created_at)+'</p>'+
  '<span class="detail-tag">📍 '+esc(where)+'</span><span class="detail-tag">'+esc(CATEGORY_LABELS[l.category_id]||l.category_id)+'</span>'+(subLabel(l)?'<span class="detail-tag">'+esc(subLabel(l))+'</span>':'')+(l.condition?'<span class="detail-tag">'+(l.condition==='new'?'New':'Used')+'</span>':'')+
+ ((l.details&&typeof l.details==='object')?[['brand',''],['storage',''],['color','Color: ']].map(k=>l.details[k[0]]?'<span class="detail-tag">'+k[1]+esc(l.details[k[0]])+'</span>':'').join(''):'')+
  (l.status&&l.status!=='active'?'<p style="color:#c0392b !important;font-weight:bold;margin:8px 0">This listing is '+esc(l.status)+'.</p>':'')+
  '<p class="detail-desc" style="white-space:pre-wrap">'+esc(l.description||'No description provided.')+'</p>'+
  '<p class="bq-meta">Seller: <b id="dSeller">...</b></p>'+
