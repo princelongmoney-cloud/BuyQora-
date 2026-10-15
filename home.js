@@ -355,7 +355,7 @@ $('resetSave').onclick=async()=>{
 };
 })();
 (function(){
-const SUPPORT_EMAIL='princelongmoney@gmail.com';
+const SUPPORT_EMAIL='support.buyqora@gmail.com';
 const $=id=>document.getElementById(id);
 const PAGES={
 terms:['Terms of Use',`<p><i>Last updated: October 2026</i></p>
@@ -378,10 +378,21 @@ privacy:['Privacy Policy',`<p><i>Last updated: October 2026</i></p>
 <h4>Security</h4><p>We take reasonable steps to protect your data, but no online service is completely secure. Choose a strong password and never share it.</p>
 <h4>Children</h4><p>BuyQora is for people aged 18 and over.</p>
 <h4>Changes and contact</h4><p>We may update this policy. For any question, email ${SUPPORT_EMAIL}.</p>`],
-contact:['Contact & Support',`<p>Need help, found a problem, or want your account or data deleted?</p>
-<p>Email us: <b>${SUPPORT_EMAIL}</b></p>
-<p>Please include your account email and a short description. If you are reporting a scam, include the listing title and the seller name.</p>
-<p>To report a listing or a user quickly, open the listing or chat and tap the Report button.</p>`]
+contact:['Contact Us',`<p><b>BuyQora</b> &middot; <i>Buy. Sell. Discover. Promote. Grow.</i></p>
+<p>Need help? Email our support team and we will reply by email.</p>
+<p style="margin:14px 0 6px"><b>Support email:</b><br><a href="mailto:${SUPPORT_EMAIL}?subject=BuyQora%20Customer%20Support" style="color:#0b6b3a;font-size:17px;font-weight:bold;word-break:break-all">${SUPPORT_EMAIL}</a></p>
+<p style="margin:12px 0 18px"><a href="mailto:${SUPPORT_EMAIL}?subject=BuyQora%20Customer%20Support" style="display:block;text-align:center;background:#0b6b3a;color:#fff;text-decoration:none;font-weight:bold;font-size:16px;padding:14px;border-radius:12px">&#9993; Email Support</a></p>
+<h4>You can contact us about</h4>
+<ul style="padding-left:20px;margin:0 0 12px">
+<li><b>Account and login</b> &ndash; trouble signing in or changing account details.</li>
+<li><b>Buyers and sellers</b> &ndash; questions about buying, selling or a seller page.</li>
+<li><b>Listing problems</b> &ndash; a listing that will not post, edit or show correctly.</li>
+<li><b>Payments and transactions</b> &ndash; questions about a BuyQora fee, receipt or promotion payment.</li>
+<li><b>Suspicious listings or users</b> &ndash; tell us about scams or bad behaviour.</li>
+</ul>
+<p>Please include the email you use on BuyQora and a short description. For a scam report, include the listing title and the seller name.</p>
+<p>To report a listing or user quickly, open the listing or chat and tap the <b>Report</b> button.</p>
+<p style="color:#666;font-size:13px">Support is by email only. BuyQora does not have live chat or a ticket system yet. Never share your password with anyone.</p>`]
 };
 document.body.insertAdjacentHTML('beforeend','<div class="modal-overlay" id="legalOverlay"><div class="modal" style="color:#222;max-width:600px"><span class="close" id="legalClose">✕</span><h3 id="legalTitle"></h3><div id="legalBody" style="font-size:14px;line-height:1.6"></div></div></div>');
 function openLegal(k){
@@ -394,7 +405,7 @@ $('legalClose').onclick=()=>$('legalOverlay').classList.remove('show');
 const f=document.querySelector('footer');
 if(f){
  f.style.paddingBottom='100px';
- f.insertAdjacentHTML('afterbegin','<p id="legalLinks" style="margin-bottom:12px"><a data-l="terms" style="color:#ff6b00;cursor:pointer">Terms</a> &nbsp;·&nbsp; <a data-l="privacy" style="color:#ff6b00;cursor:pointer">Privacy</a> &nbsp;·&nbsp; <a data-l="contact" style="color:#ff6b00;cursor:pointer">Contact</a></p>');
+ f.insertAdjacentHTML('afterbegin','<p id="legalLinks" style="margin-bottom:12px"><a data-l="terms" style="color:#ff6b00;cursor:pointer">Terms</a> &nbsp;·&nbsp; <a data-l="privacy" style="color:#ff6b00;cursor:pointer">Privacy</a> &nbsp;·&nbsp; <a data-l="contact" style="color:#ff6b00;cursor:pointer">Contact Us</a></p>');
  $('legalLinks').onclick=e=>{const a=e.target.closest('[data-l]');if(a)openLegal(a.dataset.l);};
 }
 })();
@@ -1333,7 +1344,7 @@ const $=id=>document.getElementById(id);
 const store={get(k){try{return localStorage.getItem(k);}catch(e){return null;}},set(k,v){try{localStorage.setItem(k,v);}catch(e){}}};
 
 /* 1. Advertising terms */
-const EMAIL='princelongmoney@gmail.com';
+const EMAIL='support.buyqora@gmail.com';
 document.body.insertAdjacentHTML('beforeend','<div class="modal-overlay" id="adTermsOverlay"><div class="modal" style="color:#222;max-width:600px"><span class="close" id="adTermsClose">✕</span><h3>Advertising Terms</h3><div id="adTermsBody" style="font-size:14px;line-height:1.6"></div></div></div>');
 $('adTermsBody').innerHTML='<p><i>Last updated: October 2026</i></p>'+
 '<h4>1. Who can advertise</h4><p>Any registered BuyQora seller, business, company or brand aged 18 or over can promote a listing or place an advert, as long as the content follows our Terms of Use.</p>'+
@@ -2514,9 +2525,9 @@ setInterval(add,1000);
 
 /* ===== Profile screen: tidy button layout ===== */
 (function(){
-const ORDER=['bqAdBtn','bqMine','bqPayBtn','bqMyAds','bqBlocked','bqSavedBtn','bqPush','bqAlertBtn'];
+const ORDER=['bqAdBtn','bqMine','bqPayBtn','bqMyAds','bqBlocked','bqSavedBtn','bqPush','bqAlertBtn','bqHelpBtn'];
 const ICON={bqMine:'📦 ',bqMyAds:'📊 ',bqBlocked:'🚫 '};
-const LABEL={bqAdBtn:'📢 Advertise on BuyQora',bqMine:'📦 My listings',bqPayBtn:'🧾 My payments',bqMyAds:'📊 My ads',bqBlocked:'🚫 Blocked users',bqSavedBtn:'🔍 Saved searches',bqAlertBtn:'⚙️ Alert settings'};
+const LABEL={bqAdBtn:'📢 Advertise on BuyQora',bqMine:'📦 My listings',bqPayBtn:'🧾 My payments',bqMyAds:'📊 My ads',bqBlocked:'🚫 Blocked users',bqSavedBtn:'🔍 Saved searches',bqAlertBtn:'⚙️ Alert settings',bqHelpBtn:'💬 Help & Support'};
 function css(b,full,bg,color,border){
  b.style.setProperty('margin','0','important');
  b.style.setProperty('width','100%','important');
@@ -2546,7 +2557,7 @@ function tidy(){
   if(!b)return;
   if(LABEL[id]&&b.textContent!==LABEL[id])b.textContent=LABEL[id];
   if(id==='bqAdBtn')css(b,true,'#8e24aa','#fff','0');
-  else if(id==='bqAlertBtn')css(b,true,'#fff','#0b6b3a','1.5px solid #0b6b3a');
+  else if(id==='bqAlertBtn')css(b,false,'#fff','#0b6b3a','1.5px solid #0b6b3a');
   else if(id==='bqPush')css(b,false,'#e8f5ee','#0b6b3a','1.5px solid #0b6b3a');
   else css(b,false,'#fff','#0b6b3a','1.5px solid #0b6b3a');
  });
@@ -2766,4 +2777,19 @@ if(ok)new MutationObserver(()=>{
  if(ok.style.display!=='none'&&t!==last&&/Listing (posted|saved)/.test(t)){last=t;afterPost();}
  if(ok.style.display==='none')last='';
 }).observe(ok,{childList:true,characterData:true,subtree:true,attributes:true,attributeFilter:['style']});
+})();
+
+/* ===== Help & Support tile in Profile ===== */
+(function(){
+function add(){
+ if(document.getElementById('bqHelpBtn'))return;
+ const a=document.getElementById('bqAlertBtn')||document.getElementById('bqPush');
+ if(!a)return;
+ a.insertAdjacentHTML('afterend','<button class="button" id="bqHelpBtn">💬 Help & Support</button>');
+ document.getElementById('bqHelpBtn').onclick=function(){
+  const l=document.querySelector('#legalLinks [data-l="contact"]');
+  if(l)l.click();
+ };
+}
+setInterval(add,1000);
 })();
