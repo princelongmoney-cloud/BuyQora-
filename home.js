@@ -2514,9 +2514,9 @@ setInterval(add,1000);
 
 /* ===== Profile screen: tidy button layout ===== */
 (function(){
-const ORDER=['bqAdBtn','bqMine','bqPayBtn','bqMyAds','bqBlocked','bqPush'];
+const ORDER=['bqAdBtn','bqMine','bqPayBtn','bqMyAds','bqBlocked','bqSavedBtn','bqPush'];
 const ICON={bqMine:'📦 ',bqMyAds:'📊 ',bqBlocked:'🚫 '};
-const LABEL={bqAdBtn:'📢 Advertise on BuyQora',bqMine:'📦 My listings',bqPayBtn:'🧾 My payments',bqMyAds:'📊 My ads',bqBlocked:'🚫 Blocked users'};
+const LABEL={bqAdBtn:'📢 Advertise on BuyQora',bqMine:'📦 My listings',bqPayBtn:'🧾 My payments',bqMyAds:'📊 My ads',bqBlocked:'🚫 Blocked users',bqSavedBtn:'🔍 Saved searches'};
 function css(b,full,bg,color,border){
  b.style.setProperty('margin','0','important');
  b.style.setProperty('width','100%','important');
@@ -2539,13 +2539,14 @@ function tidy(){
   lo.insertAdjacentHTML('beforebegin','<div id="bqProfTitle" style="margin:22px 0 10px;font-weight:bold;font-size:16px;color:#0b6b3a">My account</div><div id="bqProfGrid" style="display:grid;grid-template-columns:1fr 1fr;gap:12px"></div>');
   g=document.getElementById('bqProfGrid');
  }
+ const present=ORDER.map(id=>document.getElementById(id)).filter(Boolean);
+ present.forEach((b,i)=>{if(g.children[i]!==b)g.insertBefore(b,g.children[i]||null);});
  ORDER.forEach(id=>{
   const b=document.getElementById(id);
   if(!b)return;
-  if(b.parentElement!==g)g.appendChild(b);
   if(LABEL[id]&&b.textContent!==LABEL[id])b.textContent=LABEL[id];
   if(id==='bqAdBtn')css(b,true,'#8e24aa','#fff','0');
-  else if(id==='bqPush')css(b,true,'#e8f5ee','#0b6b3a','1.5px solid #0b6b3a');
+  else if(id==='bqPush')css(b,false,'#e8f5ee','#0b6b3a','1.5px solid #0b6b3a');
   else css(b,false,'#fff','#0b6b3a','1.5px solid #0b6b3a');
  });
  css(lo,true,'#fff','#c0392b','1.5px solid #c0392b');
@@ -2553,4 +2554,82 @@ function tidy(){
  lo.style.setProperty('min-height','50px','important');
 }
 setInterval(tidy,700);
+})();
+
+/* ===== Saved searches ===== */
+(function(){
+const g=id=>document.getElementById(id);
+const CL=()=>window.CATEGORY_LABELS||{};
+function label(v){
+ const a=[];
+ if(v.q)a.push('"'+v.q+'"');
+ if(v.cat&&v.cat!=='all')a.push((CL()[v.cat])||v.cat);
+ if(v.st&&v.st!=='all')a.push(v.st);
+ if(v.cond&&v.cond!=='all')a.push(v.cond==='new'?'New':'Used');
+ if(v.city)a.push(v.city);
+ if(v.min)a.push('from ₦'+Number(v.min).toLocaleString());
+ if(v.max)a.push('up to ₦'+Number(v.max).toLocaleString());
+ return a.join(' · ')||'All listings';
+}
+function view(){
+ const v=window.bqGetView?window.bqGetView():{};
+ v.min=g('bqMin')?g('bqMin').value.trim():'';
+ v.max=g('bqMax')?g('bqMax').value.trim():'';
+ v.city=g('bqCity')?g('bqCity').value.trim():'';
+ return v;
+}
+async function save(){
+ const{data:{session}}=await supabaseClient.auth.getSession();
+ if(!session){if(window.openAuth)openAuth('login');return;}
+ const v=view();
+ const name=prompt('Name this search',label(v).slice(0,40));
+ if(name===null)return;
+ const{error}=await supabaseClient.from('saved_searches').insert({user_id:session.user.id,name:name.trim()||label(v).slice(0,40),view:v});
+ alert(error?('Could not save: '+error.message):'Search saved. Find it in Profile → Saved searches.');
+}
+function addSaveBtn(){
+ if(g('bqSaveSearch'))return;
+ const a=document.querySelector('.bq-filter2');
+ if(!a)return;
+ a.insertAdjacentHTML('afterend','<div style="padding:0 14px 8px"><button id="bqSaveSearch" style="background:#fff;color:#0b6b3a;border:1.5px solid #0b6b3a;border-radius:12px;padding:9px 14px;font-weight:bold;font-size:14px">💾 Save this search</button></div>');
+ g('bqSaveSearch').onclick=save;
+}
+function closeOv(){const o=g('bqSavedOv');if(o)o.remove();}
+function runSearch(v){
+ closeOv();
+ try{if(window.closeProfile)closeProfile();else{const p=g('profileOverlay');if(p)p.classList.remove('show');}}catch(e){}
+ if(g('bqMin'))g('bqMin').value=v.min||'';
+ if(g('bqMax'))g('bqMax').value=v.max||'';
+ if(g('bqCity'))g('bqCity').value=v.city||'';
+ if(window.bqSetView)window.bqSetView({cat:v.cat||'all',sub:v.sub||'all',st:v.st||'all',cond:v.cond||'all',sort:v.sort||'new',q:v.q||''});
+ const h=document.querySelector('#products h2');if(h)h.scrollIntoView({behavior:'smooth'});
+}
+async function openSaved(){
+ closeOv();
+ const ov=document.createElement('div');ov.id='bqSavedOv';
+ ov.style.cssText='position:fixed;inset:0;z-index:99999;background:#fff;overflow-y:auto;padding:16px;color:#222;font-family:inherit';
+ ov.innerHTML='<div style="display:flex;align-items:center;gap:14px;margin-bottom:14px"><button id="bqSavedX" style="font-size:30px;background:none;border:0;padding:6px 10px;color:#222">←</button><h2 style="margin:0;font-size:20px">Saved searches</h2></div><div id="bqSavedBody">Loading...</div>';
+ document.body.appendChild(ov);
+ g('bqSavedX').onclick=closeOv;
+ const body=g('bqSavedBody');
+ const{data:{session}}=await supabaseClient.auth.getSession();
+ if(!session){body.textContent='Please log in.';return;}
+ const{data,error}=await supabaseClient.from('saved_searches').select('*').eq('user_id',session.user.id).order('created_at',{ascending:false});
+ if(error){body.textContent='Could not load: '+error.message;return;}
+ if(!data||!data.length){body.innerHTML='<p style="color:#666">No saved searches yet. On the home page, set your search or filters, then tap "Save this search".</p>';return;}
+ body.innerHTML=data.map(r=>'<div style="border:1px solid #e3e3e3;border-radius:12px;padding:12px 14px;margin-bottom:12px"><div style="font-weight:bold;font-size:16px">'+esc(r.name)+'</div><div style="color:#666;font-size:14px;margin:4px 0 10px">'+esc(label(r.view||{}))+'</div><button data-open="'+r.id+'" style="background:#0b6b3a;color:#fff;border:0;border-radius:10px;padding:10px 18px;font-weight:bold;font-size:15px;margin-right:10px">Open</button><button data-del="'+r.id+'" style="background:#fff;color:#c0392b;border:1.5px solid #c0392b;border-radius:10px;padding:9px 16px;font-weight:bold;font-size:15px">Delete</button></div>').join('');
+ body.onclick=async e=>{
+  const o=e.target.closest('[data-open]'),d=e.target.closest('[data-del]');
+  if(o){const r=data.find(x=>String(x.id)===o.dataset.open);if(r)runSearch(r.view||{});}
+  if(d){if(!confirm('Delete this saved search?'))return;const{error:de}=await supabaseClient.from('saved_searches').delete().eq('id',d.dataset.del);if(de){alert('Could not delete: '+de.message);return;}openSaved();}
+ };
+}
+function addTile(){
+ if(g('bqSavedBtn'))return;
+ const a=g('bqPayBtn')||g('bqBlocked');
+ if(!a)return;
+ a.insertAdjacentHTML('afterend','<button class="button" id="bqSavedBtn">🔍 Saved searches</button>');
+ g('bqSavedBtn').onclick=openSaved;
+}
+setInterval(()=>{addSaveBtn();addTile();},1000);
 })();
