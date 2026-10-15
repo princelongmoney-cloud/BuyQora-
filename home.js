@@ -2559,6 +2559,7 @@ setInterval(tidy,700);
 /* ===== Saved searches ===== */
 (function(){
 const g=id=>document.getElementById(id);
+const esc=x=>String(x==null?'':x).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 const CL=()=>window.CATEGORY_LABELS||{};
 function label(v){
  const a=[];
@@ -2612,6 +2613,7 @@ async function openSaved(){
  document.body.appendChild(ov);
  g('bqSavedX').onclick=closeOv;
  const body=g('bqSavedBody');
+ try{
  const{data:{session}}=await supabaseClient.auth.getSession();
  if(!session){body.textContent='Please log in.';return;}
  const{data,error}=await supabaseClient.from('saved_searches').select('*').eq('user_id',session.user.id).order('created_at',{ascending:false});
@@ -2623,6 +2625,7 @@ async function openSaved(){
   if(o){const r=data.find(x=>String(x.id)===o.dataset.open);if(r)runSearch(r.view||{});}
   if(d){if(!confirm('Delete this saved search?'))return;const{error:de}=await supabaseClient.from('saved_searches').delete().eq('id',d.dataset.del);if(de){alert('Could not delete: '+de.message);return;}openSaved();}
  };
+ }catch(e){body.textContent='Could not load: '+(e&&e.message?e.message:e);}
 }
 function addTile(){
  if(g('bqSavedBtn'))return;
