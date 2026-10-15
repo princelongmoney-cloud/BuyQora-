@@ -2701,9 +2701,10 @@ const css=document.createElement('style');
 css.textContent=
  '#bqNav{z-index:100000 !important}'+
  '.modal-overlay,#bqPayOv,#bqSavedOv,#bqAlertOv{bottom:var(--bqnavh,72px) !important;height:auto !important}'+
- '.modal-overlay:not(#aprOverlay):not(#adsAdmOverlay)>.modal{max-height:calc(100vh - var(--bqnavh,72px) - 20px) !important;overflow-y:auto !important;-webkit-overflow-scrolling:touch}'+
- '#profileOverlay .modal{padding-bottom:40px !important}'+
- 'body.bq-kb .modal-overlay:not(#aprOverlay):not(#adsAdmOverlay)>.modal{max-height:calc(100vh - 20px) !important}'+
+ 'html body .modal-overlay:not(#chatOverlay)>.modal,html body #chatOverlay>.modal,html body #inboxOverlay>.modal{bottom:var(--bqnavh,72px) !important;height:auto !important;overflow-y:auto !important}'+
+ 'html body #chatOverlay>.modal{overflow-y:hidden !important}'+
+ '#profileOverlay .modal{padding-bottom:30px !important}'+
+ 'html body.bq-kb .modal-overlay:not(#chatOverlay)>.modal,html body.bq-kb #chatOverlay>.modal,html body.bq-kb #inboxOverlay>.modal{bottom:0 !important}'+
  'body.bq-kb #bqNav{display:none !important}'+
  'body.bq-kb .modal-overlay,body.bq-kb #bqPayOv,body.bq-kb #bqSavedOv,body.bq-kb #bqAlertOv{bottom:0 !important}';
 document.head.appendChild(css);
@@ -2795,4 +2796,23 @@ function add(){
  };
 }
 setInterval(add,1000);
+})();
+
+/* ===== Guarantee: the end of every screen scrolls clear of the bottom menu ===== */
+(function(){
+function fix(){
+ const nav=document.getElementById('bqNav');
+ if(!nav)return;
+ const navTop=nav.getBoundingClientRect().top;
+ document.querySelectorAll('.modal-overlay.show>.modal').forEach(m=>{
+  if(m.parentElement.id==='chatOverlay')return;
+  let sp=m.querySelector(':scope>.bqSpacer');
+  if(!sp){sp=document.createElement('div');sp.className='bqSpacer';}
+  if(m.lastElementChild!==sp)m.appendChild(sp);
+  const covered=m.getBoundingClientRect().bottom>navTop+2;
+  const h=covered?(nav.offsetHeight+28):20;
+  if(sp.dataset.h!==String(h)){sp.dataset.h=h;sp.style.cssText='height:'+h+'px;flex:none;width:100%';}
+ });
+}
+setInterval(fix,600);
 })();
