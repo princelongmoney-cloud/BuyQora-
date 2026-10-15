@@ -238,10 +238,11 @@ window.submitListing=async function(){
   images.push(supabaseClient.storage.from('listing-images').getPublicUrl(path).data.publicUrl);
  }
  btn.textContent='Posting...';
- const row={seller_id:session.user.id,title,description:$('sellDesc').value.trim(),price,category_id:$('sellCategory').value,state:$('sellState').value,city:$('sellCity').value.trim()||null,negotiable:$('sellNeg').checked,condition:$('sellCondition').value,image_url:images[0]||null,images,subcategory:SUBCATS[$('sellCategory').value]?($('sellSub').value||null):null};
+ const row={seller_id:session.user.id,title,description:$('sellDesc').value.trim(),price,category_id:$('sellCategory').value,state:$('sellState').value,city:$('sellCity').value.trim()||null,negotiable:$('sellNeg').checked,condition:$('sellCondition').value,image_url:images[0]||null,images,subcategory:SUBCATS[$('sellCategory').value]?($('sellSub').value||null):null,details:(window.getListingDetails?window.getListingDetails():{})};
  let{error}=await supabaseClient.from('listings').insert(row);
  if(error&&/condition/i.test(error.message)){delete row.condition;({error}=await supabaseClient.from('listings').insert(row));}
  if(error&&/subcategory/i.test(error.message)){delete row.subcategory;({error}=await supabaseClient.from('listings').insert(row));}
+ if(error&&/details/i.test(error.message)){delete row.details;({error}=await supabaseClient.from('listings').insert(row));}
  if(error)return fail(error.message);
  btn.disabled=false;btn.textContent='Post listing';ok.textContent='Listing posted!';ok.style.display='block';
  ['sellTitle','sellPrice','sellDesc','sellCity'].forEach(id=>$(id).value='');$('sellNeg').checked=false;si.value='';
@@ -1130,7 +1131,7 @@ async function cfg(){
 /* ---- Sell screen: remaining free listings ---- */
 const sh=document.querySelector('#sellOverlay .modal h3');
 sh.insertAdjacentHTML('afterend','<div id="quotaNote" style="font-size:13.5px;font-weight:bold;border-radius:8px;padding:8px 10px;margin-bottom:12px;background:#f7f7f7;display:none"></div>');
-$('quotaNote').insertAdjacentHTML('afterend','<div id="oneItemNote" style="font-size:13px;line-height:1.5;border-radius:8px;padding:8px 10px;margin-bottom:12px;background:#fff6ec;color:#8a4b00">One listing = one item. You can add up to 5 photos of the same item. To sell another item, post it as a separate listing.</div>');
+$('quotaNote').insertAdjacentHTML('afterend','<div id="oneItemNote" style="font-size:13px;line-height:1.5;border-radius:8px;padding:8px 10px;margin-bottom:12px;background:#fff6ec;color:#8a4b00">One listing = one item. You can add up to 8 photos of the same item. To sell another item, post it as a separate listing.</div>');
 async function showQuota(){
  const n=$('quotaNote');n.style.display='none';
  const{data:{session}}=await supabaseClient.auth.getSession();
@@ -2429,4 +2430,34 @@ document.addEventListener('click',e=>{
  const el=e.target;
  if(el&&['sellTitle','sellPrice','sellSub','sellDesc','sellImage'].includes(el.id))clearOne(el);
 }));
+})();
+
+/* ===== Category fields: Phones & Tablets ===== */
+(function(){
+const BRANDS=['Apple (iPhone)','Samsung','Tecno','Infinix','Itel','Xiaomi','Oppo','Nokia','Huawei','Google Pixel','Other'];
+const STORES=['16GB','32GB','64GB','128GB','256GB','512GB','1TB'];
+function ready(){
+ const d=document.getElementById('sellDesc');
+ if(!d||document.getElementById('phoneFields'))return !!document.getElementById('phoneFields');
+ d.insertAdjacentHTML('beforebegin','<div id="phoneFields" style="display:none"><label>Brand</label><select id="phBrand"><option value="">Choose brand</option>'+BRANDS.map(b=>'<option>'+b+'</option>').join('')+'</select><label>Storage</label><select id="phStorage"><option value="">Choose storage</option>'+STORES.map(b=>'<option>'+b+'</option>').join('')+'</select><label>Color</label><input id="phColor" placeholder="e.g. Black, Blue"></div>');
+ return true;
+}
+function toggle(){
+ if(!ready())return;
+ const c=document.getElementById('sellCategory');
+ document.getElementById('phoneFields').style.display=(c&&c.value==='phones')?'block':'none';
+}
+document.addEventListener('change',e=>{if(e.target&&e.target.id==='sellCategory')toggle();});
+setInterval(toggle,800);
+window.getListingDetails=function(){
+ const c=document.getElementById('sellCategory');
+ const o={};
+ if(c&&c.value==='phones'){
+  const b=document.getElementById('phBrand'),st=document.getElementById('phStorage'),co=document.getElementById('phColor');
+  if(b&&b.value)o.brand=b.value;
+  if(st&&st.value)o.storage=st.value;
+  if(co&&co.value.trim())o.color=co.value.trim();
+ }
+ return o;
+};
 })();
