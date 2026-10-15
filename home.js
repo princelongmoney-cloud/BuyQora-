@@ -2701,6 +2701,9 @@ const css=document.createElement('style');
 css.textContent=
  '#bqNav{z-index:100000 !important}'+
  '.modal-overlay,#bqPayOv,#bqSavedOv,#bqAlertOv{bottom:var(--bqnavh,72px) !important;height:auto !important}'+
+ '.modal-overlay:not(#aprOverlay):not(#adsAdmOverlay)>.modal{max-height:calc(100vh - var(--bqnavh,72px) - 20px) !important;overflow-y:auto !important;-webkit-overflow-scrolling:touch}'+
+ '#profileOverlay .modal{padding-bottom:40px !important}'+
+ 'body.bq-kb .modal-overlay:not(#aprOverlay):not(#adsAdmOverlay)>.modal{max-height:calc(100vh - 20px) !important}'+
  'body.bq-kb #bqNav{display:none !important}'+
  'body.bq-kb .modal-overlay,body.bq-kb #bqPayOv,body.bq-kb #bqSavedOv,body.bq-kb #bqAlertOv{bottom:0 !important}';
 document.head.appendChild(css);
