@@ -2710,3 +2710,60 @@ document.addEventListener('click',e=>{
  try{document.body.style.overflow='';}catch(x){}
 },true);
 })();
+
+/* ===== Choose a promotion while posting ===== */
+(function(){
+const g=id=>document.getElementById(id);
+const esc=x=>String(x==null?'':x).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const naira=n=>'₦'+Number(n||0).toLocaleString();
+let pkgs=[],chosen='none',loaded=false;
+function draw(){
+ const box=g('bqPostPromo');if(!box)return;
+ const card=(id,name,desc,right,on)=>'<div data-pp="'+id+'" style="border:2px solid '+(on?'#0b6b3a':'#ddd')+';background:'+(on?'#f0f9f4':'#fff')+';border-radius:12px;padding:12px 14px;margin-bottom:10px;cursor:pointer"><div style="display:flex;justify-content:space-between;gap:10px"><b style="font-size:16px">'+esc(name)+'</b><span style="color:#ff6b00;font-weight:bold;white-space:nowrap">'+right+'</span></div>'+(desc?'<div style="color:#555;font-size:13.5px;margin-top:5px;line-height:1.45">'+esc(desc)+'</div>':'')+'</div>';
+ box.innerHTML='<div style="font-weight:bold;font-size:17px;margin:18px 0 4px;color:#0b6b3a">Promote your ad (optional)</div><div style="color:#666;font-size:13.5px;margin-bottom:10px">Get more views and sell faster. You choose how long and pay after posting.</div>'+
+  card('none','No promo','Post a normal listing. Your ad stays live for free for the standard period.','Free',chosen==='none')+
+  pkgs.map(p=>card(p.id,p.name,p.description,naira(p.price_7d)+' / 7 days',chosen===p.id)).join('');
+}
+async function load(){
+ if(loaded)return;loaded=true;
+ try{const{data}=await supabaseClient.from('promotion_packages').select('*').eq('active',true).order('sort_order');pkgs=data||[];}catch(e){}
+ draw();
+}
+function add(){
+ const b=g('sellSubmitBtn');
+ if(!b||g('bqPostPromo'))return;
+ b.insertAdjacentHTML('beforebegin','<div id="bqPostPromo"></div>');
+ g('bqPostPromo').onclick=e=>{const c=e.target.closest('[data-pp]');if(!c)return;chosen=c.dataset.pp;draw();};
+ draw();load();
+}
+setInterval(add,800);
+/* after a successful post, open the promotion payment for the new listing */
+async function afterPost(){
+ const pick=chosen;
+ if(pick==='none')return;
+ const{data:{session}}=await supabaseClient.auth.getSession();
+ if(!session)return;
+ const{data}=await supabaseClient.from('listings').select('id,status,created_at').eq('seller_id',session.user.id).order('created_at',{ascending:false}).limit(1);
+ const l=data&&data[0];
+ if(!l||Date.now()-new Date(l.created_at)>120000)return;
+ chosen='none';draw();
+ if(l.status!=='active'){setTimeout(()=>alert('Your listing goes live after your ₦1,800 posting payment is confirmed. After that, open My listings and tap Promote to add your promotion.'),1500);return;}
+ setTimeout(()=>{
+  const box=g('myList');if(!box)return;
+  const tmp=document.createElement('button');tmp.dataset.a='promote';tmp.dataset.id=l.id;tmp.style.display='none';
+  box.appendChild(tmp);tmp.click();tmp.remove();
+  let n=0;const t=setInterval(()=>{
+   const ov=g('promoOverlay');
+   if(ov&&ov.classList.contains('show')){const c=ov.querySelector('[data-p="'+pick+'"]');if(c)c.click();clearInterval(t);}
+   else if(++n>20)clearInterval(t);
+  },300);
+ },1400);
+}
+let last='';
+const ok=g('sellSuccess');
+if(ok)new MutationObserver(()=>{
+ const t=ok.textContent||'';
+ if(ok.style.display!=='none'&&t!==last&&/Listing (posted|saved)/.test(t)){last=t;afterPost();}
+ if(ok.style.display==='none')last='';
+}).observe(ok,{childList:true,characterData:true,subtree:true,attributes:true,attributeFilter:['style']});
+})();
