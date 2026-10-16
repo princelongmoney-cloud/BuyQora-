@@ -3269,6 +3269,7 @@ function run(){
  document.querySelectorAll('#bqCats .bq-cat').forEach(b=>{
   const i=b.querySelector('i');if(!i||i.querySelector('img.bqCatPh')||i.dataset.ph==='none')return;
   const id=b.dataset.c;
+  if(id==='trending')return;
   const im=new Image();im.className='bqCatPh';im.alt='';im.loading='lazy';
   im.onerror=()=>{i.dataset.ph='none';im.remove();};
   im.src='sub-all-'+id+'.jpg?v=2';
