@@ -3264,15 +3264,14 @@ setInterval(gear,700);
 
 /* ===== Real photos on the home category tiles (falls back to the emoji if a photo is missing) ===== */
 (function(){
-{const st=document.createElement('style');st.textContent='#bqCats .bq-cat i{position:relative;overflow:hidden;height:74px !important;border-radius:16px !important}#bqCats .bq-cat i img.bqCatPh{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:inherit}';document.head.appendChild(st);}
+{const st=document.createElement('style');st.textContent='#bqCats .bq-cat i{position:relative;overflow:hidden;height:74px !important;border-radius:16px !important;background:#1f272c !important}#bqCats .bq-cat i img.bqCatPh{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;border-radius:inherit}';document.head.appendChild(st);}
 function run(){
  document.querySelectorAll('#bqCats .bq-cat').forEach(b=>{
   const i=b.querySelector('i');if(!i||i.querySelector('img.bqCatPh')||i.dataset.ph==='none')return;
   const id=b.dataset.c;
-  if(id==='trending')return;
   const im=new Image();im.className='bqCatPh';im.alt='';im.loading='lazy';
   im.onerror=()=>{i.dataset.ph='none';im.remove();};
-  im.src='sub-all-'+id+'.jpg?v=2';
+  im.src='tile-'+id+'.png?v=1';
   i.appendChild(im);
  });
 }
