@@ -70,7 +70,7 @@ sc.insertAdjacentHTML('afterend','<label>Condition</label><select id="sellCondit
 
 document.body.insertAdjacentHTML('beforeend','<div class="modal-overlay" id="subOverlay"><div class="modal" style="color:#222;padding:0"><div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid #eee;position:sticky;top:0;background:#fff;z-index:2"><h3 id="subTitle" style="margin:0"></h3><span id="subClose" style="font-size:22px;cursor:pointer;padding:4px 8px">✕</span></div><div id="subList"></div></div></div>');
 let subCat=null;
-function subRow(icon,name,note,key){const f='sub-'+(key==='all'?'all-'+subCat:key)+'.jpg';return '<div class="bqSubRow" data-k="'+key+'" style="display:flex;align-items:center;gap:14px;padding:14px 16px;border-bottom:1px solid #eee;cursor:pointer"><div style="position:relative;overflow:hidden;width:56px;height:56px;border-radius:12px;background:#fff3e8;display:flex;align-items:center;justify-content:center;font-size:26px;flex:0 0 56px">'+icon+'<img src="'+f+'" alt="" loading="lazy" onerror="this.remove()" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover"></div><div style="flex:1;min-width:0"><div style="font-weight:bold;font-size:15px;color:#222">'+esc(name)+'</div><div style="font-size:12.5px;color:#777;margin-top:2px">'+note+'</div></div><div style="color:#999;font-size:20px">›</div></div>';}
+function subRow(icon,name,note,key){const f='sub-'+(key==='all'?'all-'+subCat:key)+'.jpg?v=2';return '<div class="bqSubRow" data-k="'+key+'" style="display:flex;align-items:center;gap:14px;padding:14px 16px;border-bottom:1px solid #eee;cursor:pointer"><div style="position:relative;overflow:hidden;width:56px;height:56px;border-radius:12px;background:#fff3e8;display:flex;align-items:center;justify-content:center;font-size:26px;flex:0 0 56px">'+icon+'<img src="'+f+'" alt="" loading="lazy" onerror="this.remove()" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover"></div><div style="flex:1;min-width:0"><div style="font-weight:bold;font-size:15px;color:#222">'+esc(name)+'</div><div style="font-size:12.5px;color:#777;margin-top:2px">'+note+'</div></div><div style="color:#999;font-size:20px">›</div></div>';}
 function openSubPicker(c){
  subCat=c;$('subTitle').textContent=CATEGORY_LABELS[c]||'Category';
  const live=currentListings.filter(l=>l.category_id===c);
@@ -3271,7 +3271,7 @@ function run(){
   const id=b.dataset.c;
   const im=new Image();im.className='bqCatPh';im.alt='';im.loading='lazy';
   im.onerror=()=>{i.dataset.ph='none';im.remove();};
-  im.src='sub-all-'+id+'.jpg';
+  im.src='sub-all-'+id+'.jpg?v=2';
   i.appendChild(im);
  });
 }
