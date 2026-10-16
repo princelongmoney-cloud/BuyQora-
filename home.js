@@ -2978,8 +2978,10 @@ function card(l,i){
   (nm?'<div style="display:flex;align-items:center;gap:6px;font-size:13px;color:#444"><span style="width:22px;height:22px;border-radius:50%;background:#dfe7e2;flex:0 0 22px;overflow:hidden;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:bold">'+(p.logo_url?'<img src="'+esc(p.logo_url)+'" alt="" style="width:100%;height:100%;object-fit:cover">':esc(nm.charAt(0).toUpperCase()))+'</span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(nm)+'</span></div>':'')+'</div>';
  return '<div class="product" data-i="'+i+'" style="'+(view==='list'?'display:flex;gap:12px;align-items:flex-start;padding:10px':'')+'">'+img+info+'</div>';
 }
+function save(){try{sessionStorage.setItem('bqCatScr',JSON.stringify({cat,sub,st,tileSel,vals,cond,pmin,pmax,sort,q,onlyVer,view}));}catch(e){}}
 function paint(){
  const body=$('bqCatBody');if(!body)return;
+ save();
  const T=TILES[sub],X=EXTRA[sub]||[];
  let f=base().filter(matches);
  if(sort==='lo')f.sort((a,b)=>Number(a.price)-Number(b.price));
@@ -3039,7 +3041,7 @@ function open(c,s){
   const t=e.target.closest('[data-tile]');if(t){const v=t.dataset.tile;tileSel=tileSel===v?'':v;paint();return;}
   const a=e.target.closest('[data-act]');if(!a)return;
   const act=a.dataset.act;
-  if(act==='back'){const c0=cat;close();try{window.bqOpenPicker(c0);}catch(x){}}
+  if(act==='back'){const c0=cat;try{sessionStorage.removeItem('bqCatScr');}catch(x){}close();try{window.bqOpenPicker(c0);}catch(x){}}
   else if(act==='ver'){onlyVer=!onlyVer;paint();}
   else if(act==='view'){view=view==='grid'?'list':'grid';paint();}
   else if(act==='shClose'){if(e.target===a){pop=null;paint();}}
@@ -3052,6 +3054,21 @@ function open(c,s){
  $('bqCatQ').oninput=e=>{q=e.target.value.trim().toLowerCase();paint();};
  paint();loadProfs();
 }
+let restored=false,tries=0;
+const rs=setInterval(()=>{
+ tries++;
+ if(tries>60){clearInterval(rs);restored=true;return;}
+ let sv=null;try{sv=JSON.parse(sessionStorage.getItem('bqCatScr')||'null');}catch(e){}
+ if(!sv){clearInterval(rs);restored=true;return;}
+ let ready=false;try{ready=Array.isArray(currentListings)&&currentListings.length>0&&!!document.getElementById('bqState');}catch(e){}
+ if(!ready)return;
+ clearInterval(rs);
+ open(sv.cat,sv.sub);
+ st=sv.st||'all';tileSel=sv.tileSel||'';vals=sv.vals||{};cond=sv.cond||'';pmin=sv.pmin||'';pmax=sv.pmax||'';sort=sv.sort||'new';q=sv.q||'';onlyVer=!!sv.onlyVer;view=sv.view||'grid';
+ const qi=$('bqCatQ');if(qi)qi.value=q;
+ paint();restored=true;
+},400);
+setInterval(()=>{if(restored&&!$('bqCatScr')){try{sessionStorage.removeItem('bqCatScr');}catch(e){}}},800);
 document.addEventListener('click',e=>{
  const r=e.target&&e.target.closest?e.target.closest('#subList .bqSubRow'):null;
  if(!r)return;
