@@ -2727,7 +2727,7 @@ document.addEventListener('click',e=>{
  const b=e.target&&e.target.closest?e.target.closest('#bqNav [data-n]'):null;
  if(!b)return;
  document.querySelectorAll('.modal-overlay.show').forEach(o=>o.classList.remove('show'));
- ['bqPayOv','bqSavedOv','bqAlertOv','bqCatScr'].forEach(id=>{const o=document.getElementById(id);if(o)o.remove();});
+ ['bqPayOv','bqSavedOv','bqAlertOv','bqCatScr','bqSetScr'].forEach(id=>{const o=document.getElementById(id);if(o)o.remove();});
  try{document.body.style.overflow='';}catch(x){}
 },true);
 })();
@@ -3078,4 +3078,113 @@ document.addEventListener('click',e=>{
  $('subOverlay').classList.remove('show');
  open(c,r.dataset.k);
 },true);
+})();
+
+/* ===== Settings screen (gear on Profile) ===== */
+(function(){
+const $=id=>document.getElementById(id);
+const esc=x=>String(x==null?'':x).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const SUPPORT='support.buyqora@gmail.com';
+let prof={},user=null;
+function closeSet(){const o=$('bqSetScr');if(o)o.remove();}
+function sheetClose(){const o=$('bqSetSheet');if(o)o.remove();}
+function sheet(title,body){
+ sheetClose();
+ const o=document.createElement('div');o.id='bqSetSheet';
+ o.style.cssText='position:fixed;left:0;right:0;top:0;bottom:var(--bqnavh,72px);z-index:100002;background:rgba(0,0,0,.45);display:flex;align-items:flex-end';
+ o.innerHTML='<div style="background:#fff;width:100%;max-height:85%;overflow-y:auto;border-radius:18px 18px 0 0;padding:18px 16px 26px;color:#222"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px"><div style="font-weight:bold;font-size:18px">'+esc(title)+'</div><button id="bqShX" style="font-size:26px;background:none;border:0;color:#555;padding:0 6px">✕</button></div>'+body+'</div>';
+ o.onclick=e=>{if(e.target===o)sheetClose();};
+ ($('bqSetScr')||document.body).appendChild(o);
+ $('bqShX').onclick=sheetClose;
+}
+const inp=(id,label,val,type)=>'<div style="font-size:14px;color:#555;margin:8px 0 5px">'+esc(label)+'</div><input id="'+id+'" type="'+(type||'text')+'" value="'+esc(val||'')+'" style="width:100%;padding:13px;border:1.5px solid #cfd8d3;border-radius:12px;font-size:16px;box-sizing:border-box">';
+const btn=(id,t,bg)=>'<button id="'+id+'" style="width:100%;margin-top:16px;padding:14px;border-radius:12px;border:0;background:'+(bg||'#0b6b3a')+';color:#fff;font-weight:bold;font-size:16px">'+esc(t)+'</button><div id="bqShMsg" style="margin-top:10px;font-size:14px"></div>';
+const msg=(t,ok)=>{const m=$('bqShMsg');if(m){m.style.color=ok?'#0b6b3a':'#c0392b';m.textContent=t;}};
+async function load(){
+ try{const{data:{session}}=await supabaseClient.auth.getSession();if(!session)return false;user=session.user;
+  const{data}=await supabaseClient.from('profiles').select('full_name,phone,state,business_name,account_type').eq('id',user.id).maybeSingle();prof=data||{};return true;}catch(e){return false;}
+}
+function row(ic,bg,label,val,act){
+ return '<button data-a="'+act+'" style="display:flex;align-items:center;gap:14px;width:100%;padding:12px 14px;background:#fff;border:0;border-bottom:1px solid #eef1ef;text-align:left;color:#222"><span style="width:44px;height:44px;border-radius:10px;background:'+bg+';display:flex;align-items:center;justify-content:center;font-size:22px;flex:none">'+ic+'</span><span style="flex:1;min-width:0;font-size:16px">'+esc(label)+'</span>'+(val?'<span style="color:#777;font-size:14px;max-width:42%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(val)+'</span>':'')+'<span style="color:#999;font-size:22px">›</span></button>';
+}
+const grp=h=>'<div style="margin:10px 0;background:#fff;border-top:1px solid #eef1ef">'+h+'</div>';
+async function openSet(){
+ if(!(await load()))return;
+ closeSet();
+ const o=document.createElement('div');o.id='bqSetScr';
+ o.style.cssText='position:fixed;left:0;right:0;top:0;bottom:var(--bqnavh,72px);z-index:100001;background:#f2f4f3;overflow-y:auto;color:#222;font-family:inherit';
+ o.innerHTML='<div style="position:sticky;top:0;z-index:3;background:#0b6b3a;color:#fff;display:flex;align-items:center;gap:12px;padding:10px 12px"><button data-a="back" style="flex:none;width:52px;height:52px;font-size:40px;line-height:1;font-weight:bold;background:rgba(255,255,255,.18);border:0;border-radius:14px;color:#fff;display:flex;align-items:center;justify-content:center;padding:0 0 4px">←</button><div style="font-size:20px;font-weight:bold">Settings</div></div>'+
+ grp(row('👤','#e8f5ee','Personal details',prof.full_name,'personal')+row('🏢','#fff0e0','Business info',prof.business_name,'business'))+
+ grp(row('📞','#e3f7e8','Phone number',prof.phone,'phone')+row('✉️','#fff0e0','Change email',user.email,'email'))+
+ grp(row('🔔','#fde8ea','Manage notifications','','notif'))+
+ grp(row('ℹ️','#e9eef3','About BuyQora','','about')+row('📶','#e9eef3','Check connection','','conn')+row('⭐','#e9eef3','Share BuyQora','','share'))+
+ grp(row('🔒','#e9eef3','Change password','','pass')+row('🗑️','#e9eef3','Delete my account permanently','','del')+row('🚪','#e9eef3','Log out','','out'))+
+ '<div style="height:30px"></div>';
+ o.onclick=e=>{const b=e.target.closest('[data-a]');if(b)act(b.dataset.a);};
+ document.body.appendChild(o);
+}
+async function save(upd){
+ const{error}=await supabaseClient.from('profiles').update(upd).eq('id',user.id);
+ return error;
+}
+function act(a){
+ if(a==='back'){closeSet();return;}
+ if(a==='business'){closeSet();const t=$('profileType');if(t&&t.scrollIntoView)t.scrollIntoView({block:'center'});return;}
+ if(a==='out'){closeSet();const l=$('bqLogout');if(l)l.click();return;}
+ if(a==='notif'){
+  const o=$('bqSetScr'),ab=$('bqAlertBtn');if(!ab)return;
+  o.style.display='none';ab.click();
+  let n=0;const iv=setInterval(()=>{n++;if(!$('bqSetScr')){clearInterval(iv);return;}if(n>4&&!$('bqAlertOv')){clearInterval(iv);o.style.display='';}if(n>200){clearInterval(iv);o.style.display='';}},400);return;
+ }
+ if(a==='personal'){
+  let so='';try{const sel=$('bqState');if(sel)for(const x of sel.options){if(x.value&&x.value!=='all')so+='<option'+(prof.state===x.value?' selected':'')+'>'+esc(x.value)+'</option>';}}catch(e){}
+  sheet('Personal details',inp('bqF1','Full name',prof.full_name)+'<div style="font-size:14px;color:#555;margin:8px 0 5px">State</div><select id="bqF2" style="width:100%;padding:13px;border:1.5px solid #cfd8d3;border-radius:12px;font-size:16px;background:#fff"><option value="">Choose state</option>'+so+'</select>'+btn('bqSv','Save'));
+  $('bqSv').onclick=async()=>{const n=$('bqF1').value.trim();if(!n){msg('Enter your name.');return;}const er=await save({full_name:n,state:$('bqF2').value||null});if(er){msg(er.message);return;}prof.full_name=n;prof.state=$('bqF2').value;msg('Saved ✓',true);setTimeout(()=>{sheetClose();openSet();},700);};return;
+ }
+ if(a==='phone'){
+  sheet('Phone number',inp('bqF1','Phone number',prof.phone,'tel')+btn('bqSv','Save'));
+  $('bqSv').onclick=async()=>{const v=$('bqF1').value.trim();if(v.length<7){msg('Enter a valid phone number.');return;}const er=await save({phone:v});if(er){msg(er.message);return;}prof.phone=v;msg('Saved ✓',true);setTimeout(()=>{sheetClose();openSet();},700);};return;
+ }
+ if(a==='email'){
+  sheet('Change email','<div style="color:#555;font-size:14px">Current: '+esc(user.email)+'</div>'+inp('bqF1','New email','', 'email')+btn('bqSv','Send confirmation'));
+  $('bqSv').onclick=async()=>{const v=$('bqF1').value.trim();if(!/^\S+@\S+\.\S+$/.test(v)){msg('Enter a valid email.');return;}const{error}=await supabaseClient.auth.updateUser({email:v});if(error){msg(error.message);return;}msg('Done. Check your new email and tap the confirmation link.',true);};return;
+ }
+ if(a==='pass'){
+  sheet('Change password',inp('bqF1','New password','','password')+inp('bqF2','Confirm new password','','password')+btn('bqSv','Change password'));
+  $('bqSv').onclick=async()=>{const p1=$('bqF1').value,p2=$('bqF2').value;if(p1.length<6){msg('Password must be at least 6 characters.');return;}if(p1!==p2){msg('The two passwords do not match.');return;}const{error}=await supabaseClient.auth.updateUser({password:p1});if(error){msg(error.message);return;}msg('Password changed ✓',true);};return;
+ }
+ if(a==='about'){
+  sheet('About BuyQora','<div style="line-height:1.6;font-size:15px">BuyQora is a Nigerian marketplace where you can buy and sell almost anything, near you.<br><br>Support: <a href="mailto:'+SUPPORT+'" style="color:#0b6b3a;font-weight:bold">'+SUPPORT+'</a><br>Support is by email only.</div>');return;
+ }
+ if(a==='conn'){
+  sheet('Check connection','<div id="bqCn" style="font-size:16px;padding:6px 0">Checking…</div>');
+  const t0=Date.now();
+  supabaseClient.from('profiles').select('id').limit(1).then(r=>{const c=$('bqCn');if(!c)return;if(r.error){c.style.color='#c0392b';c.textContent='Could not reach BuyQora. Check your internet.';}else{c.style.color='#0b6b3a';c.textContent='✓ Connected ('+(Date.now()-t0)+' ms)';}}).catch(()=>{const c=$('bqCn');if(c){c.style.color='#c0392b';c.textContent='No connection. Check your internet.';}});return;
+ }
+ if(a==='share'){
+  const url=location.origin+location.pathname;
+  if(navigator.share){navigator.share({title:'BuyQora',text:'Buy and sell on BuyQora',url}).catch(()=>{});}
+  else{sheet('Share BuyQora','<div style="word-break:break-all;font-size:15px">'+esc(url)+'</div>'+btn('bqSv','Copy link'));$('bqSv').onclick=()=>{try{navigator.clipboard.writeText(url);msg('Link copied ✓',true);}catch(e){msg('Copy it from above.');}};}
+  return;
+ }
+ if(a==='del'){
+  sheet('Delete my account','<div style="color:#c0392b;font-size:15px;line-height:1.5">This permanently deletes your account and cannot be undone. Type <b>DELETE</b> to confirm.</div>'+inp('bqF1','','','text')+btn('bqSv','Delete my account permanently','#c0392b'));
+  $('bqSv').onclick=async()=>{if($('bqF1').value.trim()!=='DELETE'){msg('Type DELETE in capital letters.');return;}
+   const{error}=await supabaseClient.rpc('delete_my_account');
+   if(error){const m=$('bqShMsg');if(m){m.style.color='#c0392b';m.innerHTML='We could not delete it automatically. Please email <a href="mailto:'+SUPPORT+'?subject=Delete%20my%20account" style="color:#0b6b3a;font-weight:bold">'+SUPPORT+'</a> and we will delete it for you.';}return;}
+   try{await supabaseClient.auth.signOut();}catch(e){}location.reload();};return;
+ }
+}
+function gear(){
+ const m=document.querySelector('#profileOverlay .modal');
+ if(!m)return;
+ const vis=$('profileOverlay')&&$('profileOverlay').classList.contains('show');
+ let g=$('bqGearBar');
+ if(!vis){return;}
+ if(!g){
+  m.insertAdjacentHTML('afterbegin','<div id="bqGearBar" style="position:sticky;top:0;z-index:6;display:flex;justify-content:flex-end;background:#fff;padding:2px 0 6px"><button id="bqGear" aria-label="Settings" style="display:flex;align-items:center;gap:8px;padding:9px 16px;border-radius:14px;border:1.5px solid #0b6b3a;background:#fff;color:#0b6b3a;font-weight:bold;font-size:16px"><span style="font-size:22px">⚙️</span>Settings</button></div>');
+  $('bqGear').onclick=openSet;
+ }
+}
+setInterval(gear,700);
 })();
