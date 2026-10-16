@@ -3086,6 +3086,19 @@ const $=id=>document.getElementById(id);
 const esc=x=>String(x==null?'':x).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 const SUPPORT='support.buyqora@gmail.com';
 let prof={},user=null;
+/* ----- dark mode: inverts the whole app, photos keep their real colours ----- */
+{const st=document.createElement('style');st.id='bqDarkCss';
+ st.textContent='html.bq-dark{filter:invert(1) hue-rotate(180deg);background:#fff}html.bq-dark img,html.bq-dark video,html.bq-dark canvas,html.bq-dark iframe,html.bq-dark picture,html.bq-dark [style*="background-image"]{filter:invert(1) hue-rotate(180deg)}';
+ document.head.appendChild(st);}
+function themePref(){let t='system';try{t=localStorage.getItem('bqTheme')||'system';}catch(e){}return t;}
+function applyTheme(){
+ const t=themePref();let dark=t==='dark';
+ if(t==='system'){try{dark=window.matchMedia('(prefers-color-scheme: dark)').matches;}catch(e){}}
+ document.documentElement.classList.toggle('bq-dark',dark);
+}
+applyTheme();
+try{window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',applyTheme);}catch(e){}
+const THEMENAME={system:'System (default)',light:'Light',dark:'Dark'};
 function closeSet(){const o=$('bqSetScr');if(o)o.remove();}
 function sheetClose(){const o=$('bqSetSheet');if(o)o.remove();}
 function sheet(title,body){
@@ -3102,7 +3115,9 @@ const btn=(id,t,bg)=>'<button id="'+id+'" style="width:100%;margin-top:16px;padd
 const msg=(t,ok)=>{const m=$('bqShMsg');if(m){m.style.color=ok?'#0b6b3a':'#c0392b';m.textContent=t;}};
 async function load(){
  try{const{data:{session}}=await supabaseClient.auth.getSession();if(!session)return false;user=session.user;
-  const{data}=await supabaseClient.from('profiles').select('full_name,phone,state,business_name,account_type').eq('id',user.id).maybeSingle();prof=data||{};return true;}catch(e){return false;}
+  let r=await supabaseClient.from('profiles').select('full_name,phone,state,business_name,account_type,feedback_disabled').eq('id',user.id).maybeSingle();
+  if(r.error)r=await supabaseClient.from('profiles').select('full_name,phone,state,business_name,account_type').eq('id',user.id).maybeSingle();
+  prof=r.data||{};return true;}catch(e){return false;}
 }
 function row(ic,bg,label,val,act){
  return '<button data-a="'+act+'" style="display:flex;align-items:center;gap:14px;width:100%;padding:12px 14px;background:#fff;border:0;border-bottom:1px solid #eef1ef;text-align:left;color:#222"><span style="width:44px;height:44px;border-radius:10px;background:'+bg+';display:flex;align-items:center;justify-content:center;font-size:22px;flex:none">'+ic+'</span><span style="flex:1;min-width:0;font-size:16px">'+esc(label)+'</span>'+(val?'<span style="color:#777;font-size:14px;max-width:42%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(val)+'</span>':'')+'<span style="color:#999;font-size:22px">›</span></button>';
@@ -3115,9 +3130,9 @@ async function openSet(){
  o.style.cssText='position:fixed;left:0;right:0;top:0;bottom:var(--bqnavh,72px);z-index:100001;background:#f2f4f3;overflow-y:auto;color:#222;font-family:inherit';
  o.innerHTML='<div style="position:sticky;top:0;z-index:3;background:#0b6b3a;color:#fff;display:flex;align-items:center;gap:12px;padding:10px 12px"><button data-a="back" style="flex:none;width:52px;height:52px;font-size:40px;line-height:1;font-weight:bold;background:rgba(255,255,255,.18);border:0;border-radius:14px;color:#fff;display:flex;align-items:center;justify-content:center;padding:0 0 4px">←</button><div style="font-size:20px;font-weight:bold">Settings</div></div>'+
  grp(row('👤','#e8f5ee','Personal details',prof.full_name,'personal')+row('🏢','#fff0e0','Business info',prof.business_name,'business'))+
- grp(row('📞','#e3f7e8','Phone number',prof.phone,'phone')+row('✉️','#fff0e0','Change email',user.email,'email'))+
- grp(row('🔔','#fde8ea','Manage notifications','','notif'))+
- grp(row('ℹ️','#e9eef3','About BuyQora','','about')+row('📶','#e9eef3','Check connection','','conn')+row('⭐','#e9eef3','Share BuyQora','','share'))+
+ grp(row('📞','#e3f7e8','Phone numbers',prof.phone,'phone')+row('✉️','#fff0e0','Change email',user.email,'email')+row('🌐','#e3f7e8','Change language','English','lang'))+
+ grp(row('😊','#fff0e0','Disable feedback',prof.feedback_disabled?'Disabled':'Enabled','fb')+row('📲','#e1f1fb','In-app calls','Disabled','calls')+row('🔔','#fde8ea','Manage notifications','','notif'))+
+ grp(row('ℹ️','#e9eef3','About BuyQora','','about')+row('📶','#e9eef3','Check connection','','conn')+row('🌙','#e9eef3','Dark mode',THEMENAME[themePref()],'theme'))+
  grp(row('🔒','#e9eef3','Change password','','pass')+row('🗑️','#e9eef3','Delete my account permanently','','del')+row('🚪','#e9eef3','Log out','','out'))+
  '<div style="height:30px"></div>';
  o.onclick=e=>{const b=e.target.closest('[data-a]');if(b)act(b.dataset.a);};
@@ -3161,10 +3176,24 @@ function act(a){
   const t0=Date.now();
   supabaseClient.from('profiles').select('id').limit(1).then(r=>{const c=$('bqCn');if(!c)return;if(r.error){c.style.color='#c0392b';c.textContent='Could not reach BuyQora. Check your internet.';}else{c.style.color='#0b6b3a';c.textContent='✓ Connected ('+(Date.now()-t0)+' ms)';}}).catch(()=>{const c=$('bqCn');if(c){c.style.color='#c0392b';c.textContent='No connection. Check your internet.';}});return;
  }
- if(a==='share'){
-  const url=location.origin+location.pathname;
-  if(navigator.share){navigator.share({title:'BuyQora',text:'Buy and sell on BuyQora',url}).catch(()=>{});}
-  else{sheet('Share BuyQora','<div style="word-break:break-all;font-size:15px">'+esc(url)+'</div>'+btn('bqSv','Copy link'));$('bqSv').onclick=()=>{try{navigator.clipboard.writeText(url);msg('Link copied ✓',true);}catch(e){msg('Copy it from above.');}};}
+ if(a==='theme'){
+  const cur=themePref();
+  const o=(v,t)=>'<button data-th="'+v+'" style="display:block;width:100%;text-align:left;padding:14px;margin-bottom:8px;border-radius:12px;font-size:17px;border:1.5px solid '+(cur===v?'#0b6b3a':'#e0e0e0')+';background:'+(cur===v?'#e8f5ee':'#fff')+';color:#222">'+t+(cur===v?' ✓':'')+'</button>';
+  sheet('Dark mode',o('system','System (default)')+o('light','Light')+o('dark','Dark'));
+  $('bqSetSheet').querySelectorAll('[data-th]').forEach(b=>b.onclick=()=>{try{localStorage.setItem('bqTheme',b.dataset.th);}catch(e){}applyTheme();sheetClose();openSet();});
+  return;
+ }
+ if(a==='lang'){
+  sheet('Change language','<button style="display:block;width:100%;text-align:left;padding:14px;margin-bottom:8px;border-radius:12px;font-size:17px;border:1.5px solid #0b6b3a;background:#e8f5ee;color:#222">English ✓</button>'+['Igbo','Yoruba','Hausa','Pidgin'].map(x=>'<div style="padding:14px;margin-bottom:8px;border-radius:12px;font-size:17px;border:1.5px solid #e0e0e0;color:#999">'+x+' <span style="font-size:13px">· coming soon</span></div>').join(''));return;
+ }
+ if(a==='calls'){
+  sheet('In-app calls','<div style="line-height:1.6;font-size:15px">In-app calls are not available yet. For now, buyers can reach you by <b>Messages</b>, and by your phone number if you choose to show it on your profile.</div>');return;
+ }
+ if(a==='fb'){
+  const off=!!prof.feedback_disabled;
+  const o=(v,t,on)=>'<button data-fb="'+v+'" style="display:block;width:100%;text-align:left;padding:14px;margin-bottom:8px;border-radius:12px;font-size:17px;border:1.5px solid '+(on?'#0b6b3a':'#e0e0e0')+';background:'+(on?'#e8f5ee':'#fff')+';color:#222">'+t+'</button>';
+  sheet('Feedback','<div style="font-size:14px;color:#555;margin-bottom:12px;line-height:1.5">Choose whether buyers can leave reviews and ratings on your profile.</div>'+o('0','Enabled — buyers can leave feedback',!off)+o('1','Disabled — nobody can leave new feedback',off)+'<div id="bqShMsg" style="margin-top:8px;font-size:14px"></div>');
+  $('bqSetSheet').querySelectorAll('[data-fb]').forEach(b=>b.onclick=async()=>{const v=b.dataset.fb==='1';const er=await save({feedback_disabled:v});if(er){msg('This option is not ready yet. Please try again later.');return;}prof.feedback_disabled=v;msg('Saved ✓',true);setTimeout(()=>{sheetClose();openSet();},600);});
   return;
  }
  if(a==='del'){
