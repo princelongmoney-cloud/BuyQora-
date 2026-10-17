@@ -3281,3 +3281,41 @@ function run(){
 }
 setInterval(run,800);run();
 })();
+
+/* ===== Strong screen headers: arrow never scrolls away, spaced, shows press ===== */
+(function(){
+const st=document.createElement('style');
+st.textContent=
+'.bqHdr{position:sticky;top:0;z-index:30;background:var(--bqhb,#fff);display:flex;align-items:center;gap:10px;padding:8px 4px 10px;margin:0 0 12px}'+
+'.bqHdr>.close{position:static!important;float:none!important;margin:0!important;display:inline-flex!important;align-items:center;justify-content:center;min-width:52px;height:52px;font-size:38px!important;line-height:1;font-weight:700;border-radius:14px;background:rgba(11,107,58,.10);-webkit-tap-highlight-color:transparent;transition:background .1s,transform .1s}'+
+'.bqHdr>.close:active,#subClose:active{background:rgba(11,107,58,.35)!important;transform:scale(.92)}'+
+'.bqHdr>h1,.bqHdr>h2,.bqHdr>h3{margin:0!important;display:block!important}'+
+'#subOverlay .modal{padding:0!important}'+
+'#subOverlay .modal>div:first-child{position:sticky!important;top:0!important;z-index:30!important;background:#fff!important;padding:8px 12px!important;margin:0!important;min-height:0!important}'+
+'#subTitle{margin:0!important;font-size:20px!important}'+
+'#subClose{border-radius:14px;background:rgba(11,107,58,.10);transition:background .1s,transform .1s}'+
+'#bqNav button{transition:transform .1s}#bqNav button:active{transform:scale(.92)}';
+document.head.appendChild(st);
+function bgOf(m){
+ let e=m;while(e&&e!==document.body){const c=getComputedStyle(e).backgroundColor;if(c&&c!=='transparent'&&c!=='rgba(0, 0, 0, 0)')return c;e=e.parentElement;}
+ return '#fff';
+}
+function wrap(){
+ document.querySelectorAll('.modal-overlay>.modal').forEach(m=>{
+  if(m.parentElement.id==='chatOverlay'||m.dataset.bqh)return;
+  const c=m.querySelector(':scope>.close');if(!c)return;
+  const h=c.nextElementSibling;
+  const w=document.createElement('div');w.className='bqHdr';
+  m.insertBefore(w,c);w.appendChild(c);
+  if(h&&/^H[1-3]$/.test(h.tagName))w.appendChild(h);
+  w.style.setProperty('--bqhb',bgOf(m));
+  m.dataset.bqh='1';
+ });
+}
+setInterval(wrap,500);
+/* bottom menu: green highlight moves the instant you tap */
+document.addEventListener('click',e=>{
+ const b=e.target&&e.target.closest?e.target.closest('#bqNav [data-n]'):null;if(!b)return;
+ document.querySelectorAll('#bqNav [data-n]').forEach(x=>x.classList.toggle('on',x===b));
+},true);
+})();
