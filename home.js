@@ -2227,7 +2227,7 @@ async function enhance(l){
   const verified=prof&&prof.verification_status==='verified';
   const pr=window.bqPromoOf?window.bqPromoOf(l):null;
   const pl=pr&&window.bqPromoLbl?window.bqPromoLbl[pr.package_id]:null;
-  const promoBadge=pl?'<span class="bq-badge2" style="background:'+pl[1]+';color:#fff">'+esc(pl[0])+'</span>':'';
+  const promoBadge='';
   row.innerHTML='<span>📍 '+esc(where||'')+' · '+esc(ago(l.created_at))+'</span><span style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">'+promoBadge+(verified?'<span class="bq-badge2">✔ Verified seller</span>':'')+'</span>';
   h3.parentNode.insertBefore(row,h3);
   root.querySelectorAll('.detail-tag').forEach(t=>{if(t.textContent.trim().startsWith('📍'))t.remove();});
@@ -2998,7 +2998,7 @@ async function loadProfs(){
 function card(l,i){
  const p=profs[l.seller_id]||{};const ver=p.verification_status==='verified';
  const nm=p.business_name||p.full_name||'Seller';
- const img='<div class="product-image" style="'+(view==='list'?'width:130px;flex:0 0 130px;height:130px':'')+'">'+(l.image_url?'<img src="'+esc(l.image_url)+'" alt="" loading="lazy">':(CATEGORY_ICONS[l.category_id]||'🛍️'))+(l.condition?'<span class="bq-cond '+esc(l.condition)+'">'+(l.condition==='new'?'New':'Used')+'</span>':'')+(()=>{const pr=window.bqPromoOf&&window.bqPromoOf(l);if(!pr)return '';const IC={basic:'🚀',featured:'⭐',premium:'🥇',top:'🏆',vip:'👑',diamond:'💎'};return '<span style="position:absolute;top:8px;left:8px;background:rgba(0,0,0,.65);border-radius:10px;padding:3px 7px;font-size:14px;line-height:1">'+(IC[pr.package_id]||'⭐')+'</span>';})()+'</div>';
+ const img='<div class="product-image" style="'+(view==='list'?'width:130px;flex:0 0 130px;height:130px':'')+'">'+(l.image_url?'<img src="'+esc(l.image_url)+'" alt="" loading="lazy">':(CATEGORY_ICONS[l.category_id]||'🛍️'))+(l.condition?'<span class="bq-cond '+esc(l.condition)+'">'+(l.condition==='new'?'New':'Used')+'</span>':'')+(()=>{const pr=window.bqPromoOf&&window.bqPromoOf(l);if(!pr||!window.bqBadge)return '';return '<span style="position:absolute;top:8px;left:8px;z-index:2">'+window.bqBadge(pr.package_id,false)+'</span>';})()+'</div>';
  const info='<div style="min-width:0;flex:1"><p class="price" style="margin:6px 0 2px;color:#0b6b3a;font-weight:bold">₦'+Number(l.price).toLocaleString()+'</p><h3 style="margin:0 0 3px;font-size:15px;line-height:1.3">'+esc(l.title)+'</h3><p class="loc" style="margin:0 0 6px">'+esc((l.city||l.state||'')+(l.condition?' • '+(l.condition==='new'?'Brand New':'Used'):''))+'</p>'+
   '<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:6px">'+(ver?'<span style="font-size:12px;font-weight:600;padding:3px 8px;border-radius:12px;background:#e8f5ee;color:#0b6b3a">✔ Verified</span>':'')+(p.created_at?'<span style="font-size:12px;padding:3px 8px;border-radius:12px;background:#f1f4f2;color:#444">'+esc(since(p.created_at))+'</span>':'')+'</div>'+
   (nm?'<div style="display:flex;align-items:center;gap:6px;font-size:13px;color:#444"><span style="width:22px;height:22px;border-radius:50%;background:#dfe7e2;flex:0 0 22px;overflow:hidden;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:bold">'+(p.logo_url?'<img src="'+esc(p.logo_url)+'" alt="" style="width:100%;height:100%;object-fit:cover">':esc(nm.charAt(0).toUpperCase()))+'</span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(nm)+'</span>'+(p.avg?'<span style="margin-left:auto;font-weight:600;white-space:nowrap"><span style="color:#f5a623">★</span> '+p.avg.toFixed(1)+'</span>':'')+'</div>':'')+'</div>';
@@ -3464,10 +3464,8 @@ setInterval(()=>{
   if(!pr){if(old)old.remove();return;}
   if(old&&old.dataset.id===String(l.id))return;
   if(old)old.remove();
-  const L=(window.bqPromoLbl&&window.bqPromoLbl[pr.package_id])||['Promoted','#0277bd'];
-  const lbl=String(L[0]).replace(/^[^A-Za-z]+/,'');
   if(getComputedStyle(box).position==='static')box.style.position='relative';
-  box.insertAdjacentHTML('beforeend','<span class="bqCrown" data-id="'+l.id+'" style="position:absolute;top:10px;left:10px;z-index:3;background:'+L[1]+';color:#fff;border-radius:14px;padding:5px 11px;font-size:13px;font-weight:700">'+(IC[pr.package_id]||'⭐')+' '+lbl+'</span>');
+  box.insertAdjacentHTML('beforeend','<span class="bqCrown" data-id="'+l.id+'" style="position:absolute;top:14px;left:14px;z-index:3">'+window.bqBadge(pr.package_id,true)+'</span>');
  }catch(e){}
 },500);
 })();
@@ -3572,4 +3570,23 @@ async function beat(){
 }
 setInterval(beat,30000);beat();
 document.addEventListener('visibilitychange',beat);
+})();
+
+
+/* ===== Refined promotion badge (one look everywhere) ===== */
+(function(){
+const ICON={
+ vip:'<path d="M3 8l4.5 4L12 4l4.5 8L21 8l-2 11H5z"/>',
+ diamond:'<path d="M6.5 3h11L22 9l-10 12L2 9z"/>',
+ star:'<path d="M12 2.5l2.9 6.2 6.6.8-4.9 4.6 1.3 6.6L12 17.4 6.1 20.7l1.3-6.6L2.5 9.5l6.6-.8z"/>'
+};
+const ST={
+ vip:['VIP','#e2b84d','crown'],diamond:['DIAMOND','#6fd3e0','diamond'],top:['SPONSORED','#f08a8a','star'],
+ premium:['PREMIUM','#c995e6','star'],featured:['FEATURED','#ffab66','star'],basic:['PROMOTED','#86bdea','star']
+};
+window.bqBadge=function(pkg,label){
+ const x=ST[pkg]||ST.basic;
+ const ic=(pkg==='vip')?ICON.vip:(pkg==='diamond')?ICON.diamond:ICON.star;
+ return '<span title="'+x[0]+'" style="display:inline-flex;align-items:center;gap:'+(label?'7px':'0')+';padding:'+(label?'6px 12px 6px 10px':'6px')+';border-radius:999px;background:rgba(14,20,17,.82);border:1px solid '+x[1]+';color:'+x[1]+';font-size:12px;font-weight:700;letter-spacing:.09em;line-height:1;-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px)"><svg width="'+(label?15:14)+'" height="'+(label?15:14)+'" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">'+ic+'</svg>'+(label?'<span>'+x[0]+'</span>':'')+'</span>';
+};
 })();
