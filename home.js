@@ -781,10 +781,11 @@ const NAMES={basic:'Basic Boost',featured:'Featured',premium:'Premium',top:'Top 
 document.body.insertAdjacentHTML('beforeend','<div class="modal-overlay" id="promoOverlay"><div class="modal" style="color:#222"><span class="close" id="promoClose">✕</span><h3>Promote this listing</h3><p id="promoTitle" style="font-weight:bold;margin-bottom:10px"></p><p class="error" id="promoError"></p><label>Package</label><div id="promoPkgs"></div><label>Duration</label><select id="promoDays"></select><div id="promoTotal" style="font-size:16px;font-weight:bold;color:#ff6b00;margin:4px 0 12px"></div><div id="promoPay" style="font-size:14px;line-height:1.6"></div><label>Payment reference</label><input type="text" id="promoRef" placeholder="Sender name or transaction ID"><button class="button" id="promoSubmit">I have paid, submit promotion</button></div></div>');
 $('promoClose').onclick=()=>$('promoOverlay').classList.remove('show');
 const st={listing:null,pkgs:[],durs:[],pkg:null,instr:'',vipOk:false};
+function isYr(id){return id==='vip'||id==='diamond';}
 function yearDur(){return st.durs.find(x=>Number(x.days)===365);}
 function fillDays(){
  const y=yearDur();
- if(st.pkg==='vip'&&y){
+ if(isYr(st.pkg)&&y){
   $('promoDays').innerHTML='<option value="365" selected>1 year (365 days)</option>';
  }else{
   const list=st.durs.filter(d=>Number(d.days)!==365);
@@ -803,13 +804,13 @@ function showTotal(){
  const p=st.pkgs.find(x=>x.id===st.pkg);
  if(!p){$('promoTotal').textContent='Choose a package';return;}
  let t='Total: '+naira(total())+' for '+$('promoDays').value+' day(s) · shown as "'+p.label+'"';
- if(p.id==='vip'&&yearDur())t='Total: '+naira(total())+' for 1 year · VIP crown\nPay once and the crown stays on your listing for a full year. After the year ends you can renew it.';
+ if(isYr(p.id)&&yearDur())t='Total: '+naira(total())+' for 1 year · '+(p.id==='vip'?'VIP crown':'Diamond badge')+'\nPay once and it stays on your listing for a full year. After the year ends you can renew it.';
  if(p.id==='top')t+='\nTop Advert is reviewed by our team before it goes live. Larger campaigns may cost more.';
  $('promoTotal').style.whiteSpace='pre-line';
  $('promoTotal').textContent=t;
 }
 function drawPkgs(){
- $('promoPkgs').innerHTML=st.pkgs.map(p=>(p.id==='vip'&&!st.vipOk)?'<div data-lock="1" style="border:2px dashed #ccc;border-radius:10px;padding:10px;margin-bottom:8px;cursor:pointer;opacity:.75"><b>'+esc(p.name)+'</b><span style="float:right;color:#888;font-weight:bold">Locked</span><div style="font-size:12.5px;color:#666;margin-top:2px">The VIP crown is for verified business brands only.</div></div>':'<div data-p="'+p.id+'" style="border:2px solid '+(p.id===st.pkg?'#ff6b00':'#ddd')+';border-radius:10px;padding:10px;margin-bottom:8px;cursor:pointer"><b>'+esc(p.name)+'</b><span style="float:right;color:#ff6b00;font-weight:bold">'+((p.id==='vip'&&yearDur())?naira(Math.round(Number(p.price_7d)*Number(yearDur().multiplier)))+' / year':naira(p.price_7d)+' / 7 days')+'</span><div style="font-size:12.5px;color:#666;margin-top:2px">'+esc(p.description||'')+'</div></div>').join('');
+ $('promoPkgs').innerHTML=st.pkgs.map(p=>(p.id==='vip'&&!st.vipOk)?'<div data-lock="1" style="border:2px dashed #ccc;border-radius:10px;padding:10px;margin-bottom:8px;cursor:pointer;opacity:.75"><b>'+esc(p.name)+'</b><span style="float:right;color:#888;font-weight:bold">Locked</span><div style="font-size:12.5px;color:#666;margin-top:2px">The VIP crown is for verified business brands only.</div></div>':'<div data-p="'+p.id+'" style="border:2px solid '+(p.id===st.pkg?'#ff6b00':'#ddd')+';border-radius:10px;padding:10px;margin-bottom:8px;cursor:pointer"><b>'+esc(p.name)+'</b><span style="float:right;color:#ff6b00;font-weight:bold">'+((isYr(p.id)&&yearDur())?naira(Math.round(Number(p.price_7d)*Number(yearDur().multiplier)))+' / year':naira(p.price_7d)+' / 7 days')+'</span><div style="font-size:12.5px;color:#666;margin-top:2px">'+esc(p.description||'')+'</div></div>').join('');
 }
 $('promoPkgs').onclick=e=>{if(e.target.closest('[data-lock]')){alert('The VIP crown is for verified business brands only. Set your account type to Business and get verified to unlock it.');return;}const c=e.target.closest('[data-p]');if(!c)return;st.pkg=c.dataset.p;fillDays();drawPkgs();showTotal();};
 $('promoDays').onchange=showTotal;
