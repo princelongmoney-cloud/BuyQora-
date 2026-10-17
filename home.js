@@ -3604,7 +3604,7 @@ const ST={
 window.bqBadge=function(pkg,label){
  const x=ST[pkg]||ST.basic;
  const ic=(pkg==='vip')?ICON.vip:(pkg==='diamond')?ICON.diamond:ICON.star;
- if(label==='mini'){const nm=(pkg==='vip')?'VIP':x[0].charAt(0)+x[0].slice(1).toLowerCase();return '<span title="'+nm+'" style="display:inline-flex;align-items:center;gap:7px;height:30px;box-sizing:border-box;padding:0 12px 0 10px;border-radius:9px;background:rgba(14,20,17,.88);border:1px solid '+x[1]+'88;color:'+x[1]+';font-size:14px;font-weight:600;line-height:1;white-space:nowrap"><svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">'+ic+'</svg>'+nm+'</span>';}
+ if(label==='mini'){const nm=(pkg==='vip')?'VIP':x[0].charAt(0)+x[0].slice(1).toLowerCase();const bg=(pkg==='vip')?'linear-gradient(135deg,#3a2f0b,#17130a)':'linear-gradient(135deg,#1b2420,#0f1311)';return '<span title="'+nm+'" style="display:inline-flex;align-items:center;gap:6px;height:24px;box-sizing:border-box;padding:0 10px 0 8px;border-radius:7px;background:'+bg+';border:1px solid '+x[1]+'99;color:'+x[1]+';font-size:11.5px;font-weight:700;letter-spacing:.1em;line-height:1;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,.35)"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">'+ic+'</svg>'+nm.toUpperCase()+'</span>';}
  return '<span title="'+x[0]+'" style="display:inline-flex;align-items:center;gap:'+(label?'7px':'0')+';padding:'+(label?'6px 12px 6px 10px':'6px')+';border-radius:999px;background:rgba(14,20,17,.82);border:1px solid '+x[1]+';color:'+x[1]+';font-size:12px;font-weight:700;letter-spacing:.09em;line-height:1;-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px)"><svg width="'+(label?15:14)+'" height="'+(label?15:14)+'" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">'+ic+'</svg>'+(label?'<span>'+x[0]+'</span>':'')+'</span>';
 };
 })();
@@ -3614,7 +3614,7 @@ window.bqBadge=function(pkg,label){
 (function(){
 const esc=x=>String(x==null?'':x).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 window.bqWm=function(name,big){
- return '<div class="bqWm" style="position:absolute;left:4%;right:4%;top:'+(big?'58%':'60%')+';transform:translateY(-50%);text-align:center;pointer-events:none;z-index:1;color:rgba(255,255,255,.8);font-weight:700;line-height:1.2;overflow:hidden;text-shadow:0 1px 4px rgba(0,0,0,.7)"><div style="font-size:'+(big?13:8)+'px;letter-spacing:.07em;text-transform:uppercase">Posted on BuyQora</div><div style="font-size:'+(big?30:14)+'px;letter-spacing:.03em;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esc(name)+'</div></div>';
+ return '<div class="bqWm" style="position:absolute;left:4%;right:4%;top:'+(big?'58%':'60%')+';transform:translateY(-50%);text-align:center;pointer-events:none;z-index:1;color:rgba(40,40,40,.62);font-weight:700;line-height:1.2;overflow:hidden;text-shadow:0 0 3px rgba(255,255,255,.45)"><div style="font-size:'+(big?13:8)+'px;letter-spacing:.07em;text-transform:uppercase">Posted on BuyQora</div><div style="font-size:'+(big?30:14)+'px;letter-spacing:.03em;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esc(name)+'</div></div>';
 };
 const NM={};window.bqSellerNm=NM;
 setInterval(async()=>{
@@ -3681,5 +3681,13 @@ setInterval(()=>{
 (function(){
 const st=document.createElement('style');
 st.textContent='.bqCrown{display:none!important}';
+document.head.appendChild(st);
+})();
+
+
+/* location line: badge lines up with the text */
+(function(){
+const st=document.createElement('style');
+st.textContent='.bq-locrow{align-items:center!important}';
 document.head.appendChild(st);
 })();
