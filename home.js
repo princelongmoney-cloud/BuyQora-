@@ -2984,7 +2984,7 @@ async function loadProfs(){
 function card(l,i){
  const p=profs[l.seller_id]||{};const ver=p.verification_status==='verified';
  const nm=p.business_name||p.full_name||'Seller';
- const img='<div class="product-image" style="'+(view==='list'?'width:130px;flex:0 0 130px;height:130px':'')+'">'+(l.image_url?'<img src="'+esc(l.image_url)+'" alt="" loading="lazy">':(CATEGORY_ICONS[l.category_id]||'🛍️'))+(l.condition?'<span class="bq-cond '+esc(l.condition)+'">'+(l.condition==='new'?'New':'Used')+'</span>':'')+'</div>';
+ const img='<div class="product-image" style="'+(view==='list'?'width:130px;flex:0 0 130px;height:130px':'')+'">'+(l.image_url?'<img src="'+esc(l.image_url)+'" alt="" loading="lazy">':(CATEGORY_ICONS[l.category_id]||'🛍️'))+(l.condition?'<span class="bq-cond '+esc(l.condition)+'">'+(l.condition==='new'?'New':'Used')+'</span>':'')+(()=>{const pr=window.bqPromoOf&&window.bqPromoOf(l);if(!pr)return '';const IC={basic:'🚀',featured:'⭐',premium:'🥇',top:'🏆',vip:'👑',diamond:'💎'};return '<span style="position:absolute;top:8px;left:8px;background:rgba(0,0,0,.65);border-radius:10px;padding:3px 7px;font-size:14px;line-height:1">'+(IC[pr.package_id]||'⭐')+'</span>';})()+'</div>';
  const info='<div style="min-width:0;flex:1"><p class="price" style="margin:6px 0 2px;color:#0b6b3a;font-weight:bold">₦'+Number(l.price).toLocaleString()+'</p><h3 style="margin:0 0 3px;font-size:15px;line-height:1.3">'+esc(l.title)+'</h3><p class="loc" style="margin:0 0 6px">'+esc((l.city||l.state||'')+(l.condition?' • '+(l.condition==='new'?'Brand New':'Used'):''))+'</p>'+
   '<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:6px">'+(ver?'<span style="font-size:12px;font-weight:600;padding:3px 8px;border-radius:12px;background:#e8f5ee;color:#0b6b3a">✔ Verified</span>':'')+(p.created_at?'<span style="font-size:12px;padding:3px 8px;border-radius:12px;background:#f1f4f2;color:#444">'+esc(since(p.created_at))+'</span>':'')+'</div>'+
   (nm?'<div style="display:flex;align-items:center;gap:6px;font-size:13px;color:#444"><span style="width:22px;height:22px;border-radius:50%;background:#dfe7e2;flex:0 0 22px;overflow:hidden;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:bold">'+(p.logo_url?'<img src="'+esc(p.logo_url)+'" alt="" style="width:100%;height:100%;object-fit:cover">':esc(nm.charAt(0).toUpperCase()))+'</span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(nm)+'</span>'+(p.avg?'<span style="margin-left:auto;font-weight:600;white-space:nowrap"><span style="color:#f5a623">★</span> '+p.avg.toFixed(1)+'</span>':'')+'</div>':'')+'</div>';
@@ -3434,4 +3434,26 @@ setInterval(()=>{
  if(s)w.appendChild(s);
  if(t)w.appendChild(t);
 },300);
+})();
+
+
+/* ===== Promotion badge on the listing page (crown etc.) ===== */
+(function(){
+const IC={basic:'🚀',featured:'⭐',premium:'🥇',top:'🏆',vip:'👑',diamond:'💎'};
+setInterval(()=>{
+ try{
+  const img=document.getElementById('dMainImg');if(!img)return;
+  const box=img.parentElement;if(!box)return;
+  const l=(typeof currentDetailListing!=='undefined')?currentDetailListing:null;
+  const old=box.querySelector('.bqCrown');
+  const pr=l&&window.bqPromoOf?window.bqPromoOf(l):null;
+  if(!pr){if(old)old.remove();return;}
+  if(old&&old.dataset.id===String(l.id))return;
+  if(old)old.remove();
+  const L=(window.bqPromoLbl&&window.bqPromoLbl[pr.package_id])||['Promoted','#0277bd'];
+  const lbl=String(L[0]).replace(/^[^A-Za-z]+/,'');
+  if(getComputedStyle(box).position==='static')box.style.position='relative';
+  box.insertAdjacentHTML('beforeend','<span class="bqCrown" data-id="'+l.id+'" style="position:absolute;top:10px;left:10px;z-index:3;background:'+L[1]+';color:#fff;border-radius:14px;padding:5px 11px;font-size:13px;font-weight:700">'+(IC[pr.package_id]||'⭐')+' '+lbl+'</span>');
+ }catch(e){}
+},500);
 })();
