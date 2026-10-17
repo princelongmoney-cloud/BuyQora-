@@ -2101,10 +2101,12 @@ function since(d){
  return y+(m%12?'+':'')+' year'+(y===1?'':'s')+' on BuyQora';
 }
 async function sellerProfile(id){
- let r=await supabaseClient.from('profiles').select('full_name,business_name,logo_url,phone,show_phone,verification_status,created_at').eq('id',id).maybeSingle();
+ let r=await supabaseClient.from('profiles').select('full_name,business_name,logo_url,phone,show_phone,verification_status,created_at,last_seen').eq('id',id).maybeSingle();
+ if(r.error){r=await supabaseClient.from('profiles').select('full_name,business_name,logo_url,phone,show_phone,verification_status,created_at').eq('id',id).maybeSingle();}
  if(r.error){r=await supabaseClient.from('profiles').select('full_name,business_name,logo_url,phone,show_phone,verification_status').eq('id',id).maybeSingle();}
  return r.data||null;
 }
+const seenTxt=t=>{if(!t)return '';const s=(Date.now()-new Date(t))/1000;if(!(s>=0))return '';if(s<300)return '<span style="color:#1fbf63;font-weight:700">● Online now</span>';let w;if(s<3600)w=Math.round(s/60)+' min ago';else if(s<86400){const h=Math.round(s/3600);w=h+' hour'+(h===1?'':'s')+' ago';}else{const d=Math.round(s/86400);w=d===1?'yesterday':d<30?d+' days ago':new Date(t).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});}return 'Online '+w;};
 async function bottom(l,prof,own){
  const root=$('detailContent');
  if(!root||root.querySelector('.bq-bottom'))return;
@@ -2125,7 +2127,7 @@ async function bottom(l,prof,own){
  const total=Math.max(all.length,1);
  const card=document.createElement('div');card.className='bq-bottom bq-seller';
  card.innerHTML='<div class="bq-av">'+(prof&&prof.logo_url?'<img src="'+esc(prof.logo_url)+'" alt="">':esc(nm.charAt(0).toUpperCase()))+'</div>'+
-  '<div class="bq-sinfo"><b>'+esc(nm)+'</b>'+(ver?'<span class="bq-badge2" style="display:inline-block;margin-top:3px">✔ Verified</span>':'')+'<div class="bq-sub">'+esc(since(prof&&prof.created_at))+'</div></div>'+
+  '<div class="bq-sinfo"><b>'+esc(nm)+'</b>'+(ver?'<span class="bq-badge2" style="display:inline-block;margin-top:3px">✔ Verified</span>':'')+'<div class="bq-sub">'+esc(since(prof&&prof.created_at))+'</div>'+(prof&&prof.last_seen?'<div class="bq-sub">'+seenTxt(prof.last_seen)+'</div>':'')+'</div>'+
   '<a class="bq-viewads">View ads ('+total+') ›</a>';
  if(sp){sp.insertAdjacentElement('beforebegin',card);sp.style.display='none';}
  else root.appendChild(card);
@@ -3541,4 +3543,21 @@ setInterval(init,700);
 const st=document.createElement('style');
 st.textContent='.detail-tag{background:#0b6b3a!important;color:#ffffff!important;border:0!important;font-weight:600!important}';
 document.head.appendChild(st);
+})();
+
+
+/* ===== Online status: remember when each user was last active ===== */
+(function(){
+let last=0;
+async function beat(){
+ if(document.hidden||Date.now()-last<55000)return;
+ try{
+  const{data:{session}}=await supabaseClient.auth.getSession();
+  if(!session)return;
+  last=Date.now();
+  await supabaseClient.from('profiles').update({last_seen:new Date().toISOString()}).eq('id',session.user.id);
+ }catch(e){}
+}
+setInterval(beat,30000);beat();
+document.addEventListener('visibilitychange',beat);
 })();
