@@ -2975,7 +2975,7 @@ async function loadProfs(){
 }
 function card(l,i){
  const p=profs[l.seller_id]||{};const ver=p.verification_status==='verified';
- const nm=p.business_name||p.full_name||'';
+ const nm=p.business_name||p.full_name||'Seller';
  const img='<div class="product-image" style="'+(view==='list'?'width:130px;flex:0 0 130px;height:130px':'')+'">'+(l.image_url?'<img src="'+esc(l.image_url)+'" alt="" loading="lazy">':(CATEGORY_ICONS[l.category_id]||'🛍️'))+(l.condition?'<span class="bq-cond '+esc(l.condition)+'">'+(l.condition==='new'?'New':'Used')+'</span>':'')+'</div>';
  const info='<div style="min-width:0;flex:1"><p class="price" style="margin:6px 0 2px;color:#0b6b3a;font-weight:bold">₦'+Number(l.price).toLocaleString()+'</p><h3 style="margin:0 0 3px;font-size:15px;line-height:1.3">'+esc(l.title)+'</h3><p class="loc" style="margin:0 0 6px">'+esc((l.city||l.state||'')+(l.condition?' • '+(l.condition==='new'?'Brand New':'Used'):''))+'</p>'+
   '<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:6px">'+(ver?'<span style="font-size:12px;font-weight:600;padding:3px 8px;border-radius:12px;background:#e8f5ee;color:#0b6b3a">✔ Verified</span>':'')+(p.created_at?'<span style="font-size:12px;padding:3px 8px;border-radius:12px;background:#f1f4f2;color:#444">'+esc(since(p.created_at))+'</span>':'')+'</div>'+
@@ -3377,4 +3377,39 @@ document.addEventListener('click',e=>{
  tapped=b.dataset.n;paint(tapped);
 },true);
 setInterval(()=>paint(cur()),200);
+})();
+
+
+/* ===== Seller name on every listing card in the home grid (like Jiji) ===== */
+(function(){
+const P={};let busy=false;
+const esc=x=>String(x==null?'':x).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+function row(p){
+ const nm=p.business_name||p.full_name||'Seller';
+ const av=p.logo_url?'<img src="'+esc(p.logo_url)+'" alt="" style="width:100%;height:100%;object-fit:cover">':esc(nm.charAt(0).toUpperCase());
+ return '<div class="bqSel" style="display:flex;align-items:center;gap:6px;font-size:13px;margin:6px 0 2px"><span style="width:22px;height:22px;border-radius:50%;background:#dfe7e2;color:#244;flex:0 0 22px;overflow:hidden;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:bold">'+av+'</span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0">'+esc(nm)+'</span>'+(p.verification_status==='verified'?'<span style="flex:none;font-size:11px;font-weight:600;padding:2px 7px;border-radius:10px;background:#e8f5ee;color:#0b6b3a">✔ Verified</span>':'')+'</div>';
+}
+async function run(){
+ if(busy)return;
+ const grid=document.getElementById('productGrid');if(!grid)return;
+ const cards=[...grid.querySelectorAll('.product[data-idx]')].filter(c=>!c.querySelector('.bqSel'));
+ if(!cards.length)return;
+ let list=[];try{list=window.currentFilteredListings||currentFilteredListings||[];}catch(e){}
+ const need=[...new Set(cards.map(c=>(list[c.dataset.idx]||{}).seller_id).filter(id=>id&&!P[id]))];
+ busy=true;
+ try{
+  if(need.length){
+   const{data}=await supabaseClient.from('profiles').select('id,full_name,business_name,logo_url,verification_status').in('id',need);
+   (data||[]).forEach(p=>{P[p.id]=p;});
+   need.forEach(id=>{if(!P[id])P[id]={id:id};});
+  }
+  cards.forEach(c=>{
+   if(c.querySelector('.bqSel'))return;
+   const l=list[c.dataset.idx];if(!l)return;
+   c.insertAdjacentHTML('beforeend',row(P[l.seller_id]||{}));
+  });
+ }catch(e){}
+ busy=false;
+}
+setInterval(run,700);
 })();
