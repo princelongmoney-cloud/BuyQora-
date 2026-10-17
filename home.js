@@ -2126,9 +2126,21 @@ async function bottom(l,prof,own){
  const others=all.filter(x=>String(x.id)!==String(l.id)).slice(0,10);
  const total=Math.max(all.length,1);
  const card=document.createElement('div');card.className='bq-bottom bq-seller';
- card.innerHTML='<div class="bq-av">'+(prof&&prof.logo_url?'<img src="'+esc(prof.logo_url)+'" alt="">':esc(nm.charAt(0).toUpperCase()))+'</div>'+
-  '<div class="bq-sinfo"><b>'+esc(nm)+'</b>'+(ver?'<span class="bq-badge2" style="display:inline-block;margin-top:3px">✔ Verified</span>':'')+'<div class="bq-sub">'+esc(since(prof&&prof.created_at))+'</div>'+(prof&&prof.last_seen?'<div class="bq-sub">'+seenTxt(prof.last_seen)+'</div>':'')+'</div>'+
-  '<a class="bq-viewads">View ads ('+total+') ›</a>';
+ const PL='display:inline-flex;align-items:center;gap:6px;background:rgba(128,128,128,.2);border-radius:10px;padding:5px 11px;font-size:14px;font-weight:600;white-space:nowrap';
+ const IV='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="4"/><path d="M2 21c0-4 3-6 7-6 1.5 0 2.8.3 3.8.9"/><path d="M15 18l2.2 2.2L22 15.5"/></svg>';
+ const IP='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg>';
+ card.style.flexWrap='wrap';card.style.alignItems='flex-start';
+ card.innerHTML='<div class="bq-av" style="width:68px;height:68px;border-radius:14px;flex:0 0 68px">'+(prof&&prof.logo_url?'<img src="'+esc(prof.logo_url)+'" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:14px">':esc(nm.charAt(0).toUpperCase()))+'</div>'+
+  '<div class="bq-sinfo"><b>'+esc(nm)+'</b><div style="display:flex;flex-direction:column;align-items:flex-start;gap:6px;margin-top:6px">'+(ver?'<span style="'+PL+'"><span style="color:#2f8cff;display:inline-flex">'+IV+'</span>Verified ID</span>':'')+'<span style="'+PL+'"><span style="display:inline-flex">'+IP+'</span>'+esc(since(prof&&prof.created_at))+'</span></div>'+(prof&&prof.last_seen?'<div class="bq-sub" style="margin-top:8px">'+seenTxt(prof.last_seen)+'</div>':'')+'</div>'+
+  '<a class="bq-viewads" style="align-self:flex-start">View ads ('+total+') ›</a>'+
+  '<div class="bqReply" style="flex:1 1 100%;display:none;margin-top:4px"></div>';
+ supabaseClient.rpc('seller_reply_time',{p_seller:l.seller_id}).then(r=>{
+  const m=r&&r.data;if(typeof m!=='number')return;
+  const t=m<=10?'Replies within minutes':m<=60?'Replies within an hour':m<=360?'Replies in a few hours':m<=1440?'Replies within a day':'Replies in a few days';
+  const el=card.querySelector('.bqReply');if(!el)return;
+  el.style.display='block';
+  el.innerHTML='<span style="'+PL+'"><span style="display:inline-flex"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>'+t+'</span>';
+ }).catch(()=>{});
  if(sp){sp.insertAdjacentElement('beforebegin',card);sp.style.display='none';}
  else root.appendChild(card);
  /* more from this seller */
