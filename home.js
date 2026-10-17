@@ -3421,3 +3421,17 @@ async function run(){
 }
 setInterval(run,700);
 })();
+
+/* ===== Messages screen: title on top, search and tabs on their own rows ===== */
+(function(){
+const st=document.createElement('style');
+st.textContent='#inboxOverlay .bqHdr{flex-wrap:wrap;row-gap:8px}#inboxOverlay .bqHdr>.bq-isearch{flex:1 1 100%;width:100%;margin:0!important}#inboxOverlay .bqHdr>.bq-tabs{flex:1 1 100%;width:100%;margin:0!important}#inboxOverlay .bqHdr>.bq-tabs button{flex:1 1 0;text-align:center}';
+document.head.appendChild(st);
+setInterval(()=>{
+ const w=document.querySelector('#inboxOverlay .bqHdr');if(!w)return;
+ const m=w.parentElement;
+ const s=m.querySelector(':scope>.bq-isearch'),t=m.querySelector(':scope>.bq-tabs');
+ if(s)w.appendChild(s);
+ if(t)w.appendChild(t);
+},300);
+})();
