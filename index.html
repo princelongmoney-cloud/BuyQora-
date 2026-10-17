@@ -914,7 +914,7 @@ async function loadListings(){
     .select('*')
     .eq('status', 'active')
     .order('created_at', { ascending: false });
-
+query = query.limit(300);
   const { data, error } = await query;
 
   if(error){
