@@ -3598,9 +3598,9 @@ window.bqBadge=function(pkg,label){
 (function(){
 const esc=x=>String(x==null?'':x).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 window.bqWm=function(name,big){
- return '<div class="bqWm" style="position:absolute;left:6%;right:6%;bottom:'+(big?'20%':'20%')+';text-align:center;pointer-events:none;z-index:1;color:rgba(255,255,255,.62);text-shadow:0 1px 4px rgba(0,0,0,.65);font-weight:800;line-height:1.2;overflow:hidden"><div style="font-size:'+(big?12:8)+'px;letter-spacing:.14em">POSTED ON BUYQORA</div><div style="font-size:'+(big?22:12)+'px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esc(name)+'</div></div>';
+ return '<div class="bqWm" style="position:absolute;left:4%;right:4%;top:'+(big?'58%':'60%')+';transform:translateY(-50%);text-align:center;pointer-events:none;z-index:1;color:rgba(255,255,255,.42);font-weight:500;line-height:1.2;overflow:hidden;text-shadow:0 0 3px rgba(0,0,0,.28)"><div style="font-size:'+(big?13:8)+'px;letter-spacing:.07em;text-transform:uppercase">Posted on BuyQora</div><div style="font-size:'+(big?30:14)+'px;letter-spacing:.03em;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esc(name)+'</div></div>';
 };
-const NM={};
+const NM={};window.bqSellerNm=NM;
 setInterval(async()=>{
  try{
   const img=document.getElementById('dMainImg');if(!img)return;
@@ -3618,4 +3618,44 @@ setInterval(async()=>{
   box.querySelector('.bqWm').dataset.id=String(l.id);
  }catch(e){}
 },600);
+})();
+
+
+/* ===== Full-screen photo viewer: seller name on photo + "Like what you saw?" on the last photo ===== */
+(function(){
+const $=id=>document.getElementById(id);
+const esc=x=>String(x==null?'':x).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+let dismissed=false,lastCount='';
+const BTN='display:flex;align-items:center;justify-content:center;gap:10px;width:100%;box-sizing:border-box;padding:16px;border-radius:12px;font-size:19px;font-weight:600;cursor:pointer;';
+setInterval(()=>{
+ const v=$('bqViewer');if(!v)return;
+ if(getComputedStyle(v).display==='none'){dismissed=false;lastCount='';const o=$('bqVCta');if(o)o.remove();const w=$('bqVWm');if(w)w.remove();return;}
+ const l=(typeof currentDetailListing!=='undefined')?currentDetailListing:null;
+ const nm=(l&&window.bqSellerNm&&window.bqSellerNm[l.seller_id])||'';
+ if(nm&&!$('bqVWm')&&window.bqWm){v.insertAdjacentHTML('beforeend',window.bqWm(nm,true));v.lastElementChild.id='bqVWm';v.lastElementChild.style.zIndex='1';}
+ const ct=($('bqVCount')||{}).textContent||'';
+ if(ct!==lastCount){lastCount=ct;dismissed=false;}
+ const m=ct.match(/(\d+)\s*\/\s*(\d+)/);
+ const last=!!(m&&m[1]===m[2]&&+m[2]>1);
+ let o=$('bqVCta');
+ if(last&&!dismissed){
+  if(!o){
+   const tel=document.querySelector('#detailContent a[href^="tel:"]');
+   v.insertAdjacentHTML('beforeend','<div id="bqVCta" style="position:absolute;inset:0;z-index:1;background:rgba(0,0,0,.6);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 12%;text-align:center;color:#fff"><div style="font-size:26px;font-weight:700">Like what you saw?</div><div style="font-size:17px;margin:10px 0 26px">Contact the seller now to negotiate!</div>'+
+    (tel?'<a id="bqVCall" href="'+esc(tel.getAttribute('href'))+'" style="'+BTN+'background:#1fb85a;color:#fff;text-decoration:none;margin-bottom:14px"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1C10.6 21 3 13.4 3 4c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.3 0 .7-.2 1z"/></svg>Call</a>':'')+
+    '<div id="bqVChat" style="'+BTN+'border:2px solid #1fb85a;color:#1fb85a;background:rgba(0,0,0,.45)"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M4 3h16a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1H8l-5 4V4a1 1 0 0 1 1-1zm4 6v2h8V9zm0 4v2h5v-2z"/></svg>Start chat</div></div>');
+   o=$('bqVCta');
+   o.addEventListener('click',e=>{
+    if(e.target.closest('#bqVCall'))return;
+    if(e.target.closest('#bqVChat')){
+     dismissed=true;o.remove();
+     const c=$('bqVClose');if(c)c.click();
+     setTimeout(()=>{const t=document.querySelector('#detailContent textarea');if(t){t.scrollIntoView({block:'center'});t.focus();}},250);
+     return;
+    }
+    dismissed=true;o.remove();
+   });
+  }
+ }else if(o){o.remove();}
+},300);
 })();
