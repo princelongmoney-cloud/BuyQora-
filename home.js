@@ -2141,14 +2141,22 @@ async function bottom(l,prof,own){
  card.querySelector('.bq-viewads').onclick=()=>{(moreH||card).scrollIntoView({behavior:'smooth',block:'center'});};
  /* feedback preview */
  try{
-  const {data:rv}=await supabaseClient.from('reviews').select('rating,comment,created_at,reviewer_id').eq('seller_id',l.seller_id).order('created_at',{ascending:false}).limit(1);
+  const {data:rv}=await supabaseClient.from('reviews').select('rating,comment,created_at,reviewer_id').eq('seller_id',l.seller_id).order('created_at',{ascending:false}).limit(2);
   const {data:sm}=await supabaseClient.from('seller_ratings').select('review_count').eq('seller_id',l.seller_id).maybeSingle();
   if(rv&&rv.length){
-   const r=rv[0];let who='Buyer';
-   try{if(typeof getProfileName==='function')who=await getProfileName(r.reviewer_id)||'Buyer';}catch(e){}
-   const n=Math.round(r.rating||0);
+   const pm={};
+   try{const ids=[...new Set(rv.map(x=>x.reviewer_id))];const{data:pp}=await supabaseClient.from('profiles').select('id,full_name,business_name,logo_url').in('id',ids);(pp||[]).forEach(p=>{pm[p.id]=p;});}catch(e){}
+   const dt=d=>{const x=new Date(d);const z=n=>String(n).padStart(2,'0');return z(x.getDate())+'/'+z(x.getMonth()+1)+'/'+String(x.getFullYear()).slice(2);};
+   const cardH=r=>{
+    const p=pm[r.reviewer_id]||{};const who=p.business_name||p.full_name||'Buyer';const n=Math.round(r.rating||0);
+    const av=p.logo_url?'<img src="'+esc(p.logo_url)+'" alt="" style="width:100%;height:100%;object-fit:cover">':esc(who.charAt(0).toUpperCase());
+    return '<div style="background:#f5f7f6;border-radius:14px;padding:14px;margin-top:12px;color:#1b2a22">'+
+     '<div style="display:flex;align-items:center;gap:10px"><span style="width:40px;height:40px;border-radius:50%;background:#dfe7e2;flex:0 0 40px;overflow:hidden;display:inline-flex;align-items:center;justify-content:center;font-weight:bold">'+av+'</span><b style="font-size:16px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(who)+'</b><span style="color:#777;font-size:13px">'+esc(dt(r.created_at))+'</span></div>'+
+     '<div style="font-size:20px;margin:8px 0 6px;letter-spacing:2px"><span style="color:#f5a623">'+'★'.repeat(n)+'</span><span style="color:#cdd5d0">'+'★'.repeat(5-n)+'</span></div>'+
+     (r.comment?'<div style="font-size:15px;line-height:1.5">'+esc(r.comment)+'</div>':'')+'</div>';
+   };
    const fb=document.createElement('div');fb.className='bq-bottom bq-fb';
-   fb.innerHTML='<h4>Feedback about seller</h4><div class="bq-fbcard"><b>'+esc(who)+'</b> · '+esc(new Date(r.created_at).toLocaleDateString())+'<div class="st">'+'★'.repeat(n)+'☆'.repeat(5-n)+'</div>'+(r.comment?'<div>'+esc(r.comment)+'</div>':'')+'</div><a class="bq-viewall">View all'+(sm&&sm.review_count?' ('+sm.review_count+')':'')+' ›</a>';
+   fb.innerHTML='<div style="display:flex;align-items:center;justify-content:space-between;gap:10px"><h4 style="margin:0">Feedback about seller</h4><a class="bq-viewall" style="display:inline!important;margin:0!important;color:#0b6b3a;font-weight:600;white-space:nowrap;cursor:pointer">View all'+(sm&&sm.review_count?' ('+sm.review_count+')':'')+' ›</a></div>'+rv.map(cardH).join('');
    const anchor=$('bqRate')||sp||card;
    anchor.insertAdjacentElement('afterend',fb);
    fb.querySelector('.bq-viewall').onclick=()=>{const a=$('bqRateLink');if(a)a.click();};
