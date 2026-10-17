@@ -256,7 +256,7 @@ const openDetailCore=async function(l){
  let rawImgs=l.images;if(typeof rawImgs==='string'){try{rawImgs=JSON.parse(rawImgs);}catch(e){rawImgs=rawImgs?[rawImgs]:[];}}
  const imgs=Array.isArray(rawImgs)&&rawImgs.length?rawImgs.filter(Boolean):(l.image_url?[l.image_url]:[]);
  const sim=currentListings.filter(x=>x.id!==l.id&&x.category_id===l.category_id).slice(0,6);
- const where=l.city?l.city+', '+l.state:l.state;
+ const where=l.city?l.state+', '+l.city:l.state;
  $('detailContent').innerHTML=
  '<div class="detail-image">'+(imgs.length?'<img id="dMainImg" src="'+esc(imgs[0])+'" alt="">':(CATEGORY_ICONS[l.category_id]||'🛍️'))+'<button class="fav-btn detail-fav-btn" id="detailFavBtn">'+(currentFavorites.has(l.id)?'♥':'♡')+'</button></div>'+
  (imgs.length>1?'<div class="bq-thumbs">'+imgs.map((u,i)=>'<img src="'+esc(u)+'" data-i="'+i+'" class="'+(i?'':'on')+'">').join('')+'</div>':'')+
@@ -2208,7 +2208,7 @@ async function enhance(l){
  /* location + time row, verified badge */
  const h3=root.querySelector('h3');
  if(h3&&!root.querySelector('.bq-locrow')){
-  const where=l.city?l.city+', '+l.state:l.state;
+  const where=l.city?l.state+', '+l.city:l.state;
   const row=document.createElement('div');row.className='bq-locrow';
   const verified=prof&&prof.verification_status==='verified';
   const pr=window.bqPromoOf?window.bqPromoOf(l):null;
@@ -3533,4 +3533,12 @@ document.addEventListener('click',async e=>{
  }
 });
 setInterval(init,700);
+})();
+
+
+/* ===== Listing tags: white text on green so they are easy to read ===== */
+(function(){
+const st=document.createElement('style');
+st.textContent='.detail-tag{background:#0b6b3a!important;color:#ffffff!important;border:0!important;font-weight:600!important}';
+document.head.appendChild(st);
 })();
