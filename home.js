@@ -2998,7 +2998,7 @@ async function loadProfs(){
 function card(l,i){
  const p=profs[l.seller_id]||{};const ver=p.verification_status==='verified';
  const nm=p.business_name||p.full_name||'Seller';
- const img='<div class="product-image" style="'+(view==='list'?'width:130px;flex:0 0 130px;height:130px':'')+'">'+(l.image_url?'<img src="'+esc(l.image_url)+'" alt="" loading="lazy">':(CATEGORY_ICONS[l.category_id]||'🛍️'))+(l.condition?'<span class="bq-cond '+esc(l.condition)+'">'+(l.condition==='new'?'New':'Used')+'</span>':'')+(()=>{const pr=window.bqPromoOf&&window.bqPromoOf(l);if(!pr||!window.bqBadge)return '';return '<span style="position:absolute;top:8px;left:8px;z-index:2">'+window.bqBadge(pr.package_id,false)+'</span>';})()+'</div>';
+ const img='<div class="product-image" style="'+(view==='list'?'width:130px;flex:0 0 130px;height:130px':'')+'">'+(l.image_url?'<img src="'+esc(l.image_url)+'" alt="" loading="lazy">':(CATEGORY_ICONS[l.category_id]||'🛍️'))+(l.image_url&&window.bqWm?window.bqWm(nm,false):'')+(l.condition?'<span class="bq-cond '+esc(l.condition)+'">'+(l.condition==='new'?'New':'Used')+'</span>':'')+(()=>{const pr=window.bqPromoOf&&window.bqPromoOf(l);if(!pr||!window.bqBadge)return '';return '<span style="position:absolute;top:8px;left:8px;z-index:2">'+window.bqBadge(pr.package_id,false)+'</span>';})()+'</div>';
  const info='<div style="min-width:0;flex:1"><p class="price" style="margin:6px 0 2px;color:#0b6b3a;font-weight:bold">₦'+Number(l.price).toLocaleString()+'</p><h3 style="margin:0 0 3px;font-size:15px;line-height:1.3">'+esc(l.title)+'</h3><p class="loc" style="margin:0 0 6px">'+esc((l.city||l.state||'')+(l.condition?' • '+(l.condition==='new'?'Brand New':'Used'):''))+'</p>'+
   '<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:6px">'+(ver?'<span style="font-size:12px;font-weight:600;padding:3px 8px;border-radius:12px;background:#e8f5ee;color:#0b6b3a">✔ Verified</span>':'')+(p.created_at?'<span style="font-size:12px;padding:3px 8px;border-radius:12px;background:#f1f4f2;color:#444">'+esc(since(p.created_at))+'</span>':'')+'</div>'+
   (nm?'<div style="display:flex;align-items:center;gap:6px;font-size:13px;color:#444"><span style="width:22px;height:22px;border-radius:50%;background:#dfe7e2;flex:0 0 22px;overflow:hidden;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:bold">'+(p.logo_url?'<img src="'+esc(p.logo_url)+'" alt="" style="width:100%;height:100%;object-fit:cover">':esc(nm.charAt(0).toUpperCase()))+'</span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(nm)+'</span>'+(p.avg?'<span style="margin-left:auto;font-weight:600;white-space:nowrap"><span style="color:#f5a623">★</span> '+p.avg.toFixed(1)+'</span>':'')+'</div>':'')+'</div>';
@@ -3429,6 +3429,8 @@ async function run(){
    if(c.querySelector('.bqSel'))return;
    const l=list[c.dataset.idx];if(!l)return;
    c.insertAdjacentHTML('beforeend',row(P[l.seller_id]||{}));
+   const pi=c.querySelector('.product-image'),pp=P[l.seller_id]||{};
+   if(pi&&l.image_url&&!pi.querySelector('.bqWm')&&window.bqWm)pi.insertAdjacentHTML('beforeend',window.bqWm(pp.business_name||pp.full_name||'Seller',false));
   });
  }catch(e){}
  busy=false;
@@ -3589,4 +3591,31 @@ window.bqBadge=function(pkg,label){
  const ic=(pkg==='vip')?ICON.vip:(pkg==='diamond')?ICON.diamond:ICON.star;
  return '<span title="'+x[0]+'" style="display:inline-flex;align-items:center;gap:'+(label?'7px':'0')+';padding:'+(label?'6px 12px 6px 10px':'6px')+';border-radius:999px;background:rgba(14,20,17,.82);border:1px solid '+x[1]+';color:'+x[1]+';font-size:12px;font-weight:700;letter-spacing:.09em;line-height:1;-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px)"><svg width="'+(label?15:14)+'" height="'+(label?15:14)+'" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">'+ic+'</svg>'+(label?'<span>'+x[0]+'</span>':'')+'</span>';
 };
+})();
+
+
+/* ===== Seller name on every listing photo (like Jiji) ===== */
+(function(){
+const esc=x=>String(x==null?'':x).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+window.bqWm=function(name,big){
+ return '<div class="bqWm" style="position:absolute;left:6%;right:6%;bottom:'+(big?'20%':'20%')+';text-align:center;pointer-events:none;z-index:1;color:rgba(255,255,255,.62);text-shadow:0 1px 4px rgba(0,0,0,.65);font-weight:800;line-height:1.2;overflow:hidden"><div style="font-size:'+(big?12:8)+'px;letter-spacing:.14em">POSTED ON BUYQORA</div><div style="font-size:'+(big?22:12)+'px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esc(name)+'</div></div>';
+};
+const NM={};
+setInterval(async()=>{
+ try{
+  const img=document.getElementById('dMainImg');if(!img)return;
+  const box=img.parentElement;if(!box)return;
+  const l=(typeof currentDetailListing!=='undefined')?currentDetailListing:null;if(!l||!l.seller_id)return;
+  const cur=box.querySelector('.bqWm');
+  if(cur&&cur.dataset.id===String(l.id))return;
+  if(NM[l.seller_id]===undefined){
+   const{data}=await supabaseClient.from('profiles').select('full_name,business_name').eq('id',l.seller_id).maybeSingle();
+   NM[l.seller_id]=(data&&(data.business_name||data.full_name))||'Seller';
+  }
+  const again=box.querySelector('.bqWm');if(again)again.remove();
+  if(getComputedStyle(box).position==='static')box.style.position='relative';
+  box.insertAdjacentHTML('beforeend',window.bqWm(NM[l.seller_id],true));
+  box.querySelector('.bqWm').dataset.id=String(l.id);
+ }catch(e){}
+},600);
 })();
