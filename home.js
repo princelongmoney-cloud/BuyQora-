@@ -2141,7 +2141,7 @@ async function bottom(l,prof,own){
  card.querySelector('.bq-viewads').onclick=()=>{(moreH||card).scrollIntoView({behavior:'smooth',block:'center'});};
  /* feedback preview */
  try{
-  const {data:rv}=await supabaseClient.from('reviews').select('rating,comment,created_at,reviewer_id').eq('seller_id',l.seller_id).order('created_at',{ascending:false}).limit(2);
+  const {data:rv}=await supabaseClient.from('reviews').select('id,rating,comment,created_at,reviewer_id').eq('seller_id',l.seller_id).order('created_at',{ascending:false}).limit(2);
   const {data:sm}=await supabaseClient.from('seller_ratings').select('review_count').eq('seller_id',l.seller_id).maybeSingle();
   if(rv&&rv.length){
    const pm={};
@@ -2150,7 +2150,7 @@ async function bottom(l,prof,own){
    const cardH=r=>{
     const p=pm[r.reviewer_id]||{};const who=p.business_name||p.full_name||'Buyer';const n=Math.round(r.rating||0);
     const av=p.logo_url?'<img src="'+esc(p.logo_url)+'" alt="" style="width:100%;height:100%;object-fit:cover">':esc(who.charAt(0).toUpperCase());
-    return '<div style="background:#f5f7f6;border-radius:14px;padding:14px;margin-top:12px;color:#1b2a22">'+
+    return '<div data-rid="'+esc(r.id)+'" style="background:#f5f7f6;border-radius:14px;padding:14px;margin-top:12px;color:#1b2a22">'+
      '<div style="display:flex;align-items:center;gap:10px"><span style="width:40px;height:40px;border-radius:50%;background:#dfe7e2;flex:0 0 40px;overflow:hidden;display:inline-flex;align-items:center;justify-content:center;font-weight:bold">'+av+'</span><b style="font-size:16px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(who)+'</b><span style="color:#777;font-size:13px">'+esc(dt(r.created_at))+'</span></div>'+
      '<div style="font-size:20px;margin:8px 0 6px;letter-spacing:2px"><span style="color:#f5a623">'+'★'.repeat(n)+'</span><span style="color:#cdd5d0">'+'★'.repeat(5-n)+'</span></div>'+
      (r.comment?'<div style="font-size:15px;line-height:1.5">'+esc(r.comment)+'</div>':'')+'</div>';
@@ -3456,4 +3456,81 @@ setInterval(()=>{
   box.insertAdjacentHTML('beforeend','<span class="bqCrown" data-id="'+l.id+'" style="position:absolute;top:10px;left:10px;z-index:3;background:'+L[1]+';color:#fff;border-radius:14px;padding:5px 11px;font-size:13px;font-weight:700">'+(IC[pr.package_id]||'⭐')+' '+lbl+'</span>');
  }catch(e){}
 },500);
+})();
+
+
+/* ===== Review Like + Comment (needs review_likes and review_comments tables) ===== */
+(function(){
+const esc=x=>String(x==null?'':x).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const LK={},CM={};let me=null,busy=false;
+async function uid(){try{const{data:{session}}=await supabaseClient.auth.getSession();me=session?session.user.id:null;}catch(e){me=null;}return me;}
+function needLogin(){if(window.openAuth)openAuth('login');}
+function draw(card){
+ const id=card.dataset.rid,L=LK[id]||{n:0,mine:false},C=CM[id]||0;
+ const lk=card.querySelector('[data-a="like"]');
+ lk.innerHTML='👍 Like <b>'+L.n+'</b>';lk.style.color=L.mine?'#0b6b3a':'';lk.style.fontWeight=L.mine?'700':'';
+ const cn=card.querySelector('[data-a="cnt"]');
+ cn.style.display=C>0?'block':'none';cn.innerHTML='↳ '+C+' comment'+(C===1?'':'s');
+}
+async function loadComments(card){
+ const id=card.dataset.rid,box=card.querySelector('.bqCm');
+ box.innerHTML='<div style="color:#777;font-size:13px;margin-top:8px">Loading...</div>';
+ const{data,error}=await supabaseClient.from('review_comments').select('id,user_id,body,created_at').eq('review_id',id).order('created_at',{ascending:true}).limit(50);
+ if(error){box.innerHTML='<div style="color:#c0392b;font-size:13px;margin-top:8px">Comments are not ready yet. Please try again later.</div>';return;}
+ const rows=data||[];CM[id]=rows.length;draw(card);
+ const nm={};
+ try{const ids=[...new Set(rows.map(r=>r.user_id))];if(ids.length){const{data:pp}=await supabaseClient.from('profiles').select('id,full_name,business_name').in('id',ids);(pp||[]).forEach(p=>{nm[p.id]=p.business_name||p.full_name;});}}catch(e){}
+ await uid();
+ box.innerHTML=rows.map(r=>'<div style="margin-top:10px;padding:8px 10px;background:rgba(128,128,128,.12);border-radius:10px;font-size:14px"><b>'+esc(nm[r.user_id]||'User')+'</b>'+(r.user_id===me?' <a data-del="'+r.id+'" style="float:right;color:#c0392b;font-size:12.5px;cursor:pointer">Delete</a>':'')+'<div style="margin-top:3px;line-height:1.4">'+esc(r.body)+'</div></div>').join('')+
+  '<div style="display:flex;gap:8px;margin-top:10px"><input class="bqCmIn" maxlength="500" placeholder="Write a comment" style="flex:1;min-width:0;padding:10px 12px;border-radius:10px;border:1px solid #cfdad4;font-size:15px"><button class="bqCmGo" style="flex:none;padding:0 16px;border:0;border-radius:10px;background:#0b6b3a;color:#fff;font-weight:700">Send</button></div>';
+}
+async function init(){
+ if(busy)return;
+ const cards=[...document.querySelectorAll('.bq-fb [data-rid]')].filter(c=>!c.querySelector('.bqAct'));
+ if(!cards.length)return;
+ busy=true;
+ cards.forEach(c=>c.insertAdjacentHTML('beforeend','<div class="bqAct" style="display:flex;gap:24px;align-items:center;margin-top:12px;font-size:15px;color:#555"><span data-a="like" style="cursor:pointer;padding:4px 0">👍 Like <b>0</b></span><span data-a="cmt" style="cursor:pointer;padding:4px 0">↩ Comment</span></div><div data-a="cnt" style="display:none;margin-top:8px;font-size:14px;color:#555;cursor:pointer">↳ 0 comments</div><div class="bqCm"></div>'));
+ const ids=cards.map(c=>c.dataset.rid);
+ await uid();
+ try{
+  const{data:lk}=await supabaseClient.from('review_likes').select('review_id,user_id').in('review_id',ids);
+  ids.forEach(i=>{LK[i]={n:0,mine:false};});
+  (lk||[]).forEach(r=>{const o=LK[r.review_id];if(o){o.n++;if(r.user_id===me)o.mine=true;}});
+  const{data:cm}=await supabaseClient.from('review_comments').select('review_id').in('review_id',ids);
+  ids.forEach(i=>{CM[i]=0;});(cm||[]).forEach(r=>{CM[r.review_id]=(CM[r.review_id]||0)+1;});
+ }catch(e){}
+ cards.forEach(draw);
+ busy=false;
+}
+document.addEventListener('click',async e=>{
+ const card=e.target.closest&&e.target.closest('.bq-fb [data-rid]');if(!card)return;
+ const id=card.dataset.rid;
+ const a=e.target.closest('[data-a]');
+ const go=e.target.closest('.bqCmGo');
+ const del=e.target.closest('[data-del]');
+ if(a&&a.dataset.a==='like'){
+  if(!await uid()){needLogin();return;}
+  const o=LK[id]||(LK[id]={n:0,mine:false});const was=o.mine;
+  o.mine=!was;o.n+=was?-1:1;draw(card);
+  const r=was?await supabaseClient.from('review_likes').delete().eq('review_id',id).eq('user_id',me):await supabaseClient.from('review_likes').insert({review_id:id});
+  if(r.error){o.mine=was;o.n+=was?1:-1;draw(card);alert('Likes are not ready yet. Please try again later.');}
+ }else if(a&&(a.dataset.a==='cmt'||a.dataset.a==='cnt')){
+  const box=card.querySelector('.bqCm');
+  if(box.innerHTML.trim()){box.innerHTML='';}else{loadComments(card);}
+ }else if(go){
+  if(!await uid()){needLogin();return;}
+  const inp=card.querySelector('.bqCmIn'),t=inp.value.trim();if(!t)return;
+  go.disabled=true;
+  const{error}=await supabaseClient.from('review_comments').insert({review_id:id,body:t});
+  go.disabled=false;
+  if(error){alert('Could not send your comment. Please try again later.');return;}
+  loadComments(card);
+ }else if(del){
+  if(!confirm('Delete your comment?'))return;
+  const{error}=await supabaseClient.from('review_comments').delete().eq('id',del.dataset.del);
+  if(error){alert('Could not delete the comment.');return;}
+  loadComments(card);
+ }
+});
+setInterval(init,700);
 })();
