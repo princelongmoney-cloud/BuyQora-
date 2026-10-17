@@ -2452,10 +2452,11 @@ const F={
  phones:[['brand','Brand','s',['Apple (iPhone)','Samsung','Tecno','Infinix','Itel','Xiaomi','Oppo','Nokia','Huawei','Google Pixel','Other']],['storage','Storage','s',['16GB','32GB','64GB','128GB','256GB','512GB','1TB']],['color','Color','t','e.g. Black, Blue']],
  vehicles:[['make','Make','s',['Toyota','Honda','Lexus','Mercedes-Benz','Hyundai','Kia','Nissan','Ford','Peugeot','Volkswagen','BMW','Mazda','Suzuki','Other']],['year','Year','s',yrs],['mileage','Mileage (km)','t','e.g. 85000'],['transmission','Transmission','s',['Automatic','Manual']],['fuel','Fuel','s',['Petrol','Diesel','Electric','Hybrid','Gas']]],
  property:[['bedrooms','Bedrooms','s',nums],['bathrooms','Bathrooms','s',nums],['furnished','Furnished','s',['Yes','No','Semi-furnished']]],
- electronics:[['brand','Brand','s',['Apple','Samsung','HP','Dell','Lenovo','LG','Sony','Hisense','TCL','Other']],['model','Model','t','e.g. MacBook Air M1']],
+ electronics:[['brand','Brand','s',['Apple','Samsung','JBL','HP','Dell','Lenovo','LG','Sony','Hisense','TCL','Other']],['model','Model','t','e.g. MacBook Air M1']],
  fashion:[['size','Size','t','e.g. M, L, 42'],['color','Color','t','e.g. Black, Blue']]
 };
 const ages=['Under 1 month','1-3 months','3-6 months','6-12 months','1-2 years','2+ years'];
+const ACC=[['type','Type','s',['Power Bank','Cases','Stands & Holders','Chargers & Cables','Screen Protectors','Memory Cards','Other']],['brand','Brand','t','e.g. Oraimo, Anker']];
 const PET={an_dogs:[['breed','Breed','s',['Rottweiler','German Shepherd','Lhasa Apso','Caucasian Shepherd','Cane Corso','Boerboel','Alsatian','Pitbull','Husky','Poodle','Local / Mixed','Other']],['gender','Gender','s',['Male','Female']],['age','Age','s',ages]],
  an_cats:[['breed','Breed','s',['Persian','Siamese','Maine Coon','British Shorthair','Local / Mixed','Other']],['gender','Gender','s',['Male','Female']],['age','Age','s',ages]]};
 function ready(){
@@ -2470,11 +2471,11 @@ function build(){
  if(!ready())return;
  const c=document.getElementById('sellCategory'),box=document.getElementById('catFields');
  const cat=c?c.value:'';
- const sb=document.getElementById('sellSub');const sub=(cat==='animals'&&sb)?sb.value:'';
+ const sb=document.getElementById('sellSub');const sub=((cat==='animals'||cat==='phones')&&sb)?sb.value:'';
  const key=cat+':'+sub;
  if(box.dataset.cat===key)return;
  box.dataset.cat=key;
- const list=(cat==='animals')?(PET[sub]||[]):(F[cat]||[]);
+ const list=(cat==='animals')?(PET[sub]||[]):(cat==='phones'&&sub==='ph_acc')?ACC:(F[cat]||[]);
  box.innerHTML=list.map(f=>'<label>'+f[1]+'</label>'+(f[2]==='s'?'<select data-k="'+f[0]+'"><option value="">Choose</option>'+f[3].map(o=>'<option>'+o+'</option>').join('')+'</select>':'<input data-k="'+f[0]+'" placeholder="'+f[3]+'">')).join('');
 }
 document.addEventListener('change',e=>{if(e.target&&e.target.id==='sellCategory')build();});
@@ -2915,7 +2916,8 @@ const DOGB=['Rottweiler','German Shepherd','Lhasa Apso','Caucasian Shepherd','Ca
 const CATB=['Persian','Siamese','Maine Coon','British Shorthair','Local / Mixed','Other'];
 const CARB=['Toyota','Honda','Lexus','Mercedes-Benz','Hyundai','Kia','Nissan','Ford','Peugeot','Volkswagen','BMW','Mazda','Suzuki','Other'];
 const PHB=['Apple (iPhone)','Samsung','Tecno','Infinix','Itel','Xiaomi','Oppo','Nokia','Huawei','Google Pixel','Other'];
-const ELB=['Apple','Samsung','HP','Dell','Lenovo','LG','Sony','Hisense','TCL','Other'];
+const ELB=['Apple','Samsung','JBL','HP','Dell','Lenovo','LG','Sony','Hisense','TCL','Other'];
+const ACCT=['Power Bank','Cases','Stands & Holders','Chargers & Cables','Screen Protectors','Memory Cards','Other'];
 /* tiles: key stored in details, full list, 3 shown tiles, word */
 const TILES={
  an_dogs:{k:'breed',all:DOGB,top:['Rottweiler','German Shepherd','Lhasa Apso','Caucasian Shepherd','Cane Corso','Boerboel'],w:'Breed',ic:'🐕'},
@@ -2929,7 +2931,8 @@ const TILES={
  el_laptops:{k:'brand',all:ELB,top:['Apple','HP','Dell','Lenovo','Samsung','Sony'],w:'Brand'},
  el_tv:{k:'brand',all:ELB,top:['Samsung','LG','Sony','Hisense','TCL'],w:'Brand'},
  el_audio:{k:'brand',all:ELB,top:['Sony','Samsung','LG'],w:'Brand'},
- el_head:{k:'brand',all:ELB,top:['Apple','Sony','Samsung'],w:'Brand'},
+ el_head:{k:'brand',all:ELB,top:['Apple','JBL','Samsung'],w:'Brand'},
+ ph_acc:{k:'type',all:ACCT,top:['Power Bank','Cases','Stands & Holders'],w:'Type'},
  el_cam:{k:'brand',all:ELB,top:['Sony','Samsung','Apple'],w:'Brand'},
  el_games:{k:'brand',all:ELB,top:['Sony','Samsung','Apple'],w:'Brand'}
 };
