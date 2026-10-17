@@ -3611,7 +3611,7 @@ window.bqBadge=function(pkg,label){
 (function(){
 const esc=x=>String(x==null?'':x).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 window.bqWm=function(name,big){
- return '<div class="bqWm" style="position:absolute;left:4%;right:4%;top:'+(big?'58%':'60%')+';transform:translateY(-50%);text-align:center;pointer-events:none;z-index:1;color:rgba(255,255,255,.42);font-weight:500;line-height:1.2;overflow:hidden;text-shadow:0 0 3px rgba(0,0,0,.28)"><div style="font-size:'+(big?13:8)+'px;letter-spacing:.07em;text-transform:uppercase">Posted on BuyQora</div><div style="font-size:'+(big?30:14)+'px;letter-spacing:.03em;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esc(name)+'</div></div>';
+ return '<div class="bqWm" style="position:absolute;left:4%;right:4%;top:'+(big?'58%':'60%')+';transform:translateY(-50%);text-align:center;pointer-events:none;z-index:1;color:rgba(255,255,255,.8);font-weight:700;line-height:1.2;overflow:hidden;text-shadow:0 1px 4px rgba(0,0,0,.7)"><div style="font-size:'+(big?13:8)+'px;letter-spacing:.07em;text-transform:uppercase">Posted on BuyQora</div><div style="font-size:'+(big?30:14)+'px;letter-spacing:.03em;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esc(name)+'</div></div>';
 };
 const NM={};window.bqSellerNm=NM;
 setInterval(async()=>{
