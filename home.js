@@ -2239,7 +2239,7 @@ async function enhance(l){
   const verified=prof&&prof.verification_status==='verified';
   const pr=window.bqPromoOf?window.bqPromoOf(l):null;
   const pl=pr&&window.bqPromoLbl?window.bqPromoLbl[pr.package_id]:null;
-  const promoBadge='';
+  const promoBadge=pr&&window.bqBadge?window.bqBadge(pr.package_id,'mini'):'';
   row.innerHTML='<span>📍 '+esc(where||'')+' · '+esc(ago(l.created_at))+'</span><span style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">'+promoBadge+(verified?'<span class="bq-badge2">✔ Verified seller</span>':'')+'</span>';
   h3.parentNode.insertBefore(row,h3);
   root.querySelectorAll('.detail-tag').forEach(t=>{if(t.textContent.trim().startsWith('📍'))t.remove();});
@@ -3601,6 +3601,7 @@ const ST={
 window.bqBadge=function(pkg,label){
  const x=ST[pkg]||ST.basic;
  const ic=(pkg==='vip')?ICON.vip:(pkg==='diamond')?ICON.diamond:ICON.star;
+ if(label==='mini')return '<span title="'+x[0]+'" style="display:inline-flex;align-items:center;justify-content:center;width:38px;height:28px;border-radius:8px;background:rgba(14,20,17,.88);border:1px solid '+x[1]+'88;color:'+x[1]+'"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">'+ic+'</svg></span>';
  return '<span title="'+x[0]+'" style="display:inline-flex;align-items:center;gap:'+(label?'7px':'0')+';padding:'+(label?'6px 12px 6px 10px':'6px')+';border-radius:999px;background:rgba(14,20,17,.82);border:1px solid '+x[1]+';color:'+x[1]+';font-size:12px;font-weight:700;letter-spacing:.09em;line-height:1;-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px)"><svg width="'+(label?15:14)+'" height="'+(label?15:14)+'" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">'+ic+'</svg>'+(label?'<span>'+x[0]+'</span>':'')+'</span>';
 };
 })();
@@ -3670,4 +3671,12 @@ setInterval(()=>{
   }
  }else if(o){o.remove();}
 },300);
+})();
+
+
+/* crown now sits in the location row (top right of the info card), not on the photo */
+(function(){
+const st=document.createElement('style');
+st.textContent='.bqCrown{display:none!important}';
+document.head.appendChild(st);
 })();
