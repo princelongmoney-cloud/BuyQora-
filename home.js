@@ -780,7 +780,7 @@ const naira=n=>'₦'+Number(n||0).toLocaleString();
 const NAMES={basic:'Basic Boost',featured:'Featured',premium:'Premium',top:'Top Advert',vip:'VIP',diamond:'Diamond'};
 document.body.insertAdjacentHTML('beforeend','<div class="modal-overlay" id="promoOverlay"><div class="modal" style="color:#222"><span class="close" id="promoClose">✕</span><h3>Promote this listing</h3><p id="promoTitle" style="font-weight:bold;margin-bottom:10px"></p><p class="error" id="promoError"></p><label>Package</label><div id="promoPkgs"></div><label>Duration</label><select id="promoDays"></select><div id="promoTotal" style="font-size:16px;font-weight:bold;color:#ff6b00;margin:4px 0 12px"></div><div id="promoPay" style="font-size:14px;line-height:1.6"></div><label>Payment reference</label><input type="text" id="promoRef" placeholder="Sender name or transaction ID"><button class="button" id="promoSubmit">I have paid, submit promotion</button></div></div>');
 $('promoClose').onclick=()=>$('promoOverlay').classList.remove('show');
-const st={listing:null,pkgs:[],durs:[],pkg:null,instr:''};
+const st={listing:null,pkgs:[],durs:[],pkg:null,instr:'',vipOk:false};
 function yearDur(){return st.durs.find(x=>Number(x.days)===365);}
 function fillDays(){
  const y=yearDur();
@@ -809,9 +809,9 @@ function showTotal(){
  $('promoTotal').textContent=t;
 }
 function drawPkgs(){
- $('promoPkgs').innerHTML=st.pkgs.map(p=>'<div data-p="'+p.id+'" style="border:2px solid '+(p.id===st.pkg?'#ff6b00':'#ddd')+';border-radius:10px;padding:10px;margin-bottom:8px;cursor:pointer"><b>'+esc(p.name)+'</b><span style="float:right;color:#ff6b00;font-weight:bold">'+((p.id==='vip'&&yearDur())?naira(Math.round(Number(p.price_7d)*Number(yearDur().multiplier)))+' / year':naira(p.price_7d)+' / 7 days')+'</span><div style="font-size:12.5px;color:#666;margin-top:2px">'+esc(p.description||'')+'</div></div>').join('');
+ $('promoPkgs').innerHTML=st.pkgs.map(p=>(p.id==='vip'&&!st.vipOk)?'<div data-lock="1" style="border:2px dashed #ccc;border-radius:10px;padding:10px;margin-bottom:8px;cursor:pointer;opacity:.75"><b>'+esc(p.name)+'</b><span style="float:right;color:#888;font-weight:bold">Locked</span><div style="font-size:12.5px;color:#666;margin-top:2px">The VIP crown is for verified business brands only.</div></div>':'<div data-p="'+p.id+'" style="border:2px solid '+(p.id===st.pkg?'#ff6b00':'#ddd')+';border-radius:10px;padding:10px;margin-bottom:8px;cursor:pointer"><b>'+esc(p.name)+'</b><span style="float:right;color:#ff6b00;font-weight:bold">'+((p.id==='vip'&&yearDur())?naira(Math.round(Number(p.price_7d)*Number(yearDur().multiplier)))+' / year':naira(p.price_7d)+' / 7 days')+'</span><div style="font-size:12.5px;color:#666;margin-top:2px">'+esc(p.description||'')+'</div></div>').join('');
 }
-$('promoPkgs').onclick=e=>{const c=e.target.closest('[data-p]');if(!c)return;st.pkg=c.dataset.p;fillDays();drawPkgs();showTotal();};
+$('promoPkgs').onclick=e=>{if(e.target.closest('[data-lock]')){alert('The VIP crown is for verified business brands only. Set your account type to Business and get verified to unlock it.');return;}const c=e.target.closest('[data-p]');if(!c)return;st.pkg=c.dataset.p;fillDays();drawPkgs();showTotal();};
 $('promoDays').onchange=showTotal;
 
 async function openPromo(listingId){
@@ -836,7 +836,9 @@ async function openPromo(listingId){
    if(pp&&pp.length){alert('A promotion for this listing is already waiting for payment confirmation.');return;}
   }
  }
- st.listing=l;st.pkgs=pk;st.durs=du;st.pkg=pk[0].id;st.instr=((se&&se.value)||'').trim();
+ const{data:mp}=await supabaseClient.from('profiles').select('account_type,verification_status').eq('id',session.user.id).maybeSingle();
+ st.vipOk=!!(mp&&mp.account_type==='business'&&mp.verification_status==='verified');
+ st.listing=l;st.pkgs=pk;st.durs=du;st.pkg=(pk.find(p=>p.id!=='vip'||st.vipOk)||pk[0]).id;st.instr=((se&&se.value)||'').trim();
  $('promoTitle').textContent=l.title;
  fillDays();
  $('promoPay').innerHTML=st.instr?'<p><b>Pay by bank transfer to:</b></p><p style="white-space:pre-wrap;background:#f7f7f7;border-radius:8px;padding:10px;margin-bottom:10px">'+esc(st.instr)+'</p>':'<p style="color:#c0392b">Payment details are not set up yet. Please contact support.</p>';
@@ -850,6 +852,7 @@ $('promoSubmit').onclick=async()=>{
  const ref=$('promoRef').value.trim();
  const show=m=>{err.textContent=m;err.style.display='block';};
  if(!st.listing||!st.pkg)return;
+ if(st.pkg==='vip'&&!st.vipOk)return show('VIP is for verified business brands only.');
  if(!st.instr)return show('Payment details are not set up yet. Please contact support.');
  if(ref.length<3)return show('Enter your payment reference (sender name or transaction ID).');
  const b=$('promoSubmit');b.disabled=true;b.textContent='Submitting...';
@@ -1037,7 +1040,7 @@ if(anchor){
 const $=id=>document.getElementById(id);
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 const LBL={basic:['Promoted','#0277bd'],featured:['Featured','#ff6b00'],premium:['Premium','#8e24aa'],top:['Sponsored','#c62828'],vip:['⭐ VIP','#b8860b'],diamond:['💎 Diamond','#00838f']};
-const RANK={basic:1,featured:2,premium:3,top:4,vip:5,diamond:6};
+const RANK={basic:1,featured:2,premium:3,top:4,diamond:5,vip:6};
 let promoMap={};
 window.bqPromoOf=l=>promoMap[l.id]||null;
 window.bqPromoLbl=LBL;
