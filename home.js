@@ -3601,7 +3601,7 @@ const ST={
 window.bqBadge=function(pkg,label){
  const x=ST[pkg]||ST.basic;
  const ic=(pkg==='vip')?ICON.vip:(pkg==='diamond')?ICON.diamond:ICON.star;
- if(label==='mini')return '<span title="'+x[0]+'" style="display:inline-flex;align-items:center;justify-content:center;width:38px;height:28px;border-radius:8px;background:rgba(14,20,17,.88);border:1px solid '+x[1]+'88;color:'+x[1]+'"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">'+ic+'</svg></span>';
+ if(label==='mini'){const nm=(pkg==='vip')?'VIP':x[0].charAt(0)+x[0].slice(1).toLowerCase();return '<span title="'+nm+'" style="display:inline-flex;align-items:center;gap:7px;height:30px;box-sizing:border-box;padding:0 12px 0 10px;border-radius:9px;background:rgba(14,20,17,.88);border:1px solid '+x[1]+'88;color:'+x[1]+';font-size:14px;font-weight:600;line-height:1;white-space:nowrap"><svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">'+ic+'</svg>'+nm+'</span>';}
  return '<span title="'+x[0]+'" style="display:inline-flex;align-items:center;gap:'+(label?'7px':'0')+';padding:'+(label?'6px 12px 6px 10px':'6px')+';border-radius:999px;background:rgba(14,20,17,.82);border:1px solid '+x[1]+';color:'+x[1]+';font-size:12px;font-weight:700;letter-spacing:.09em;line-height:1;-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px)"><svg width="'+(label?15:14)+'" height="'+(label?15:14)+'" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">'+ic+'</svg>'+(label?'<span>'+x[0]+'</span>':'')+'</span>';
 };
 })();
