@@ -2967,15 +2967,16 @@ async function loadProfs(){
  if(!ids.length)return;
  try{const{data}=await supabaseClient.from('profiles').select('id,full_name,business_name,logo_url,verification_status,created_at').in('id',ids);
   (data||[]).forEach(p=>{profs[p.id]=p;});ids.forEach(x=>{if(!profs[x])profs[x]={id:x};});
+  try{const{data:rv}=await supabaseClient.from('reviews').select('seller_id,rating').in('seller_id',ids);const rs2={};(rv||[]).forEach(r=>{(rs2[r.seller_id]=rs2[r.seller_id]||[]).push(Number(r.rating));});ids.forEach(x=>{const a=rs2[x];if(a&&a.length){profs[x].avg=a.reduce((m,n)=>m+n,0)/a.length;profs[x].cnt=a.length;}});}catch(e){}
   if($('bqCatScr'))paint();}catch(e){}
 }
 function card(l,i){
  const p=profs[l.seller_id]||{};const ver=p.verification_status==='verified';
  const nm=p.business_name||p.full_name||'';
  const img='<div class="product-image" style="'+(view==='list'?'width:130px;flex:0 0 130px;height:130px':'')+'">'+(l.image_url?'<img src="'+esc(l.image_url)+'" alt="" loading="lazy">':(CATEGORY_ICONS[l.category_id]||'🛍️'))+(l.condition?'<span class="bq-cond '+esc(l.condition)+'">'+(l.condition==='new'?'New':'Used')+'</span>':'')+'</div>';
- const info='<div style="min-width:0;flex:1"><p class="price" style="margin:6px 0 2px;color:#0b6b3a;font-weight:bold">₦'+Number(l.price).toLocaleString()+'</p><h3 style="margin:0 0 3px;font-size:15px;line-height:1.3">'+esc(l.title)+'</h3><p class="loc" style="margin:0 0 6px">'+esc(l.city||l.state||'')+'</p>'+
+ const info='<div style="min-width:0;flex:1"><p class="price" style="margin:6px 0 2px;color:#0b6b3a;font-weight:bold">₦'+Number(l.price).toLocaleString()+'</p><h3 style="margin:0 0 3px;font-size:15px;line-height:1.3">'+esc(l.title)+'</h3><p class="loc" style="margin:0 0 6px">'+esc((l.city||l.state||'')+(l.condition?' • '+(l.condition==='new'?'Brand New':'Used'):''))+'</p>'+
   '<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:6px">'+(ver?'<span style="font-size:12px;font-weight:600;padding:3px 8px;border-radius:12px;background:#e8f5ee;color:#0b6b3a">✔ Verified</span>':'')+(p.created_at?'<span style="font-size:12px;padding:3px 8px;border-radius:12px;background:#f1f4f2;color:#444">'+esc(since(p.created_at))+'</span>':'')+'</div>'+
-  (nm?'<div style="display:flex;align-items:center;gap:6px;font-size:13px;color:#444"><span style="width:22px;height:22px;border-radius:50%;background:#dfe7e2;flex:0 0 22px;overflow:hidden;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:bold">'+(p.logo_url?'<img src="'+esc(p.logo_url)+'" alt="" style="width:100%;height:100%;object-fit:cover">':esc(nm.charAt(0).toUpperCase()))+'</span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(nm)+'</span></div>':'')+'</div>';
+  (nm?'<div style="display:flex;align-items:center;gap:6px;font-size:13px;color:#444"><span style="width:22px;height:22px;border-radius:50%;background:#dfe7e2;flex:0 0 22px;overflow:hidden;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:bold">'+(p.logo_url?'<img src="'+esc(p.logo_url)+'" alt="" style="width:100%;height:100%;object-fit:cover">':esc(nm.charAt(0).toUpperCase()))+'</span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(nm)+'</span>'+(p.avg?'<span style="margin-left:auto;font-weight:600;white-space:nowrap"><span style="color:#f5a623">★</span> '+p.avg.toFixed(1)+'</span>':'')+'</div>':'')+'</div>';
  return '<div class="product" data-i="'+i+'" style="'+(view==='list'?'display:flex;gap:12px;align-items:flex-start;padding:10px':'')+'">'+img+info+'</div>';
 }
 function save(){try{sessionStorage.setItem('bqCatScr',JSON.stringify({cat,sub,st,tileSel,vals,cond,pmin,pmax,sort,q,onlyVer,view}));}catch(e){}}
