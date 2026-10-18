@@ -3871,3 +3871,53 @@ function side(){
 }
 setInterval(async()=>{try{await load();placeTiles();if(window.innerWidth>=1000)side();}catch(e){}},500);
 })();
+
+/* ===== Refresh keeps you on the same listing page and on My listings ===== */
+(function(){
+const KEY='bqScreen2';
+let ready=false;
+function now(){
+ const d=document.getElementById('detailOverlay');
+ if(d&&d.classList.contains('show')){
+  const l=(typeof currentDetailListing!=='undefined')?currentDetailListing:null;
+  if(l&&l.id!=null)return{t:'detail',id:String(l.id)};
+ }
+ const m=document.getElementById('myOverlay');
+ if(m&&m.classList.contains('show'))return{t:'my'};
+ return null;
+}
+setInterval(()=>{
+ if(!ready)return;
+ try{
+  const s=now();
+  if(s)sessionStorage.setItem(KEY,JSON.stringify(s));
+  else sessionStorage.removeItem(KEY);
+ }catch(e){}
+},400);
+async function findListing(id){
+ try{
+  const hit=(typeof currentListings!=='undefined'?currentListings:[]).find(x=>String(x.id)===id);
+  if(hit)return hit;
+ }catch(e){}
+ try{
+  const{data}=await supabaseClient.from('listings').select('*').eq('id',id).maybeSingle();
+  return data||null;
+ }catch(e){return null;}
+}
+setTimeout(async()=>{
+ try{
+  const raw=sessionStorage.getItem(KEY);
+  if(raw){
+   const s=JSON.parse(raw);
+   if(s.t==='my'&&typeof window.openMine==='function'){
+    const{data:{session}}=await supabaseClient.auth.getSession();
+    if(session)await window.openMine();
+   }else if(s.t==='detail'&&s.id&&typeof window.openDetail==='function'){
+    const l=await findListing(s.id);
+    if(l)await window.openDetail(l);
+   }
+  }
+ }catch(e){}
+ ready=true;
+},2600);
+})();
