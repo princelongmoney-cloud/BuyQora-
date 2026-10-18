@@ -3797,3 +3797,76 @@ setInterval(async()=>{
  }catch(e){}
 },700);
 })();
+
+/* ===== Side adverts: sponsored tiles in the list (phone) + right-hand column (tablet/computer) ===== */
+(function(){
+const esc=x=>String(x==null?'':x).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+let ads=[],loadedAt=0;
+async function load(){
+ if(Date.now()-loadedAt<60000)return;
+ loadedAt=Date.now();
+ try{
+  const{data}=await supabaseClient.from('ad_campaigns').select('id,title,image_url,video_url,link_url,states').eq('status','active').gt('expires_at',new Date().toISOString());
+  ads=(data||[]).sort(()=>Math.random()-0.5);
+ }catch(e){ads=[];}
+}
+function forState(){
+ const st=(typeof activeState!=='undefined')?activeState:'all';
+ return ads.filter(a=>st==='all'||!a.states||!a.states.length||a.states.includes(st));
+}
+function seen(a,k){try{const key=k+a.id;if(!sessionStorage.getItem(key)){sessionStorage.setItem(key,'1');supabaseClient.rpc('banner_view',{p_id:a.id}).then(()=>{},()=>{});}}catch(e){}}
+function open(a){
+ if(!a||!a.link_url)return;
+ supabaseClient.rpc('banner_click',{p_id:a.id}).then(()=>{},()=>{});
+ window.open(a.link_url,'_blank','noopener');
+}
+/* ---- A) sponsored tiles inside the home list, always in the right-hand column ---- */
+function tile(a){
+ const d=document.createElement('div');
+ d.className='bqAdTile';d.dataset.ad=a.id;
+ d.style.cssText='border:1px solid rgba(128,128,128,.3);border-radius:14px;overflow:hidden;cursor:'+(a.link_url?'pointer':'default')+';align-self:start';
+ d.innerHTML='<div style="position:relative;aspect-ratio:1/1;background:#222">'+
+  (a.video_url?'<video src="'+esc(a.video_url)+'" poster="'+esc(a.image_url)+'" muted autoplay loop playsinline preload="metadata" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover"></video>':'<img src="'+esc(a.image_url)+'" alt="'+esc(a.title)+'" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">')+
+  '<span style="position:absolute;top:8px;left:8px;background:rgba(0,0,0,.6);color:#fff;font-size:10px;padding:2px 8px;border-radius:999px">Sponsored</span></div>'+
+  '<div style="padding:10px 12px 12px"><div style="font-weight:700;font-size:15px;line-height:1.25;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">'+esc(a.title||'')+'</div>'+(a.link_url?'<div style="margin-top:6px;font-size:13px;font-weight:600;color:#ff6b00">Learn more ›</div>':'')+'</div>';
+ d.onclick=()=>open(a);
+ const v=d.querySelector('video');if(v){v.muted=true;v.play().catch(()=>{});}
+ seen(a,'bqgd');
+ return d;
+}
+function placeTiles(){
+ const grid=document.getElementById('productGrid');if(!grid)return;
+ const list=forState();
+ const cards=[...grid.querySelectorAll('.product[data-idx]')];
+ const want=[];
+ if(list.length){for(let r=3,k=0;r<cards.length;r+=7,k++)want.push({r,a:list[k%list.length]});}
+ const have=[...grid.querySelectorAll('.bqAdTile')];
+ const sig=want.map(w=>w.r+':'+w.a.id).join(',')+'|'+cards.length;
+ if(grid.dataset.adSig===sig&&have.length===want.length)return;
+ have.forEach(t=>t.remove());
+ want.forEach(w=>{const before=cards[w.r];if(before)grid.insertBefore(tile(w.a),before);});
+ grid.dataset.adSig=sig;
+}
+/* ---- B) right-hand column on wide screens ---- */
+const st=document.createElement('style');
+st.textContent='#bqSideAd{display:none}@media (min-width:1000px){#bqSideAd{display:block;position:fixed;right:18px;top:110px;width:250px;max-height:calc(100vh - 140px);overflow:auto;z-index:5}}';
+document.head.appendChild(st);
+function side(){
+ let p=document.getElementById('bqSideAd');
+ const list=forState().slice(0,3);
+ const sig=list.map(a=>a.id).join(',');
+ if(!list.length){if(p)p.remove();return;}
+ if(p&&p.dataset.sig===sig)return;
+ if(p)p.remove();
+ p=document.createElement('div');p.id='bqSideAd';p.dataset.sig=sig;
+ p.innerHTML=list.map(a=>'<div data-sa="'+esc(a.id)+'" style="position:relative;border-radius:14px;overflow:hidden;margin-bottom:12px;aspect-ratio:4/5;background:#222;cursor:'+(a.link_url?'pointer':'default')+'">'+
+  (a.video_url?'<video src="'+esc(a.video_url)+'" poster="'+esc(a.image_url)+'" muted autoplay loop playsinline preload="metadata" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover"></video>':'<img src="'+esc(a.image_url)+'" alt="'+esc(a.title)+'" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">')+
+  '<span style="position:absolute;top:8px;left:8px;background:rgba(0,0,0,.6);color:#fff;font-size:10px;padding:2px 8px;border-radius:999px">Sponsored</span>'+
+  '<div style="position:absolute;left:0;right:0;bottom:0;padding:24px 12px 12px;background:linear-gradient(transparent,rgba(0,0,0,.75));color:#fff;font-weight:700;font-size:15px">'+esc(a.title||'')+'</div></div>').join('');
+ p.onclick=e=>{const c=e.target.closest('[data-sa]');if(!c)return;open(ads.find(x=>String(x.id)===c.dataset.sa));};
+ document.body.appendChild(p);
+ list.forEach(a=>seen(a,'bqsd'));
+ p.querySelectorAll('video').forEach(v=>{v.muted=true;v.play().catch(()=>{});});
+}
+setInterval(async()=>{try{await load();placeTiles();if(window.innerWidth>=1000)side();}catch(e){}},500);
+})();
