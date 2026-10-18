@@ -1068,6 +1068,7 @@ function rankOf(l){
  return RANK[p.package_id]||0;
 }
 function tag(pk,style){
+ if((pk==='vip'||pk==='diamond')&&window.bqBadge)return '<span class="bqPromoTag" style="position:absolute;'+style+';z-index:3">'+window.bqBadge(pk)+'</span>';
  const t=LBL[pk]||LBL.basic;
  return '<b class="bqPromoTag" style="position:absolute;'+style+';background:'+t[1]+';color:#fff;font-size:10px;padding:2px 7px;border-radius:999px;z-index:3">'+t[0]+'</b>';
 }
@@ -3028,7 +3029,7 @@ async function loadProfs(){
 function card(l,i){
  const p=profs[l.seller_id]||{};const ver=p.verification_status==='verified';
  const nm=p.business_name||p.full_name||'Seller';
- const img='<div class="product-image" style="'+(view==='list'?'width:130px;flex:0 0 130px;height:130px':'')+'">'+(l.image_url?'<img src="'+esc(l.image_url)+'" alt="" loading="lazy">':(CATEGORY_ICONS[l.category_id]||'🛍️'))+(l.image_url&&window.bqWm?window.bqWm(nm,false):'')+(l.condition?'<span class="bq-cond '+esc(l.condition)+'">'+(l.condition==='new'?'New':'Used')+'</span>':'')+(()=>{const pr=window.bqPromoOf&&window.bqPromoOf(l);if(!pr||!window.bqBadge)return '';return '<span style="position:absolute;top:8px;left:8px;z-index:2">'+window.bqBadge(pr.package_id,false)+'</span>';})()+'</div>';
+ const img='<div class="product-image" style="'+(view==='list'?'width:130px;flex:0 0 130px;height:130px':'')+'">'+(l.image_url?'<img src="'+esc(l.image_url)+'" alt="" loading="lazy">':(CATEGORY_ICONS[l.category_id]||'🛍️'))+(l.image_url&&window.bqWm?window.bqWm(nm,false):'')+(l.condition?'<span class="bq-cond '+esc(l.condition)+'">'+(l.condition==='new'?'New':'Used')+'</span>':'')+(()=>{const pr=window.bqPromoOf&&window.bqPromoOf(l);if(!pr||!window.bqBadge)return '';return '<span style="position:absolute;top:8px;left:8px;z-index:2;max-width:calc(100% - 16px)">'+window.bqBadge(pr.package_id)+'</span>';})()+'</div>';
  const info='<div style="min-width:0;flex:1"><p class="price" style="margin:6px 0 2px;color:#0b6b3a;font-weight:bold">₦'+Number(l.price).toLocaleString()+'</p><h3 style="margin:0 0 3px;font-size:15px;line-height:1.3">'+esc(l.title)+'</h3><p class="loc" style="margin:0 0 6px">'+esc((l.city||l.state||'')+(l.condition?' • '+(l.condition==='new'?'Brand New':'Used'):''))+'</p>'+
   '<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:6px">'+(ver?'<span style="font-size:12px;font-weight:600;padding:3px 8px;border-radius:12px;background:#e8f5ee;color:#0b6b3a">✔ Verified</span>':'')+(p.created_at?'<span style="font-size:12px;padding:3px 8px;border-radius:12px;background:#f1f4f2;color:#444">'+esc(since(p.created_at))+'</span>':'')+'</div>'+
   (nm?'<div style="display:flex;align-items:center;gap:6px;font-size:13px;color:#444"><span style="width:22px;height:22px;border-radius:50%;background:#dfe7e2;flex:0 0 22px;overflow:hidden;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:bold">'+(p.logo_url?'<img src="'+esc(p.logo_url)+'" alt="" style="width:100%;height:100%;object-fit:cover">':esc(nm.charAt(0).toUpperCase()))+'</span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(nm)+'</span>'+(p.avg?'<span style="margin-left:auto;font-weight:600;white-space:nowrap"><span style="color:#f5a623">★</span> '+p.avg.toFixed(1)+'</span>':'')+'</div>':'')+'</div>';
@@ -3613,14 +3614,14 @@ const ICON={
  star:'<path d="M12 2.5l2.9 6.2 6.6.8-4.9 4.6 1.3 6.6L12 17.4 6.1 20.7l1.3-6.6L2.5 9.5l6.6-.8z"/>'
 };
 const ST={
- vip:['VIP','#e2b84d','crown'],diamond:['DIAMOND','#6fd3e0','diamond'],top:['SPONSORED','#f08a8a','star'],
+ vip:['VIP','#d4af37','crown'],diamond:['DIAMOND','#2fc4d9','diamond'],top:['SPONSORED','#f08a8a','star'],
  premium:['PREMIUM','#c995e6','star'],featured:['FEATURED','#ffab66','star'],basic:['PROMOTED','#86bdea','star']
 };
-window.bqBadge=function(pkg,label){
+window.bqBadge=function(pkg,mode){
  const x=ST[pkg]||ST.basic;
  const ic=(pkg==='vip')?ICON.vip:(pkg==='diamond')?ICON.diamond:ICON.star;
- if(label==='mini'){const nm=(pkg==='vip')?'VIP':x[0].charAt(0)+x[0].slice(1).toLowerCase();const bg=(pkg==='vip')?'linear-gradient(135deg,#3a2f0b,#17130a)':'linear-gradient(135deg,#1b2420,#0f1311)';return '<span title="'+nm+'" style="display:inline-flex;align-items:center;gap:6px;height:20px;box-sizing:border-box;padding:0 8px 0 6px;border-radius:6px;position:relative;top:-7px;background:'+bg+';border:1px solid '+x[1]+'99;color:'+x[1]+';font-size:10.5px;font-weight:700;letter-spacing:.12em;line-height:1;white-space:nowrap;box-shadow:0 1px 6px rgba(0,0,0,.3)"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">'+ic+'</svg>'+nm.toUpperCase()+'</span>';}
- return '<span title="'+x[0]+'" style="display:inline-flex;align-items:center;gap:'+(label?'7px':'0')+';padding:'+(label?'6px 12px 6px 10px':'6px')+';border-radius:999px;background:rgba(14,20,17,.82);border:1px solid '+x[1]+';color:'+x[1]+';font-size:12px;font-weight:700;letter-spacing:.09em;line-height:1;-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px)"><svg width="'+(label?15:14)+'" height="'+(label?15:14)+'" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">'+ic+'</svg>'+(label?'<span>'+x[0]+'</span>':'')+'</span>';
+ const col=x[1];
+ return '<span class="bqBdg" title="'+x[0]+'" style="display:inline-flex;align-items:center;justify-content:center;gap:5px;height:22px;max-width:100%;box-sizing:border-box;padding:0 8px 0 6px;border-radius:6px;background:#1b1b1d;border:1px solid '+col+';color:'+col+';font-size:10.5px;font-weight:700;letter-spacing:.1em;line-height:1;white-space:nowrap;vertical-align:middle;box-shadow:0 1px 4px rgba(0,0,0,.35)"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" style="flex:none;display:block">'+ic+'</svg><span style="display:block;line-height:1">'+x[0]+'</span></span>';
 };
 })();
 
