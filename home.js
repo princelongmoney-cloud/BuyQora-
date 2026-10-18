@@ -839,7 +839,7 @@ async function openPromo(listingId){
  }
  const{data:mp}=await supabaseClient.from('profiles').select('account_type,verification_status').eq('id',session.user.id).maybeSingle();
  st.vipOk=!!(mp&&mp.account_type==='business'&&mp.verification_status==='verified');
- st.listing=l;st.pkgs=pk;st.durs=du;st.pkg=(pk.find(p=>p.id!=='vip'||st.vipOk)||pk[0]).id;st.instr=((se&&se.value)||'').trim();
+ st.listing=l;st.pkgs=pk;st.durs=du.concat(du.some(d=>Number(d.days)===365)?[]:[{days:365,multiplier:40}]);st.pkg=(pk.find(p=>p.id!=='vip'||st.vipOk)||pk[0]).id;st.instr=((se&&se.value)||'').trim();
  $('promoTitle').textContent=l.title;
  fillDays();
  $('promoPay').innerHTML=st.instr?'<p><b>Pay by bank transfer to:</b></p><p style="white-space:pre-wrap;background:#f7f7f7;border-radius:8px;padding:10px;margin-bottom:10px">'+esc(st.instr)+'</p>':'<p style="color:#c0392b">Payment details are not set up yet. Please contact support.</p>';
@@ -3605,7 +3605,7 @@ const ST={
 window.bqBadge=function(pkg,label){
  const x=ST[pkg]||ST.basic;
  const ic=(pkg==='vip')?ICON.vip:(pkg==='diamond')?ICON.diamond:ICON.star;
- if(label==='mini'){const nm=(pkg==='vip')?'VIP':x[0].charAt(0)+x[0].slice(1).toLowerCase();const bg=(pkg==='vip')?'linear-gradient(135deg,#3a2f0b,#17130a)':'linear-gradient(135deg,#1b2420,#0f1311)';return '<span title="'+nm+'" style="display:inline-flex;align-items:center;gap:6px;height:24px;box-sizing:border-box;padding:0 10px 0 8px;border-radius:7px;background:'+bg+';border:1px solid '+x[1]+'99;color:'+x[1]+';font-size:11.5px;font-weight:700;letter-spacing:.1em;line-height:1;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,.35)"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">'+ic+'</svg>'+nm.toUpperCase()+'</span>';}
+ if(label==='mini'){const nm=(pkg==='vip')?'VIP':x[0].charAt(0)+x[0].slice(1).toLowerCase();const bg=(pkg==='vip')?'linear-gradient(135deg,#3a2f0b,#17130a)':'linear-gradient(135deg,#1b2420,#0f1311)';return '<span title="'+nm+'" style="display:inline-flex;align-items:center;gap:6px;height:20px;box-sizing:border-box;padding:0 8px 0 6px;border-radius:6px;position:relative;top:-7px;background:'+bg+';border:1px solid '+x[1]+'99;color:'+x[1]+';font-size:10.5px;font-weight:700;letter-spacing:.12em;line-height:1;white-space:nowrap;box-shadow:0 1px 6px rgba(0,0,0,.3)"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">'+ic+'</svg>'+nm.toUpperCase()+'</span>';}
  return '<span title="'+x[0]+'" style="display:inline-flex;align-items:center;gap:'+(label?'7px':'0')+';padding:'+(label?'6px 12px 6px 10px':'6px')+';border-radius:999px;background:rgba(14,20,17,.82);border:1px solid '+x[1]+';color:'+x[1]+';font-size:12px;font-weight:700;letter-spacing:.09em;line-height:1;-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px)"><svg width="'+(label?15:14)+'" height="'+(label?15:14)+'" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">'+ic+'</svg>'+(label?'<span>'+x[0]+'</span>':'')+'</span>';
 };
 })();
@@ -3615,8 +3615,27 @@ window.bqBadge=function(pkg,label){
 (function(){
 const esc=x=>String(x==null?'':x).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 window.bqWm=function(name,big){
- return '<div class="bqWm" style="position:absolute;left:4%;right:4%;top:'+(big?'58%':'60%')+';transform:translateY(-50%);text-align:center;pointer-events:none;z-index:1;color:rgba(40,40,40,.62);font-weight:700;line-height:1.2;overflow:hidden;text-shadow:0 0 3px rgba(255,255,255,.45)"><div style="font-size:'+(big?13:8)+'px;letter-spacing:.07em;text-transform:uppercase">Posted on BuyQora</div><div style="font-size:'+(big?30:14)+'px;letter-spacing:.03em;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esc(name)+'</div></div>';
+ return '<canvas class="bqWm" data-n="'+esc(name)+'" data-big="'+(big?1:0)+'" style="position:absolute;left:4%;width:92%;top:'+(big?'58%':'60%')+';transform:translateY(-50%);height:'+(big?'86px':'40px')+';pointer-events:none;z-index:1"></canvas>';
 };
+setInterval(()=>{
+ document.querySelectorAll('canvas.bqWm:not([data-d])').forEach(c=>{
+  const w=c.clientWidth,h=c.clientHeight;if(!w||!h)return;
+  const d=Math.min(window.devicePixelRatio||1,3);
+  c.width=Math.round(w*d);c.height=Math.round(h*d);
+  const x=c.getContext('2d');x.scale(d,d);
+  const big=c.dataset.big==='1';
+  x.textAlign='center';x.textBaseline='middle';
+  x.shadowColor='rgba(255,255,255,.5)';x.shadowBlur=2;x.fillStyle='rgba(20,20,20,.8)';
+  if('letterSpacing' in x)x.letterSpacing=big?'2px':'1px';
+  x.font='700 '+(big?13:8)+'px sans-serif';
+  x.fillText('POSTED ON BUYQORA',w/2,big?h*0.2:h*0.25);
+  const nm=(c.dataset.n||'').toUpperCase();
+  let fs=big?30:14;x.font='700 '+fs+'px sans-serif';
+  while(x.measureText(nm).width>w-6&&fs>8){fs--;x.font='700 '+fs+'px sans-serif';}
+  x.fillText(nm,w/2,big?h*0.66:h*0.7);
+  c.dataset.d='1';
+ });
+},300);
 const NM={};window.bqSellerNm=NM;
 setInterval(async()=>{
  try{
@@ -3689,6 +3708,19 @@ document.head.appendChild(st);
 /* location line: badge lines up with the text */
 (function(){
 const st=document.createElement('style');
-st.textContent='.bq-locrow{align-items:center!important}';
+st.textContent='.bq-locrow{align-items:center!important;min-height:0!important;line-height:1.2!important;margin-bottom:4px!important}';
 document.head.appendChild(st);
+})();
+
+
+/* ===== Update check: shows briefly when the newest file is running ===== */
+(function(){
+const BUILD='18Oct-D';
+function show(){
+ const d=document.createElement('div');
+ d.textContent='BuyQora updated · build '+BUILD;
+ d.style.cssText='position:fixed;top:70px;left:50%;transform:translateX(-50%);background:#0b6b3a;color:#fff;font-size:12px;font-weight:600;padding:6px 12px;border-radius:999px;z-index:99999;box-shadow:0 2px 8px rgba(0,0,0,.3)';
+ document.body.appendChild(d);setTimeout(()=>d.remove(),4000);
+}
+if(document.body)show();else document.addEventListener('DOMContentLoaded',show);
 })();
