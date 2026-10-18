@@ -781,6 +781,7 @@ const NAMES={basic:'Basic Boost',featured:'Featured',premium:'Premium',top:'Top 
 document.body.insertAdjacentHTML('beforeend','<div class="modal-overlay" id="promoOverlay"><div class="modal" style="color:#222"><span class="close" id="promoClose">✕</span><h3>Promote this listing</h3><p id="promoTitle" style="font-weight:bold;margin-bottom:10px"></p><p class="error" id="promoError"></p><label>Package</label><div id="promoPkgs"></div><label>Duration</label><select id="promoDays"></select><div id="promoTotal" style="font-size:16px;font-weight:bold;color:#ff6b00;margin:4px 0 12px"></div><div id="promoPay" style="font-size:14px;line-height:1.6"></div><label>Payment reference</label><input type="text" id="promoRef" placeholder="Sender name or transaction ID"><button class="button" id="promoSubmit">I have paid, submit promotion</button></div></div>');
 $('promoClose').onclick=()=>$('promoOverlay').classList.remove('show');
 const st={listing:null,pkgs:[],durs:[],pkg:null,instr:'',vipOk:false};
+function yearPrice(p){const y=Number(p.price_year);if(y>0)return Math.round(y);const d=yearDur();return Math.round(Number(p.price_7d)*Number(d?d.multiplier:40));}
 function isYr(id){return id==='vip'||id==='diamond';}
 function yearDur(){return st.durs.find(x=>Number(x.days)===365);}
 function fillDays(){
@@ -798,6 +799,7 @@ function total(){
  const p=st.pkgs.find(x=>x.id===st.pkg);
  const d=st.durs.find(x=>String(x.days)===$('promoDays').value);
  if(!p||!d)return 0;
+ if(isYr(p.id)&&Number(d.days)===365)return yearPrice(p);
  return Math.round(Number(p.price_7d)*Number(d.multiplier));
 }
 function showTotal(){
@@ -810,7 +812,7 @@ function showTotal(){
  $('promoTotal').textContent=t;
 }
 function drawPkgs(){
- $('promoPkgs').innerHTML=st.pkgs.map(p=>(p.id==='vip'&&!st.vipOk)?'<div data-lock="1" style="border:2px dashed #ccc;border-radius:10px;padding:10px;margin-bottom:8px;cursor:pointer;opacity:.75"><b>'+esc(p.name)+'</b><span style="float:right;color:#888;font-weight:bold">Locked</span><div style="font-size:12.5px;color:#666;margin-top:2px">The VIP crown is for verified business brands only.</div></div>':'<div data-p="'+p.id+'" style="border:2px solid '+(p.id===st.pkg?'#ff6b00':'#ddd')+';border-radius:10px;padding:10px;margin-bottom:8px;cursor:pointer"><b>'+esc(p.name)+'</b><span style="float:right;color:#ff6b00;font-weight:bold">'+((isYr(p.id)&&yearDur())?naira(Math.round(Number(p.price_7d)*Number(yearDur().multiplier)))+' / year':naira(p.price_7d)+' / 7 days')+'</span><div style="font-size:12.5px;color:#666;margin-top:2px">'+esc(p.description||'')+'</div></div>').join('');
+ $('promoPkgs').innerHTML=st.pkgs.map(p=>(p.id==='vip'&&!st.vipOk)?'<div data-lock="1" style="border:2px dashed #ccc;border-radius:10px;padding:10px;margin-bottom:8px;cursor:pointer;opacity:.75"><b>'+esc(p.name)+'</b><span style="float:right;color:#888;font-weight:bold">Locked</span><div style="font-size:12.5px;color:#666;margin-top:2px">The VIP crown is for verified business brands only.</div></div>':'<div data-p="'+p.id+'" style="border:2px solid '+(p.id===st.pkg?'#ff6b00':'#ddd')+';border-radius:10px;padding:10px;margin-bottom:8px;cursor:pointer"><b>'+esc(p.name)+'</b><span style="float:right;color:#ff6b00;font-weight:bold">'+((isYr(p.id)&&yearDur())?naira(yearPrice(p))+' / year':naira(p.price_7d)+' / 7 days')+'</span><div style="font-size:12.5px;color:#666;margin-top:2px">'+esc(p.description||'')+'</div></div>').join('');
 }
 $('promoPkgs').onclick=e=>{if(e.target.closest('[data-lock]')){alert('The VIP crown is for verified business brands only. Set your account type to Business and get verified to unlock it.');return;}const c=e.target.closest('[data-p]');if(!c)return;st.pkg=c.dataset.p;fillDays();drawPkgs();showTotal();};
 $('promoDays').onchange=showTotal;
@@ -978,15 +980,21 @@ async function load(){
  render();revenue();
 }
 async function loadPk(){
- const{data}=await supabaseClient.from('promotion_packages').select('id,name,price_7d').order('sort_order');
- $('aprPk').innerHTML=(data||[]).map(p=>'<label>'+esc(p.name)+' (₦ per 7 days)</label><input type="number" inputmode="numeric" data-pk="'+p.id+'" value="'+p.price_7d+'">').join('');
+ let r=await supabaseClient.from('promotion_packages').select('id,name,price_7d,price_year').order('sort_order');
+ if(r.error)r=await supabaseClient.from('promotion_packages').select('id,name,price_7d').order('sort_order');
+ const data=r.data;
+ $('aprPk').innerHTML=(data||[]).map(p=>{
+  const yr=(p.id==='vip'||p.id==='diamond');
+  const val=yr?(Number(p.price_year)>0?p.price_year:Math.round(Number(p.price_7d)*40)):p.price_7d;
+  return '<label>'+esc(p.name)+(yr?' (₦ per YEAR)':' (₦ per 7 days)')+'</label><input type="number" inputmode="numeric" data-pk="'+p.id+'"'+(yr?' data-yr="1"':'')+' value="'+val+'">';
+ }).join('');
 }
 $('aprPkSave').onclick=async()=>{
  const b=$('aprPkSave');b.disabled=true;
  for(const i of document.querySelectorAll('#aprPk input[data-pk]')){
   const v=parseFloat(i.value);
   if(isNaN(v)||v<0){alert('Enter valid prices.');b.disabled=false;return;}
-  const{error}=await supabaseClient.from('promotion_packages').update({price_7d:v}).eq('id',i.dataset.pk);
+  const{error}=await supabaseClient.from('promotion_packages').update(i.dataset.yr?{price_year:v}:{price_7d:v}).eq('id',i.dataset.pk);
   if(error){alert('Could not save: '+error.message);b.disabled=false;return;}
  }
  b.disabled=false;alert('Prices saved. New requests will use them.');
@@ -2776,24 +2784,30 @@ document.addEventListener('click',e=>{
 const g=id=>document.getElementById(id);
 const esc=x=>String(x==null?'':x).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 const naira=n=>'₦'+Number(n||0).toLocaleString();
-let pkgs=[],chosen='none',loaded=false;
+let pkgs=[],chosen='none',loaded=false,yearMult=40,vipOk=false;
 function draw(){
  const box=g('bqPostPromo');if(!box)return;
  const card=(id,name,desc,right,on)=>'<div data-pp="'+id+'" style="border:2px solid '+(on?'#0b6b3a':'#ddd')+';background:'+(on?'#f0f9f4':'#fff')+';border-radius:12px;padding:12px 14px;margin-bottom:10px;cursor:pointer"><div style="display:flex;justify-content:space-between;gap:10px"><b style="font-size:16px">'+esc(name)+'</b><span style="color:#ff6b00;font-weight:bold;white-space:nowrap">'+right+'</span></div>'+(desc?'<div style="color:#555;font-size:13.5px;margin-top:5px;line-height:1.45">'+esc(desc)+'</div>':'')+'</div>';
  box.innerHTML='<div style="font-weight:bold;font-size:17px;margin:18px 0 4px;color:#0b6b3a">Promote your ad (optional)</div><div style="color:#666;font-size:13.5px;margin-bottom:10px">Get more views and sell faster. You choose how long and pay after posting.</div>'+
   card('none','No promo','Post a normal listing. Your ad stays live for free for the standard period.','Free',chosen==='none')+
-  pkgs.map(p=>card(p.id,p.name,p.description,naira(p.price_7d)+' / 7 days',chosen===p.id)).join('');
+  pkgs.map(p=>{
+   if(p.id==='vip'&&!vipOk)return card('lock',p.name,'For verified business brands only.','Locked',false);
+   if(p.id==='vip'||p.id==='diamond')return card(p.id,p.name,(p.description||'')+' Pay once for a full year, then renew.',naira(Number(p.price_year)>0?Math.round(Number(p.price_year)):Math.round(Number(p.price_7d)*yearMult))+' / year',chosen===p.id);
+   return card(p.id,p.name,p.description,naira(p.price_7d)+' / 7 days',chosen===p.id);
+  }).join('');
 }
 async function load(){
  if(loaded)return;loaded=true;
  try{const{data}=await supabaseClient.from('promotion_packages').select('*').eq('active',true).order('sort_order');pkgs=data||[];}catch(e){}
+ try{const{data:du}=await supabaseClient.from('promotion_durations').select('days,multiplier');const y=(du||[]).find(d=>Number(d.days)===365);if(y)yearMult=Number(y.multiplier);}catch(e){}
+ try{const{data:{session}}=await supabaseClient.auth.getSession();if(session){const{data:mp}=await supabaseClient.from('profiles').select('account_type,verification_status').eq('id',session.user.id).maybeSingle();vipOk=!!(mp&&mp.account_type==='business'&&mp.verification_status==='verified');}}catch(e){}
  draw();
 }
 function add(){
  const b=g('sellSubmitBtn');
  if(!b||g('bqPostPromo'))return;
  b.insertAdjacentHTML('beforebegin','<div id="bqPostPromo"></div>');
- g('bqPostPromo').onclick=e=>{const c=e.target.closest('[data-pp]');if(!c)return;chosen=c.dataset.pp;draw();};
+ g('bqPostPromo').onclick=e=>{const c=e.target.closest('[data-pp]');if(!c)return;if(c.dataset.pp==='lock'){alert('The VIP crown is for verified business brands only. Set your account type to Business and get verified to unlock it.');return;}chosen=c.dataset.pp;draw();};
  draw();load();
 }
 setInterval(add,800);
