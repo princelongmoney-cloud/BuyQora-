@@ -2278,7 +2278,7 @@ async function enhance(l){
   const pr=window.bqPromoOf?window.bqPromoOf(l):null;
   const pl=pr&&window.bqPromoLbl?window.bqPromoLbl[pr.package_id]:null;
   const promoBadge=pr&&window.bqBadge?window.bqBadge(pr.package_id,'mini'):'';
-  row.innerHTML='<span>📍 '+esc(where||'')+' · '+esc(ago(l.created_at))+'</span><span style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">'+promoBadge+(verified?'<span class="bq-badge2">✔ Verified seller</span>':'')+'</span>';
+  row.innerHTML='<span>📍 '+esc(where||'')+' · '+esc(ago(l.created_at))+'</span><span style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">'+promoBadge+(verified&&window.bqBadge?window.bqBadge('verified'):'')+'</span>';
   h3.parentNode.insertBefore(row,h3);
   root.querySelectorAll('.detail-tag').forEach(t=>{if(t.textContent.trim().startsWith('📍'))t.remove();});
  }
@@ -3056,7 +3056,7 @@ function card(l,i){
  const nm=p.business_name||p.full_name||'Seller';
  const img='<div class="product-image" style="'+(view==='list'?'width:130px;flex:0 0 130px;height:130px':'')+'">'+(l.image_url?'<img src="'+esc(l.image_url)+'" alt="" loading="lazy">':(CATEGORY_ICONS[l.category_id]||'🛍️'))+(l.image_url&&window.bqWm?window.bqWm(nm,false):'')+(l.condition?'<span class="bq-cond '+esc(l.condition)+'">'+(l.condition==='new'?'New':'Used')+'</span>':'')+(()=>{const pr=window.bqPromoOf&&window.bqPromoOf(l);if(!pr||!window.bqBadge)return '';return '<span style="position:absolute;top:8px;left:8px;z-index:2;max-width:calc(100% - 16px)">'+window.bqBadge(pr.package_id)+'</span>';})()+'</div>';
  const info='<div style="min-width:0;flex:1"><p class="price" style="margin:6px 0 2px;color:#0b6b3a;font-weight:bold">₦'+Number(l.price).toLocaleString()+'</p><h3 style="margin:0 0 3px;font-size:15px;line-height:1.3">'+esc(l.title)+'</h3><p class="loc" style="margin:0 0 6px">'+esc((l.city||l.state||'')+(l.condition?' • '+(l.condition==='new'?'Brand New':'Used'):''))+'</p>'+
-  '<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:6px">'+(ver?'<span style="font-size:12px;font-weight:600;padding:3px 8px;border-radius:12px;background:#e8f5ee;color:#0b6b3a">✔ Verified</span>':'')+(p.created_at?'<span style="font-size:12px;padding:3px 8px;border-radius:12px;background:#f1f4f2;color:#444">'+esc(since(p.created_at))+'</span>':'')+'</div>'+
+  '<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:6px">'+(ver&&window.bqVerTick?'<span style="display:inline-flex;align-items:center;font-size:12px;font-weight:600;color:#4da3ff">'+window.bqVerTick()+'<span style="margin-left:3px">Verified</span></span>':'')+(p.created_at?'<span style="font-size:12px;padding:3px 8px;border-radius:12px;background:#f1f4f2;color:#444">'+esc(since(p.created_at))+'</span>':'')+'</div>'+
   (nm?'<div style="display:flex;align-items:center;gap:6px;font-size:13px;color:#444"><span style="width:22px;height:22px;border-radius:50%;background:#dfe7e2;flex:0 0 22px;overflow:hidden;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:bold">'+(p.logo_url?'<img src="'+esc(p.logo_url)+'" alt="" style="width:100%;height:100%;object-fit:cover">':esc(nm.charAt(0).toUpperCase()))+'</span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(nm)+'</span>'+(p.avg?'<span style="margin-left:auto;font-weight:600;white-space:nowrap"><span style="color:#f5a623">★</span> '+p.avg.toFixed(1)+'</span>':'')+'</div>':'')+'</div>';
  return '<div class="product" data-i="'+i+'" style="'+(view==='list'?'display:flex;gap:12px;align-items:flex-start;padding:10px':'')+'">'+img+info+'</div>';
 }
@@ -3465,7 +3465,7 @@ const esc=x=>String(x==null?'':x).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;'
 function row(p){
  const nm=p.business_name||p.full_name||'Seller';
  const av=p.logo_url?'<img src="'+esc(p.logo_url)+'" alt="" style="width:100%;height:100%;object-fit:cover">':esc(nm.charAt(0).toUpperCase());
- return '<div class="bqSel" style="display:flex;align-items:center;gap:6px;font-size:13px;margin:6px 0 2px"><span style="width:22px;height:22px;border-radius:50%;background:#dfe7e2;color:#244;flex:0 0 22px;overflow:hidden;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:bold">'+av+'</span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0">'+esc(nm)+'</span>'+(p.verification_status==='verified'?'<span style="flex:none;font-size:11px;font-weight:600;padding:2px 7px;border-radius:10px;background:#e8f5ee;color:#0b6b3a">✔ Verified</span>':'')+'</div>';
+ return '<div class="bqSel" style="display:flex;align-items:center;gap:6px;font-size:13px;margin:6px 0 2px"><span style="width:22px;height:22px;border-radius:50%;background:#dfe7e2;color:#244;flex:0 0 22px;overflow:hidden;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:bold">'+av+'</span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0">'+esc(nm)+'</span>'+(p.verification_status==='verified'&&window.bqVerTick?window.bqVerTick():'')+'</div>';
 }
 async function run(){
  if(busy)return;
@@ -3636,15 +3636,17 @@ document.addEventListener('visibilitychange',beat);
 const ICON={
  vip:'<path d="M3 8l4.5 4L12 4l4.5 8L21 8l-2 11H5z"/>',
  diamond:'<path d="M6.5 3h11L22 9l-10 12L2 9z"/>',
+verified:'<path d="M12 2l8 3v6c0 5-3.4 9.4-8 11-4.6-1.6-8-6-8-11V5z"/><path d="M8.2 12.2l2.7 2.7 5-5.6" fill="none" stroke="#1b1b1d" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>',
  star:'<path d="M12 2.5l2.9 6.2 6.6.8-4.9 4.6 1.3 6.6L12 17.4 6.1 20.7l1.3-6.6L2.5 9.5l6.6-.8z"/>'
 };
 const ST={
  vip:['VIP','#d4af37','crown'],diamond:['DIAMOND','#2fc4d9','diamond'],top:['SPONSORED','#f08a8a','star'],
- premium:['PREMIUM','#c995e6','star'],featured:['FEATURED','#ffab66','star'],basic:['PROMOTED','#86bdea','star']
+ verified:['VERIFIED','#4da3ff','verified'],premium:['PREMIUM','#c995e6','star'],featured:['FEATURED','#ffab66','star'],basic:['PROMOTED','#86bdea','star']
 };
+window.bqVerTick=function(){return '<svg width="15" height="15" viewBox="0 0 24 24" fill="#4da3ff" role="img" aria-label="Verified" style="flex:none;display:inline-block;vertical-align:-2px;margin-left:4px"><title>Verified</title>'+ICON.verified+'</svg>';};
 window.bqBadge=function(pkg,mode){
  const x=ST[pkg]||ST.basic;
- const ic=(pkg==='vip')?ICON.vip:(pkg==='diamond')?ICON.diamond:ICON.star;
+ const ic=(pkg==='vip')?ICON.vip:(pkg==='diamond')?ICON.diamond:(pkg==='verified')?ICON.verified:ICON.star;
  const col=x[1];
  return '<span class="bqBdg" title="'+x[0]+'" style="display:inline-flex;align-items:center;justify-content:center;gap:5px;height:22px;max-width:100%;box-sizing:border-box;padding:0 8px 0 6px;border-radius:6px;background:#1b1b1d;border:1px solid '+col+';color:'+col+';font-size:10.5px;font-weight:700;letter-spacing:.1em;line-height:1;white-space:nowrap;vertical-align:middle;box-shadow:0 1px 4px rgba(0,0,0,.35)"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" style="flex:none;display:block">'+ic+'</svg><span style="display:block;line-height:1">'+x[0]+'</span></span>';
 };
