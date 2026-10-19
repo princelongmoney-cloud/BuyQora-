@@ -3022,7 +3022,7 @@ const FAS=[{k:'size',l:'Size',t:'t'},{k:'color',l:'Color',t:'t'}];
 const PETX=[{k:'gender',l:'Gender',t:'s',o:['Male','Female']},{k:'age',l:'Age',t:'s',o:ages}];
 const EXTRA={an_dogs:PETX,an_cats:PETX,cars:VEH,buses:VEH,trucks:VEH,motorcycles:VEH,new_builds:PRO,rent_homes:PRO,sale_homes:PRO,short_let:PRO,ph_phones:PHX,ph_tablets:PHX,fa_women:FAS,fa_men:FAS,fa_shoes:FAS,fa_bags:[{k:'color',l:'Color',t:'t'}],fa_trad:FAS};
 const NOCOND={animals:1,services:1,jobs:1,food:1};
-let st='all',cat='',sub='',tileSel='',vals={},cond='',pmin='',pmax='',sort='new',pop=null,q='',onlyVer=false,view='grid',profs={},shown=[];
+let st='all',cat='',sub='',tileSel='',vals={},cond='',pmin='',pmax='',sort='new',pop=null,q='',onlyVer=false,view='grid',profs={},shown=[],chips={},_med=null;
 function close(){const o=$('bqCatScr');if(o)o.remove();}
 function base(){return (currentListings||[]).filter(l=>l.category_id===cat&&(sub==='all'||l.subcategory===sub));}
 function det(l){return (l&&l.details&&typeof l.details==='object')?l.details:{};}
@@ -3033,6 +3033,10 @@ function matches(l){
  if(cond&&l.condition!==cond)return false;
  const pr=Number(l.price);if(pmin!==''&&pr<Number(pmin))return false;if(pmax!==''&&pr>Number(pmax))return false;
  const d=det(l),T=TILES[sub];
+ if(chips.budget){if(_med===null){const a=base().map(x=>Number(x.price)).filter(x=>x>0).sort((p,q)=>p-q);_med=a.length?a[Math.floor((a.length-1)/2)]:0;}if(!(Number(l.price)<=_med))return false;}
+ if(chips.kids||chips.sim){const t=((l.title||'')+' '+(l.description||'')).toLowerCase();
+  if(chips.kids&&!/\b(kid|kids|child|children|baby|toddler)\b/.test(t))return false;
+  if(chips.sim&&!/\bsim\b|sim card|\b4g\b|\blte\b|cellular/.test(t))return false;}
  if(T&&tileSel){const known=T.all.filter(x=>x!=='Other');const b=d[T.k]||'';
   if(tileSel==='Other'){if(!b||known.indexOf(b)>-1)return false;}else if(b!==tileSel)return false;}
  for(const f of (EXTRA[sub]||[])){const v=vals[f.k];if(!v)continue;const x=String(d[f.k]||'');
@@ -3064,6 +3068,7 @@ function save(){try{sessionStorage.setItem('bqCatScr',JSON.stringify({cat,sub,st
 function paint(){
  const body=$('bqCatBody');if(!body)return;
  save();
+ _med=null;
  const T=TILES[sub],X=EXTRA[sub]||[];
  let f=base().filter(matches);
  if(sort==='lo')f.sort((a,b)=>Number(a.price)-Number(b.price));
@@ -3073,6 +3078,8 @@ function paint(){
  const tile=(lbl,ic,on,attr)=>'<button '+attr+' style="flex:none;width:calc(25% - 6px);padding:10px 4px 8px;border-radius:14px;background:#fff;border:2px solid '+(on?'#0b6b3a':'#e3e8e5')+';display:flex;flex-direction:column;align-items:center;gap:6px;min-width:0"><span style="width:52px;height:52px;border-radius:50%;background:'+(on?'#e8f5ee':'#f1f4f2')+';display:flex;align-items:center;justify-content:center;font-size:28px">'+ic+'</span><span style="font-size:12.5px;font-weight:600;color:#222;line-height:1.2;max-width:100%;min-height:2.4em;white-space:normal;word-break:break-word;text-align:center">'+esc(lbl)+'</span></button>';
  const pill=(t,on,act)=>'<button data-act="'+act+'" style="flex:none;padding:8px 13px;border-radius:12px;font-size:14px;font-weight:600;border:1.5px solid '+(on?'#0b6b3a':'#cfd8d3')+';background:'+(on?'#e8f5ee':'#fff')+';color:'+(on?'#0b6b3a':'#333')+'">'+t+'</button>';
  let top='';
+ {const CH=[['budget','Budget-friendly']].concat((sub==='ph_tablets'||/kid|baby|toy/.test(sub))?[['kids','For kids']]:[]).concat(sub==='ph_tablets'?[['sim','With SIM']]:[]);
+  top+='<div style="display:flex;gap:8px;overflow-x:auto;padding:12px 12px 0">'+CH.map(c=>pill((chips[c[0]]?'✓ ':'')+c[1],!!chips[c[0]],'chip:'+c[0])).join('')+'</div>';}
  if(T)top+='<div style="display:flex;gap:8px;overflow-x:auto;padding:12px 12px 4px">'+T.top.map(x=>tile(x,T.ic||('<b style="font-size:26px;color:#0b6b3a">'+esc(String(x).charAt(0))+'</b>'),tileSel===x,'data-tile="'+esc(x)+'"')).join('')+tile('Other','⋯',false,'data-act="o:tile"')+'</div>';
  top+='<div style="display:flex;flex-wrap:wrap;gap:8px;padding:10px 12px 4px">';
  top+=(st!=='all')?pill('📍 '+esc(st)+' ✕',true,'x:state'):pill('📍 State ▾',false,'o:state');
@@ -3124,6 +3131,7 @@ function open(c,s){
   const a=e.target.closest('[data-act]');if(!a)return;
   const act=a.dataset.act;
   if(act==='back'){const c0=cat;try{sessionStorage.removeItem('bqCatScr');}catch(x){}close();try{window.bqOpenPicker(c0);}catch(x){}}
+  else if(act&&act.indexOf('chip:')===0){const k=act.slice(5);chips[k]=!chips[k];paint();}
   else if(act==='savesearch'){(async()=>{
    const{data:{session}}=await supabaseClient.auth.getSession();
    if(!session){if(window.openAuth)openAuth('login');return;}
