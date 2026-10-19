@@ -3872,50 +3872,57 @@ function side(){
 setInterval(async()=>{try{await load();placeTiles();if(window.innerWidth>=1000)side();}catch(e){}},500);
 })();
 
-/* ===== Refresh keeps you on the same listing page and on My listings ===== */
+/* ===== Refresh keeps you on the same screen (listing page, My listings, Sell, settings, admin and more) ===== */
 (function(){
-const KEY='bqScreen2';
+const KEY='bqScreen3';
 let ready=false;
+const $=id=>document.getElementById(id);
+const OV=[
+ ['bqSetScr','gear'],['bqSavedOv','bqSavedBtn'],['bqAlertOv','bqAlertBtn'],['bqPayOv','bqPayBtn'],
+ ['promoOverlay','my'],['editOverlay','my'],
+ ['aprOverlay','bqPromoAdmin'],['lpOverlay','bqLpAdmin'],['adsAdmOverlay','bqAdsAdmin'],['verOverlay','bqVerBtn'],
+ ['adFormOverlay','adform'],['myAdsOverlay','bqMyAds'],['blockOverlay','bqBlocked'],['sellOverlay','sell'],['myOverlay','my']
+];
+function isOpen(id){
+ const e=$(id);if(!e)return false;
+ if(e.classList.contains('modal-overlay'))return e.classList.contains('show');
+ return getComputedStyle(e).display!=='none';
+}
 function now(){
- const d=document.getElementById('detailOverlay');
+ const d=$('detailOverlay');
  if(d&&d.classList.contains('show')){
   const l=(typeof currentDetailListing!=='undefined')?currentDetailListing:null;
   if(l&&l.id!=null)return{t:'detail',id:String(l.id)};
  }
- const m=document.getElementById('myOverlay');
- if(m&&m.classList.contains('show'))return{t:'my'};
+ for(const[id,code]of OV){if(isOpen(id))return{t:'ov',c:code};}
  return null;
 }
 setInterval(()=>{
  if(!ready)return;
- try{
-  const s=now();
-  if(s)sessionStorage.setItem(KEY,JSON.stringify(s));
-  else sessionStorage.removeItem(KEY);
- }catch(e){}
+ try{const s=now();if(s)sessionStorage.setItem(KEY,JSON.stringify(s));else sessionStorage.removeItem(KEY);}catch(e){}
 },400);
+const wait=ms=>new Promise(r=>setTimeout(r,ms));
+async function waitFor(fn,ms){const t0=Date.now();while(Date.now()-t0<(ms||9000)){const r=fn();if(r)return r;await wait(250);}return null;}
+async function logged(){try{const{data:{session}}=await supabaseClient.auth.getSession();return !!session;}catch(e){return false;}}
 async function findListing(id){
- try{
-  const hit=(typeof currentListings!=='undefined'?currentListings:[]).find(x=>String(x.id)===id);
-  if(hit)return hit;
- }catch(e){}
- try{
-  const{data}=await supabaseClient.from('listings').select('*').eq('id',id).maybeSingle();
-  return data||null;
- }catch(e){return null;}
+ try{const hit=(typeof currentListings!=='undefined'?currentListings:[]).find(x=>String(x.id)===id);if(hit)return hit;}catch(e){}
+ try{const{data}=await supabaseClient.from('listings').select('*').eq('id',id).maybeSingle();return data||null;}catch(e){return null;}
+}
+async function replay(code){
+ if(code==='my'){if(window.openMine&&await logged())await window.openMine();return;}
+ if(code==='sell'){if(window.openSell&&await logged())window.openSell();return;}
+ if(code==='adform'){if(window.openAdForm&&await logged())window.openAdForm();return;}
+ const id=code==='gear'?'bqGear':code;
+ const b=await waitFor(()=>$(id));
+ if(b)b.click();
 }
 setTimeout(async()=>{
  try{
   const raw=sessionStorage.getItem(KEY);
   if(raw){
    const s=JSON.parse(raw);
-   if(s.t==='my'&&typeof window.openMine==='function'){
-    const{data:{session}}=await supabaseClient.auth.getSession();
-    if(session)await window.openMine();
-   }else if(s.t==='detail'&&s.id&&typeof window.openDetail==='function'){
-    const l=await findListing(s.id);
-    if(l)await window.openDetail(l);
-   }
+   if(s.t==='detail'&&s.id&&typeof window.openDetail==='function'){const l=await findListing(s.id);if(l)await window.openDetail(l);}
+   else if(s.t==='ov'&&s.c)await replay(s.c);
   }
  }catch(e){}
  ready=true;
