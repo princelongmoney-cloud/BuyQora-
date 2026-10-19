@@ -830,10 +830,15 @@ async function openPromo(listingId){
  if(!l||l.seller_id!==session.user.id){alert('Listing not found.');return;}
  if(l.status!=='active'){alert('Only live listings can be promoted.');return;}
  if(!pk||!pk.length||!du||!du.length){alert('Promotions are not available yet. Please try again later.');return;}
- const{data:cur}=await supabaseClient.from('promotions').select('id,status,expires_at').eq('listing_id',l.id).in('status',['active','pending_payment']).order('created_at',{ascending:false}).limit(1);
+ const{data:cur}=await supabaseClient.from('promotions').select('id,status,expires_at,package_id').eq('listing_id',l.id).in('status',['active','pending_payment']).order('created_at',{ascending:false}).limit(1);
+ let renewOf=null;
  if(cur&&cur.length){
   const c=cur[0];
-  if(c.status==='active'&&new Date(c.expires_at)>new Date()){alert('This listing already has an active promotion.');return;}
+  if(c.status==='active'&&new Date(c.expires_at)>new Date()){
+   const left=(new Date(c.expires_at)-Date.now())/86400000;
+   if((c.package_id==='vip'||c.package_id==='diamond')&&left<=30)renewOf=c;
+   else{alert(left>30&&(c.package_id==='vip'||c.package_id==='diamond')?'You can renew in the last 30 days of the year. Your '+(c.package_id==='vip'?'VIP':'Diamond')+' runs until '+new Date(c.expires_at).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})+'.':'This listing already has an active promotion.');return;}
+  }
   if(c.status==='pending_payment'){
    const{data:pp}=await supabaseClient.from('payments').select('id').eq('purpose','promotion').eq('related_id',c.id).limit(1);
    if(pp&&pp.length){alert('A promotion for this listing is already waiting for payment confirmation.');return;}
@@ -842,7 +847,8 @@ async function openPromo(listingId){
  const{data:mp}=await supabaseClient.from('profiles').select('account_type,verification_status').eq('id',session.user.id).maybeSingle();
  st.vipOk=true;
  st.listing=l;st.pkgs=pk;st.durs=du.concat(du.some(d=>Number(d.days)===365)?[]:[{days:365,multiplier:40}]);st.pkg=(pk.find(p=>p.id!=='vip'||st.vipOk)||pk[0]).id;st.instr=((se&&se.value)||'').trim();
- $('promoTitle').textContent=l.title;
+ if(renewOf)st.pkg=renewOf.package_id;
+ $('promoTitle').textContent=l.title+(renewOf?' (renewal: your new year starts when the current one ends)':'');
  fillDays();
  $('promoPay').innerHTML=st.instr?'<p><b>Pay by bank transfer to:</b></p><p style="white-space:pre-wrap;background:#f7f7f7;border-radius:8px;padding:10px;margin-bottom:10px">'+esc(st.instr)+'</p>':'<p style="color:#c0392b">Payment details are not set up yet. Please contact support.</p>';
  $('promoRef').value='';
@@ -906,10 +912,16 @@ async function decorate(){
   else if(p.status==='rejected')t='Promotion not approved ('+nm+')';
   else if(p.status==='suspended')t='Promotion suspended ('+nm+')';
   if(t)line.textContent=t;
+  if(t&&p.status==='active'&&(p.package_id==='vip'||p.package_id==='diamond')){
+   const left=(new Date(p.expires_at)-Date.now())/86400000;
+   if(left>0&&left<=30)line.insertAdjacentHTML('beforeend',' <button type="button" class="bqRenewBtn" data-id="'+p.listing_id+'" style="margin-left:6px;padding:4px 12px;border:1px solid #d4af37;background:#1b1b1d;color:#d4af37;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer">Renew '+esc(nm)+'</button>');
+  }
  });
 }
 new MutationObserver(()=>decorate()).observe($('myList'),{childList:true,subtree:true});
 $('myList').addEventListener('click',e=>{
+ const rn=e.target.closest('.bqRenewBtn');
+ if(rn){e.stopImmediatePropagation();openPromo(rn.dataset.id);return;}
  const b=e.target.closest('button[data-a="promote"]');
  if(!b)return;
  e.stopImmediatePropagation();
@@ -979,6 +991,17 @@ async function load(){
  for(const uid of [...new Set(rows.map(r=>r.seller_id))]){names[uid]=await getProfileName(uid);}
  render();revenue();
 }
+async function joinRenewal(r){
+ try{
+  if(r.package_id!=='vip'&&r.package_id!=='diamond')return;
+  const{data:prev}=await supabaseClient.from('promotions').select('id,expires_at').eq('listing_id',r.listing_id).eq('package_id',r.package_id).eq('status','active').neq('id',r.id).gt('expires_at',new Date().toISOString()).order('expires_at',{ascending:false}).limit(1);
+  if(!prev||!prev.length)return;
+  const days=Number(r.days)>0?Number(r.days):365;
+  const nx=new Date(new Date(prev[0].expires_at).getTime()+days*86400000).toISOString();
+  await supabaseClient.from('promotions').update({expires_at:nx}).eq('id',r.id);
+  await supabaseClient.from('promotions').update({status:'expired'}).eq('id',prev[0].id);
+ }catch(e){}
+}
 async function loadPk(){
  let r=await supabaseClient.from('promotion_packages').select('id,name,price_7d,price_year').order('sort_order');
  if(r.error)r=await supabaseClient.from('promotion_packages').select('id,name,price_7d').order('sort_order');
@@ -1018,9 +1041,11 @@ $('aprList').onclick=async e=>{
   const p=pays[r.id];
   ({error:err}=await supabaseClient.from('payments').update({status:'confirmed',confirmed_by:session.user.id,confirmed_at:new Date().toISOString()}).eq('id',p.id));
   if(!err)({error:err}=await supabaseClient.rpc('activate_promotion',{p_id:r.id}));
+  if(!err)await joinRenewal(r);
   if(!err)note(r,'Your promotion is live','Payment confirmed. "'+name+'" is now promoted.');
  }else if(a==='activate'){
   ({error:err}=await supabaseClient.rpc('activate_promotion',{p_id:r.id}));
+  if(!err)await joinRenewal(r);
   if(!err)note(r,'Your promotion is live','"'+name+'" is now promoted.');
  }else if(a==='reject'){
   if(!confirm('Reject the promotion for "'+name+'"? If the seller already paid, you must refund them yourself.')){b.disabled=false;return;}
