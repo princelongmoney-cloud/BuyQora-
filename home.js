@@ -840,7 +840,7 @@ async function openPromo(listingId){
   }
  }
  const{data:mp}=await supabaseClient.from('profiles').select('account_type,verification_status').eq('id',session.user.id).maybeSingle();
- st.vipOk=!!(mp&&mp.account_type==='business'&&mp.verification_status==='verified');
+ st.vipOk=true;
  st.listing=l;st.pkgs=pk;st.durs=du.concat(du.some(d=>Number(d.days)===365)?[]:[{days:365,multiplier:40}]);st.pkg=(pk.find(p=>p.id!=='vip'||st.vipOk)||pk[0]).id;st.instr=((se&&se.value)||'').trim();
  $('promoTitle').textContent=l.title;
  fillDays();
@@ -2793,7 +2793,7 @@ function draw(){
   card('none','No promo','Post a normal listing. Your ad stays live for free for the standard period.','Free',chosen==='none')+
   pkgs.map(p=>{
    if(p.id==='vip'&&!vipOk)return card('lock',p.name,'For verified business brands only.','Locked',false);
-   if(p.id==='vip'||p.id==='diamond')return card(p.id,p.name,(p.description||'')+' Pay once for a full year, then renew.',naira(Number(p.price_year)>0?Math.round(Number(p.price_year)):Math.round(Number(p.price_7d)*yearMult))+' / year',chosen===p.id);
+   if(p.id==='vip'||p.id==='diamond')return card(p.id,p.name,(p.description||'').replace(/[.\s]*$/,'.')+' Pay once for a full year, then renew.',naira(Number(p.price_year)>0?Math.round(Number(p.price_year)):Math.round(Number(p.price_7d)*yearMult))+' / year',chosen===p.id);
    return card(p.id,p.name,p.description,naira(p.price_7d)+' / 7 days',chosen===p.id);
   }).join('');
 }
@@ -2801,7 +2801,7 @@ async function load(){
  if(loaded)return;loaded=true;
  try{const{data}=await supabaseClient.from('promotion_packages').select('*').eq('active',true).order('sort_order');pkgs=data||[];}catch(e){}
  try{const{data:du}=await supabaseClient.from('promotion_durations').select('days,multiplier');const y=(du||[]).find(d=>Number(d.days)===365);if(y)yearMult=Number(y.multiplier);}catch(e){}
- try{const{data:{session}}=await supabaseClient.auth.getSession();if(session){const{data:mp}=await supabaseClient.from('profiles').select('account_type,verification_status').eq('id',session.user.id).maybeSingle();vipOk=!!(mp&&mp.account_type==='business'&&mp.verification_status==='verified');}}catch(e){}
+ try{const{data:{session}}=await supabaseClient.auth.getSession();if(session){const{data:mp}=await supabaseClient.from('profiles').select('account_type,verification_status').eq('id',session.user.id).maybeSingle();vipOk=true;}}catch(e){}
  draw();
 }
 function add(){
