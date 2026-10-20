@@ -4194,6 +4194,7 @@ function icon(L,sz){
   :star;
  return '<svg width="'+sz+'" height="'+sz+'" viewBox="0 0 24 24" aria-hidden="true" style="flex:none">'+body+'</svg>';
 }
+window.bqStarIconHTML=icon;window.bqStarLevels=LEVELS;
 window.bqStarChip=function(created){
  const L=window.bqStarLevel(created);if(!L)return '';
  return '<span class="bqStarChip" role="button" tabindex="0" aria-label="'+esc(L.name)+' — tap for details" data-c="'+esc(created)+'" style="display:inline-flex;align-items:center;gap:6px;background:rgba(128,128,128,.2);border-radius:10px;padding:5px 11px;font-size:14px;font-weight:600;white-space:nowrap;cursor:pointer">'+icon(L,16)+esc(L.name)+'</span>';
@@ -4210,4 +4211,20 @@ function open(created){
 }
 document.addEventListener('click',e=>{const c=e.target.closest&&e.target.closest('.bqStarChip');if(c){e.preventDefault();e.stopPropagation();open(c.dataset.c);}},true);
 document.addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&e.target.classList&&e.target.classList.contains('bqStarChip')){e.preventDefault();open(e.target.dataset.c);}});
+})();
+
+
+
+/* ===== Add the Star badge to the "Understand our badges" text ===== */
+(function(){
+if(!window.bqBadgesHTML||!window.bqStarLevels)return;
+const L=window.bqStarLevels.slice().reverse();
+const rows=L.map(x=>'<li style="list-style:none;margin:0 0 8px -18px;display:flex;align-items:center;gap:10px">'+window.bqStarIconHTML(x,24)+'<span><b>'+x.name+'</b> — '+x.title+' ('+x.txt.replace('at least ','')+')</span></li>').join('');
+const sec='<h4 style="margin:14px 0 4px">⭐ 4. Star Badge — Membership Time</h4><p>The Star badge represents how long a seller has maintained a BuyQora account. It is free and automatic, and sellers cannot buy it or edit it.</p><p><b>Levels:</b></p><ul style="margin:0 0 6px 18px;padding:0">'+rows+'</ul><p><b>Important:</b> The Star badge shows membership time only. It is not proof of identity, honesty or successful sales, and it does not by itself make a transaction risk-free.</p>';
+let h=window.bqBadgesHTML;
+const mark='<h4 style="margin:14px 0 4px">🔒 Our Commitment to Transparency</h4>';
+if(h.indexOf(mark)>-1)h=h.replace(mark,sec+mark);
+const med='<li>🥇 Medal: Paid identity verification, subject to successful verification.</li>';
+if(h.indexOf(med)>-1)h=h.replace(med,med+'<li>⭐ Star: Free recognition for how long the seller has been on BuyQora.</li>');
+window.bqBadgesHTML=h;
 })();
