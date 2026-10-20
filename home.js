@@ -3963,3 +3963,37 @@ setTimeout(async()=>{
  ready=true;
 },2600);
 })();
+
+
+/* ===== Seller name under Recommended / Featured / Recently viewed rows ===== */
+(function(){
+const P={};let busy=false;
+const esc=x=>String(x==null?'':x).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const st=document.createElement('style');
+st.textContent='.bqRowNm{font-size:12px;color:#555;margin-top:2px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}';
+document.head.appendChild(st);
+async function run(){
+ if(busy)return;
+ const cells=[...document.querySelectorAll('#bqRec>[data-id],#bqFeat>[data-id],#bqRv>[data-id]')].filter(c=>!c.querySelector('.bqRowNm'));
+ if(!cells.length)return;
+ let list=[];try{list=currentListings||[];}catch(e){}
+ const byId={};list.forEach(l=>{byId[String(l.id)]=l;});
+ const need=[...new Set(cells.map(c=>(byId[c.dataset.id]||{}).seller_id).filter(id=>id&&!P[id]))];
+ busy=true;
+ try{
+  if(need.length){
+   const{data}=await supabaseClient.from('profiles').select('id,full_name,business_name').in('id',need);
+   (data||[]).forEach(p=>{P[p.id]=p;});
+   need.forEach(id=>{if(!P[id])P[id]={id:id};});
+  }
+  cells.forEach(c=>{
+   if(c.querySelector('.bqRowNm'))return;
+   const l=byId[c.dataset.id];if(!l)return;
+   const p=P[l.seller_id]||{};
+   c.insertAdjacentHTML('beforeend','<div class="bqRowNm">'+esc(p.business_name||p.full_name||'Seller')+'</div>');
+  });
+ }catch(e){}
+ busy=false;
+}
+setInterval(run,700);
+})();
