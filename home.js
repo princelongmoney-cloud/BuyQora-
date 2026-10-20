@@ -3763,18 +3763,6 @@ document.head.appendChild(st);
 })();
 
 
-/* ===== Update check: shows briefly when the newest file is running ===== */
-(function(){
-const BUILD='18Oct-D';
-function show(){
- const d=document.createElement('div');
- d.textContent='BuyQora updated · build '+BUILD;
- d.style.cssText='position:fixed;top:70px;left:50%;transform:translateX(-50%);background:#0b6b3a;color:#fff;font-size:12px;font-weight:600;padding:6px 12px;border-radius:999px;z-index:99999;box-shadow:0 2px 8px rgba(0,0,0,.3)';
- document.body.appendChild(d);setTimeout(()=>d.remove(),4000);
-}
-if(document.body)show();else document.addEventListener('DOMContentLoaded',show);
-})();
-
 /* ===== Advert at the top of the listing page (like Jiji) ===== */
 (function(){
 const esc=x=>String(x==null?'':x).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
