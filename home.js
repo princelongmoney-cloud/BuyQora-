@@ -4087,3 +4087,19 @@ setInterval(()=>{
  paintSave();
 },250);
 })();
+
+
+/* ===== Photo viewer: keep the screen steady (no shaking) when Share opens ===== */
+(function(){
+const $=id=>document.getElementById(id);
+const v=$('bqViewer'),sh=$('bqVShare');if(!v||!sh)return;
+const st=document.createElement('style');
+st.textContent='#bqViewer{touch-action:none !important;overscroll-behavior:contain !important}';
+document.head.appendChild(st);
+function freeze(){
+ try{const r=v.getBoundingClientRect();v.style.top='0';v.style.left='0';v.style.right='0';v.style.bottom='auto';v.style.height=Math.round(r.height)+'px';}catch(e){}
+}
+function unfreeze(){v.style.height='';v.style.bottom='';v.style.top='';v.style.left='';v.style.right='';}
+sh.onclick=()=>{freeze();const b=$('dShare');if(b)b.click();};
+setInterval(()=>{if(getComputedStyle(v).display==='none'&&v.style.height)unfreeze();},500);
+})();
