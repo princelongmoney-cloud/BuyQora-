@@ -2205,7 +2205,7 @@ async function bottom(l,prof,own){
  card.querySelector('.bq-viewads').onclick=()=>{(moreH||card).scrollIntoView({behavior:'smooth',block:'center'});};
  /* feedback preview */
  try{
-  const {data:rv}=await supabaseClient.from('reviews').select('id,rating,comment,created_at,reviewer_id').eq('seller_id',l.seller_id).order('created_at',{ascending:false}).limit(2);
+  const {data:rv}=await supabaseClient.from('reviews').select('id,rating,comment,created_at,reviewer_id').eq('seller_id',l.seller_id).order('created_at',{ascending:false}).limit(5);
   const {data:sm}=await supabaseClient.from('seller_ratings').select('review_count').eq('seller_id',l.seller_id).maybeSingle();
   if(rv&&rv.length){
    const pm={};
