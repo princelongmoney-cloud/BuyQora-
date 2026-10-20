@@ -2298,9 +2298,44 @@ async function enhance(l){
  /* Call button (only when the seller chose to show their number) */
  const priceP=root.querySelector('p.price');
  let anchor=priceP;
- if(prof&&prof.show_phone&&prof.phone){
-  const tel=String(prof.phone).replace(/[^0-9+]/g,'');
-  if(tel){const a=document.createElement('a');a.className='bq-call';a.href='tel:'+tel;a.innerHTML='📞 Call';anchor.insertAdjacentElement('afterend',a);anchor=a;}
+ {
+  const wrap=document.createElement('div');wrap.className='bq-contactrow';wrap.style.cssText='margin:10px 0';
+  const hasPhone=!!(prof&&prof.show_phone&&prof.phone);
+  const tel=hasPhone?String(prof.phone).replace(/[^0-9+]/g,''):'';
+  const BS='display:flex;align-items:center;justify-content:center;gap:8px;font-weight:700;font-size:16px;border-radius:12px;padding:13px 8px;text-decoration:none;box-sizing:border-box;cursor:pointer;';
+  const rb=document.createElement('button');rb.id='bqCallBack';rb.type='button';
+  rb.style.cssText=BS+'flex:1;min-width:0;background:#fff;color:#0b6b3a;border:2px solid #0b6b3a';
+  rb.textContent='Request call back';
+  const row1=document.createElement('div');row1.style.cssText='display:flex;gap:10px';
+  row1.appendChild(rb);
+  if(tel){const a=document.createElement('a');a.className='bq-call';a.href='tel:'+tel;a.innerHTML='📞 Call';a.style.cssText='flex:1;min-width:0;margin:0';row1.appendChild(a);}
+  wrap.appendChild(row1);
+  if(tel){
+   let d=String(prof.phone).trim();const plus=d.charAt(0)==='+';d=d.replace(/\D/g,'');
+   if(!plus){if(d.indexOf('00')===0)d=d.slice(2);else if(d.charAt(0)==='0')d='234'+d.slice(1);else if(d.length===10)d='234'+d;}
+   const link=location.origin+location.pathname+'?l='+l.id;
+   const msg='Hello, I saw "'+l.title+'" (₦'+Number(l.price).toLocaleString()+') on BuyQora and I am interested. '+link;
+   const w=document.createElement('a');w.id='bqWhatsApp';w.href='https://wa.me/'+d+'?text='+encodeURIComponent(msg);w.target='_blank';w.rel='noopener';
+   w.style.cssText=BS+'margin-top:10px;background:#25d366;color:#fff';
+   w.innerHTML='💬 WhatsApp';
+   wrap.appendChild(w);
+  }
+  anchor.insertAdjacentElement('afterend',wrap);anchor=wrap;
+  rb.onclick=async()=>{
+   const {data:{session:s3}}=await supabaseClient.auth.getSession();
+   if(!s3){alert('Please log in first.');if(typeof openAuth==='function')openAuth('login');return;}
+   let ph='';
+   try{const {data:mp}=await supabaseClient.from('profiles').select('phone').eq('id',s3.user.id).maybeSingle();ph=(mp&&mp.phone)||'';}catch(e){}
+   if(!ph){ph=(prompt('Enter your phone number so the seller can call you back:')||'').trim();}
+   if(!ph)return;
+   rb.disabled=true;
+   try{
+    closeDetail();
+    await openChat(l.id,l.title,l.seller_id);
+    const ci=$('chatInput');if(ci){ci.value='📞 Please call me back on '+ph+' about "'+l.title+'".';await sendChatMessage();}
+   }catch(e){}
+   rb.disabled=false;
+  };
  }
 
  /* Chat with the seller */
