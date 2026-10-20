@@ -481,7 +481,7 @@ function show(i){
  if(!list.length)return;
  idx=(i+list.length)%list.length;
  $('bqVImg').src=list[idx];
- $('bqVCount').textContent=list.length>1?(idx+1)+' / '+list.length:'';
+ $('bqVCount').textContent=list.length>1?(idx+1)+'/'+list.length:'';
  const m=list.length>1?'block':'none';
  $('bqVPrev').style.display=m;
  $('bqVNext').style.display=m;
@@ -497,7 +497,7 @@ function openV(){
  $('bqViewer').style.display='flex';
  show(i);
 }
-function closeV(){$('bqViewer').style.display='none';}
+function closeV(){$('bqViewer').style.display='none';}window.bqVShow=show;window.bqVList=()=>list;window.bqVIdx=()=>idx;
 $('bqVClose').onclick=closeV;
 $('bqVPrev').onclick=()=>show(idx-1);
 $('bqVNext').onclick=()=>show(idx+1);
@@ -4040,4 +4040,50 @@ if(rov){
   was=now;
  }).observe(rov,{attributes:true,attributeFilter:['class']});
 }
+})();
+
+
+
+/* ===== Photo viewer like Jiji: top bar (back, 2/2, save, share) + thumbnail strip ===== */
+(function(){
+const $=id=>document.getElementById(id);
+const esc=x=>String(x==null?'':x).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const st=document.createElement('style');
+st.textContent='#bqViewer{padding:64px 0 96px !important;box-sizing:border-box !important}'+
+ '#bqVClose,#bqVPrev,#bqVNext{display:none !important}'+
+ '#bqVCount{top:0 !important;bottom:auto !important;left:64px !important;right:auto !important;width:auto !important;text-align:left !important;height:64px !important;line-height:64px !important;font-size:19px !important;color:#fff !important;z-index:4 !important;pointer-events:none}'+
+ '#bqVBar{position:absolute;top:0;left:0;right:0;height:64px;background:#000;z-index:3;display:flex;align-items:center;justify-content:space-between;padding:0 6px}'+
+ '#bqVBar .bqVb{width:52px;height:52px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#fff}'+
+ '#bqVThumbs{position:absolute;bottom:0;left:0;right:0;height:96px;background:#000;z-index:3;display:flex;gap:10px;align-items:center;padding:0 12px;overflow-x:auto;box-sizing:border-box}'+
+ '#bqVThumbs img{width:68px;height:68px;object-fit:cover;border-radius:6px;flex:none;cursor:pointer}';
+document.head.appendChild(st);
+const v=$('bqViewer');if(!v)return;
+const ICON={
+ back:'<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 5l-7 7 7 7"/></svg>',
+ save:'<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linejoin="round"><path d="M6 3h12v18l-6-4-6 4z"/></svg>',
+ saved:'<svg width="26" height="26" viewBox="0 0 24 24" fill="#fff" stroke="#fff" stroke-width="2" stroke-linejoin="round"><path d="M6 3h12v18l-6-4-6 4z"/></svg>',
+ share:'<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg>'
+};
+v.insertAdjacentHTML('beforeend','<div id="bqVBar"><div class="bqVb" id="bqVBack" role="button" aria-label="Back">'+ICON.back+'</div><div style="display:flex"><div class="bqVb" id="bqVSave" role="button" aria-label="Save">'+ICON.save+'</div><div class="bqVb" id="bqVShare" role="button" aria-label="Share">'+ICON.share+'</div></div></div><div id="bqVThumbs"></div>');
+$('bqVBack').onclick=()=>{const c=$('bqVClose');if(c)c.click();};
+$('bqVShare').onclick=()=>{const b=$('dShare');if(b)b.click();};
+$('bqVSave').onclick=()=>{const b=$('detailFavBtn');if(b)b.click();setTimeout(paintSave,500);};
+$('bqVThumbs').onclick=e=>{const im=e.target.closest('img[data-i]');if(im&&window.bqVShow)window.bqVShow(+im.dataset.i);};
+function paintSave(){
+ try{const l=currentDetailListing;const on=!!(l&&currentFavorites&&currentFavorites.has(l.id));$('bqVSave').innerHTML=on?ICON.saved:ICON.save;}catch(e){}
+}
+let sig='';
+setInterval(()=>{
+ if(getComputedStyle(v).display==='none'){sig='';return;}
+ if(!window.bqVList)return;
+ const list=window.bqVList()||[],idx=window.bqVIdx();
+ const s2=list.join('|')+'#'+idx;
+ if(s2===sig)return;
+ sig=s2;
+ const t=$('bqVThumbs');
+ t.style.display=list.length>1?'flex':'none';
+ t.innerHTML=list.map((u,i)=>'<img data-i="'+i+'" alt="" src="'+esc(u)+'" style="border:2px solid '+(i===idx?'#fff':'transparent')+';opacity:'+(i===idx?'1':'.55')+'">').join('');
+ const cur=t.querySelector('img[data-i="'+idx+'"]');if(cur&&cur.scrollIntoView)cur.scrollIntoView({inline:'center',block:'nearest'});
+ paintSave();
+},250);
 })();
