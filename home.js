@@ -2639,9 +2639,9 @@ setInterval(add,1000);
 
 /* ===== Profile screen: tidy button layout ===== */
 (function(){
-const ORDER=['bqAdBtn','bqMine','bqPayBtn','bqMyAds','bqBlocked','bqSavedBtn','bqPush','bqAlertBtn','bqHelpBtn'];
+const ORDER=['bqAdBtn','bqMine','bqPayBtn','bqMyAds','bqBlocked','bqSavedBtn','bqPush','bqAlertBtn','bqHelpBtn','bqBadgeBtn'];
 const ICON={bqMine:'📦 ',bqMyAds:'📊 ',bqBlocked:'🚫 '};
-const LABEL={bqAdBtn:'📢 Advertise on BuyQora',bqMine:'📦 My listings',bqPayBtn:'🧾 My payments',bqMyAds:'📊 My ads',bqBlocked:'🚫 Blocked users',bqSavedBtn:'🔍 Saved searches',bqAlertBtn:'⚙️ Alert settings',bqHelpBtn:'💬 Help & Support'};
+const LABEL={bqAdBtn:'📢 Advertise on BuyQora',bqMine:'📦 My listings',bqPayBtn:'🧾 My payments',bqMyAds:'📊 My ads',bqBlocked:'🚫 Blocked users',bqSavedBtn:'🔍 Saved searches',bqAlertBtn:'⚙️ Alert settings',bqHelpBtn:'💬 Help & Support',bqBadgeBtn:'🏆 Understand our badges'};
 function css(b,full,bg,color,border){
  b.style.setProperty('margin','0','important');
  b.style.setProperty('width','100%','important');
@@ -2671,6 +2671,7 @@ function tidy(){
   if(!b)return;
   if(LABEL[id]&&b.textContent!==LABEL[id])b.textContent=LABEL[id];
   if(id==='bqAdBtn')css(b,true,'#8e24aa','#fff','0');
+  else if(id==='bqBadgeBtn')css(b,true,'#fff','#0b6b3a','1.5px solid #0b6b3a');
   else if(id==='bqAlertBtn')css(b,false,'#fff','#0b6b3a','1.5px solid #0b6b3a');
   else if(id==='bqPush')css(b,false,'#e8f5ee','#0b6b3a','1.5px solid #0b6b3a');
   else css(b,false,'#fff','#0b6b3a','1.5px solid #0b6b3a');
@@ -3353,7 +3354,7 @@ function act(a){
   sheet('About BuyQora','<div style="line-height:1.6;font-size:15px">BuyQora is a Nigerian marketplace where you can buy and sell almost anything, near you.<br><br>Support: <a href="mailto:'+SUPPORT+'" style="color:#0b6b3a;font-weight:bold">'+SUPPORT+'</a><br>Support is by email only.</div>');return;
  }
  if(a==='badges'){
-  sheet('Understand our badges',"<div style=\"line-height:1.55;font-size:15px;max-height:68vh;overflow-y:auto;padding-right:4px\"><p>At BuyQora, our special badges help users recognize sellers who have chosen additional paid services or completed specific requirements on the platform. Each badge has its own meaning, benefits, and eligibility requirements.</p><h4 style=\"margin:14px 0 4px\">👑 1. VIP Crown Badge</h4><p>The VIP Crown represents a seller who has purchased an eligible VIP promotional package on BuyQora.</p><p><b>What it means:</b></p><ul style=\"margin:0 0 6px 18px;padding:0\"><li>The seller has paid for an eligible VIP service.</li><li>The badge identifies the seller's VIP status.</li><li>The seller may receive additional promotional visibility according to the package purchased.</li></ul><p><b>Important:</b> The VIP Crown is not free. Sellers must pay for the eligible VIP package to qualify. The badge does not automatically guarantee that a seller is honest or that every transaction is safe.</p><h4 style=\"margin:14px 0 4px\">💎 2. Diamond Badge</h4><p>The Diamond badge represents a seller who has purchased an eligible premium promotional package on BuyQora.</p><p><b>What it means:</b></p><ul style=\"margin:0 0 6px 18px;padding:0\"><li>The seller has paid for an eligible Diamond or premium service.</li><li>The badge distinguishes the seller's premium promotional status.</li><li>The seller may receive enhanced listing visibility or other benefits included in the package.</li></ul><p><b>Important:</b> The Diamond badge is a paid feature, not a free reward. Its benefits depend on the package purchased. It does not, by itself, confirm the seller's identity.</p><h4 style=\"margin:14px 0 4px\">🥇 3. Medal Badge — Verified Seller</h4><p>The Medal badge represents a seller who has successfully completed BuyQora's identity verification process and paid the required verification fee.</p><p><b>What it means:</b></p><ul style=\"margin:0 0 6px 18px;padding:0\"><li>The seller has paid the required verification fee.</li><li>The seller has completed the required identity checks successfully.</li><li>The badge helps buyers identify sellers whose identities have been verified by BuyQora.</li></ul><p><b>Important:</b> The Medal badge is not free. Sellers must pay the verification fee and pass the required checks before receiving it. Paying alone does not guarantee approval.</p><h4 style=\"margin:14px 0 4px\">🔒 Our Commitment to Transparency</h4><p>BuyQora believes in clear information and honest transactions. Our badges serve different purposes:</p><ul style=\"margin:0 0 6px 18px;padding:0\"><li>👑 VIP Crown: Paid VIP promotional status.</li><li>💎 Diamond: Paid premium promotional status.</li><li>🥇 Medal: Paid identity verification, subject to successful verification.</li></ul><p>Please remember: A promotional badge is not a guarantee of product quality, seller honesty, or a risk-free transaction. Buyers should always check listing details, ask questions, and use caution before making payments.</p><p style=\"color:#0b6b3a;font-weight:bold\">BuyQora — Buy. Sell. Discover. Promote. Grow.</p></div>");return;
+  sheet('Understand our badges',window.bqBadgesHTML);return;
  }
  if(a==='conn'){
   sheet('Check connection','<div id="bqCn" style="font-size:16px;padding:6px 0">Checking…</div>');
@@ -4141,4 +4142,28 @@ function freeze(){
 function unfreeze(){v.style.height='';v.style.bottom='';v.style.top='';v.style.left='';v.style.right='';}
 sh.onclick=()=>{freeze();const b=$('dShare');if(b)b.click();};
 setInterval(()=>{if(getComputedStyle(v).display==='none'&&v.style.height)unfreeze();},500);
+})();
+
+
+/* ===== Understand our badges: shared text + tile on Profile ===== */
+(function(){
+window.bqBadgesHTML="<div style=\"line-height:1.55;font-size:15px;max-height:68vh;overflow-y:auto;padding-right:4px\"><p>At BuyQora, our special badges help users recognize sellers who have chosen additional paid services or completed specific requirements on the platform. Each badge has its own meaning, benefits, and eligibility requirements.</p><h4 style=\"margin:14px 0 4px\">👑 1. VIP Crown Badge</h4><p>The VIP Crown represents a seller who has purchased an eligible VIP promotional package on BuyQora.</p><p><b>What it means:</b></p><ul style=\"margin:0 0 6px 18px;padding:0\"><li>The seller has paid for an eligible VIP service.</li><li>The badge identifies the seller's VIP status.</li><li>The seller may receive additional promotional visibility according to the package purchased.</li></ul><p><b>Important:</b> The VIP Crown is not free. Sellers must pay for the eligible VIP package to qualify. The badge does not automatically guarantee that a seller is honest or that every transaction is safe.</p><h4 style=\"margin:14px 0 4px\">💎 2. Diamond Badge</h4><p>The Diamond badge represents a seller who has purchased an eligible premium promotional package on BuyQora.</p><p><b>What it means:</b></p><ul style=\"margin:0 0 6px 18px;padding:0\"><li>The seller has paid for an eligible Diamond or premium service.</li><li>The badge distinguishes the seller's premium promotional status.</li><li>The seller may receive enhanced listing visibility or other benefits included in the package.</li></ul><p><b>Important:</b> The Diamond badge is a paid feature, not a free reward. Its benefits depend on the package purchased. It does not, by itself, confirm the seller's identity.</p><h4 style=\"margin:14px 0 4px\">🥇 3. Medal Badge — Verified Seller</h4><p>The Medal badge represents a seller who has successfully completed BuyQora's identity verification process and paid the required verification fee.</p><p><b>What it means:</b></p><ul style=\"margin:0 0 6px 18px;padding:0\"><li>The seller has paid the required verification fee.</li><li>The seller has completed the required identity checks successfully.</li><li>The badge helps buyers identify sellers whose identities have been verified by BuyQora.</li></ul><p><b>Important:</b> The Medal badge is not free. Sellers must pay the verification fee and pass the required checks before receiving it. Paying alone does not guarantee approval.</p><h4 style=\"margin:14px 0 4px\">🔒 Our Commitment to Transparency</h4><p>BuyQora believes in clear information and honest transactions. Our badges serve different purposes:</p><ul style=\"margin:0 0 6px 18px;padding:0\"><li>👑 VIP Crown: Paid VIP promotional status.</li><li>💎 Diamond: Paid premium promotional status.</li><li>🥇 Medal: Paid identity verification, subject to successful verification.</li></ul><p>Please remember: A promotional badge is not a guarantee of product quality, seller honesty, or a risk-free transaction. Buyers should always check listing details, ask questions, and use caution before making payments.</p><p style=\"color:#0b6b3a;font-weight:bold\">BuyQora — Buy. Sell. Discover. Promote. Grow.</p></div>";
+
+function add(){
+ if(document.getElementById('bqBadgeBtn'))return;
+ const a=document.getElementById('bqHelpBtn')||document.getElementById('bqAlertBtn');
+ if(!a)return;
+ a.insertAdjacentHTML('afterend','<button class="button" id="bqBadgeBtn">🏆 Understand our badges</button>');
+ document.getElementById('bqBadgeBtn').onclick=open;
+}
+function close(){const o=document.getElementById('bqBadgeOv');if(o)o.remove();}
+function open(){
+ close();
+ const o=document.createElement('div');o.id='bqBadgeOv';
+ o.style.cssText='position:fixed;left:0;right:0;top:0;bottom:var(--bqnavh,72px);z-index:100003;background:rgba(0,0,0,.45);display:flex;align-items:flex-end';
+ o.innerHTML='<div style="background:#fff;width:100%;max-height:85%;overflow-y:auto;border-radius:18px 18px 0 0;padding:18px 16px 26px;color:#222"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px"><div style="font-weight:bold;font-size:20px">Understand our badges</div><span id="bqBadgeX" style="font-size:30px;line-height:1;padding:0 6px;cursor:pointer">✕</span></div>'+window.bqBadgesHTML.replace('max-height:68vh;overflow-y:auto;','')+'</div>';
+ o.onclick=e=>{if(e.target===o||e.target.id==='bqBadgeX')close();};
+ document.body.appendChild(o);
+}
+setInterval(add,1000);
 })();
