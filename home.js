@@ -2278,7 +2278,8 @@ async function enhance(l){
   const pr=window.bqPromoOf?window.bqPromoOf(l):null;
   const pl=pr&&window.bqPromoLbl?window.bqPromoLbl[pr.package_id]:null;
   const promoBadge=pr&&window.bqBadge?window.bqBadge(pr.package_id,'mini'):'';
-  row.innerHTML='<span>📍 '+esc(where||'')+' · '+esc(ago(l.created_at))+'</span><span style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">'+promoBadge+(verified&&window.bqBadge?window.bqBadge('verified'):'')+'</span>';
+  const MEDAL='<span class="bqMedal" role="img" aria-label="Verified seller" title="Verified seller" style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:26px;border-radius:6px;background:#1b1b1d;border:1px solid #4da3ff;box-shadow:0 1px 4px rgba(0,0,0,.35)"><svg width="20" height="20" viewBox="0 0 24 24"><path d="M7 1.5h10l-5 8.5z" fill="#4da3ff"/><circle cx="12" cy="15.5" r="6.5" fill="#d9dee2" stroke="#8fa0ab" stroke-width="1.4"/><circle cx="12" cy="15.5" r="3.6" fill="none" stroke="#8fa0ab" stroke-width="1.3"/></svg></span>';
+  row.innerHTML='<span>📍 '+esc(where||'')+' · '+esc(ago(l.created_at))+'</span><span style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">'+promoBadge+(verified?MEDAL:'')+'</span>';
   h3.parentNode.insertBefore(row,h3);
   root.querySelectorAll('.detail-tag').forEach(t=>{if(t.textContent.trim().startsWith('📍'))t.remove();});
  }
