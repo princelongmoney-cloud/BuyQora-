@@ -3985,3 +3985,14 @@ async function run(){
 }
 setInterval(run,700);
 })();
+
+
+/* ===== Stop saving/downloading pictures (long-press, right-click, drag) ===== */
+(function(){
+const st=document.createElement('style');
+st.textContent='img,video{-webkit-touch-callout:none !important;-webkit-user-drag:none !important;user-drag:none !important;-webkit-user-select:none !important;user-select:none !important}';
+document.head.appendChild(st);
+function isPic(t){return t&&t.closest&&(t.tagName==='IMG'||t.closest('.product-image,#bqViewer,#dMainImg,.bq-rec,.bq-sim,.bqWm'));}
+document.addEventListener('contextmenu',e=>{if(isPic(e.target))e.preventDefault();},true);
+document.addEventListener('dragstart',e=>{if(isPic(e.target))e.preventDefault();},true);
+})();
