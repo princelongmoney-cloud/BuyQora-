@@ -2181,7 +2181,7 @@ async function bottom(l,prof,own){
  const IP='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg>';
  card.style.flexWrap='wrap';card.style.alignItems='flex-start';
  card.innerHTML='<div class="bq-av" style="width:68px;height:68px;border-radius:14px;flex:0 0 68px">'+(prof&&prof.logo_url?'<img src="'+esc(prof.logo_url)+'" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:14px">':esc(nm.charAt(0).toUpperCase()))+'</div>'+
-  '<div class="bq-sinfo"><b>'+esc(nm)+'</b><div style="display:flex;flex-direction:column;align-items:flex-start;gap:6px;margin-top:6px">'+(ver?'<span style="'+PL+'"><span style="color:#2f8cff;display:inline-flex">'+IV+'</span>Verified ID</span>':'')+'<span style="'+PL+'"><span style="display:inline-flex">'+IP+'</span>'+esc(since(prof&&prof.created_at))+'</span></div>'+(prof&&prof.last_seen?'<div class="bq-sub" style="margin-top:8px">'+seenTxt(prof.last_seen)+'</div>':'')+'</div>'+
+  '<div class="bq-sinfo"><b>'+esc(nm)+'</b><div style="display:flex;flex-direction:column;align-items:flex-start;gap:6px;margin-top:6px">'+(ver?'<span style="'+PL+'"><span style="color:#2f8cff;display:inline-flex">'+IV+'</span>Verified ID</span>':'')+'<span style="'+PL+'"><span style="display:inline-flex">'+IP+'</span>'+esc(since(prof&&prof.created_at))+'</span>'+(window.bqStarChip?window.bqStarChip(prof&&prof.created_at):'')+'</div>'+(prof&&prof.last_seen?'<div class="bq-sub" style="margin-top:8px">'+seenTxt(prof.last_seen)+'</div>':'')+'</div>'+
   '<a class="bq-viewads" style="align-self:flex-start">View ads ('+total+') ›</a>'+
   '<div class="bqReply" style="flex:1 1 100%;display:none;margin-top:4px"></div>';
  supabaseClient.rpc('seller_reply_time',{p_seller:l.seller_id}).then(r=>{
@@ -4166,4 +4166,48 @@ function open(){
  document.body.appendChild(o);
 }
 setInterval(add,1000);
+})();
+
+
+
+/* ===== Seller Longevity Star badge (membership time only; free and automatic) ===== */
+(function(){
+const LEVELS=[
+ {k:'legendary',m:36,name:'Legendary Star',title:'Longstanding Member',txt:'at least 3 years',c:'#f2b01e',s:'#a56a00'},
+ {k:'platinum',m:24,name:'Platinum Star',title:'Veteran Member',txt:'at least 2 years',c:'#9cc3d5',s:'#4f7f95'},
+ {k:'gold',m:12,name:'Gold Star',title:'Loyal Member',txt:'at least 1 year',c:'#f2b01e',s:'#a56a00'},
+ {k:'silver',m:6,name:'Silver Star',title:'Established Member',txt:'at least 6 months',c:'#c3c9ce',s:'#7a848b'},
+ {k:'bronze',m:3,name:'Bronze Star',title:'Recognized Member',txt:'at least 3 months',c:'#cd7f32',s:'#8a4f14'}
+];
+function addMonths(d,n){const x=new Date(d.getTime());const day=x.getDate();x.setMonth(x.getMonth()+n);if(x.getDate()!==day)x.setDate(0);return x;}
+const esc=x=>String(x==null?'':x).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+window.bqStarLevel=function(created){
+ const d=created?new Date(created):null;if(!d||isNaN(d))return null;
+ const now=new Date();
+ for(const L of LEVELS){if(now>=addMonths(d,L.m))return L;}
+ return null;
+};
+function icon(L,sz){
+ const star='<path d="M12 2.5l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17.4l-5.9 3.1 1.2-6.5L2.5 9.4l6.6-.9z" fill="'+L.c+'" stroke="'+L.s+'" stroke-width="1.6" stroke-linejoin="round"/>';
+ const body=L.k==='legendary'
+  ?'<g transform="translate(12 12) scale(.74) translate(-12 -12)">'+star+'</g><path d="M3.2 7c-1.6 4-1.2 8.800 1.600 12" fill="none" stroke="'+L.s+'" stroke-width="1.6" stroke-linecap="round"/><path d="M20.8 7c1.600 4 1.200 8.800-1.600 12" fill="none" stroke="'+L.s+'" stroke-width="1.6" stroke-linecap="round"/>'
+  :star;
+ return '<svg width="'+sz+'" height="'+sz+'" viewBox="0 0 24 24" aria-hidden="true" style="flex:none">'+body+'</svg>';
+}
+window.bqStarChip=function(created){
+ const L=window.bqStarLevel(created);if(!L)return '';
+ return '<span class="bqStarChip" role="button" tabindex="0" aria-label="'+esc(L.name)+' — tap for details" data-c="'+esc(created)+'" style="display:inline-flex;align-items:center;gap:6px;background:rgba(128,128,128,.2);border-radius:10px;padding:5px 11px;font-size:14px;font-weight:600;white-space:nowrap;cursor:pointer">'+icon(L,16)+esc(L.name)+'</span>';
+};
+function close(){const o=document.getElementById('bqStarOv');if(o)o.remove();}
+function open(created){
+ const L=window.bqStarLevel(created);if(!L)return;
+ close();
+ const o=document.createElement('div');o.id='bqStarOv';
+ o.style.cssText='position:fixed;inset:0;z-index:100004;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;padding:20px';
+ o.innerHTML='<div style="background:#fff;color:#222;border-radius:18px;max-width:420px;width:100%;padding:22px 20px;text-align:center"><div style="display:flex;justify-content:center">'+icon(L,56)+'</div><div style="font-weight:bold;font-size:20px;margin-top:8px">'+esc(L.name)+'</div><div style="color:#0b6b3a;font-weight:bold;margin-top:2px">'+esc(L.title)+'</div><p style="margin:12px 0 8px;line-height:1.5">This seller has been on BuyQora for '+esc(L.txt)+'.</p><p style="margin:0 0 14px;line-height:1.45;font-size:13px;color:#555">The Star badge shows membership time only. It is not proof of identity, honesty or successful sales, and it does not guarantee a risk-free transaction.</p><button id="bqStarX" style="width:100%;padding:12px;border:0;border-radius:12px;background:#0b6b3a;color:#fff;font-size:16px;font-weight:bold">Close</button></div>';
+ o.onclick=e=>{if(e.target===o||e.target.id==='bqStarX')close();};
+ document.body.appendChild(o);
+}
+document.addEventListener('click',e=>{const c=e.target.closest&&e.target.closest('.bqStarChip');if(c){e.preventDefault();e.stopPropagation();open(c.dataset.c);}},true);
+document.addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&e.target.classList&&e.target.classList.contains('bqStarChip')){e.preventDefault();open(e.target.dataset.c);}});
 })();
