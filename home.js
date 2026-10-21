@@ -3514,7 +3514,7 @@ const esc=x=>String(x==null?'':x).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;'
 function row(p){
  const nm=p.business_name||p.full_name||'Seller';
  const av=p.logo_url?'<img src="'+esc(p.logo_url)+'" alt="" style="width:100%;height:100%;object-fit:cover">':esc(nm.charAt(0).toUpperCase());
- return '<div class="bqSel" style="display:flex;align-items:center;gap:6px;font-size:13px;margin:6px 0 2px"><span style="width:22px;height:22px;border-radius:50%;background:#dfe7e2;color:#244;flex:0 0 22px;overflow:hidden;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:bold">'+av+'</span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0">'+esc(nm)+'</span>'+(p.verification_status==='verified'&&window.bqVerTick?window.bqVerTick():'')+'</div>';
+ return '<div class="bqSel" style="display:flex;align-items:center;gap:6px;font-size:13px;margin:6px 0 2px"><span style="width:22px;height:22px;border-radius:50%;background:#dfe7e2;color:#244;flex:0 0 22px;overflow:hidden;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:bold">'+av+'</span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0">'+esc(nm)+'</span>'+'</div>';
 }
 async function run(){
  if(busy)return;
