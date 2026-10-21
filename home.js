@@ -4307,3 +4307,32 @@ function sweep(){
 }
 setInterval(sweep,600);
 })();
+
+
+/* ===== Replace the red 📍 emoji with a normal location icon (like Jiji) ===== */
+(function(){
+const SVG='<svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display:block"><path d="M12 21s-7-6.2-7-11a7 7 0 1 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.6"/></svg>';
+function sweep(){
+ try{
+  const w=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT,{acceptNode(n){
+   const p=n.parentNode;if(!p)return NodeFilter.FILTER_REJECT;
+   const t=p.nodeName;if(t==='SCRIPT'||t==='STYLE'||t==='TEXTAREA')return NodeFilter.FILTER_REJECT;
+   return n.nodeValue.indexOf('📍')>-1?NodeFilter.FILTER_ACCEPT:NodeFilter.FILTER_REJECT;
+  }});
+  const list=[];let n;while((n=w.nextNode()))list.push(n);
+  list.forEach(node=>{
+   const v=node.nodeValue,i=v.indexOf('📍');
+   const before=v.slice(0,i),after=v.slice(i+2).replace(/^\s+/,'');
+   const pin=document.createElement('span');
+   pin.className='bqPin';
+   pin.style.cssText='display:inline-flex;width:1.05em;height:1.05em;vertical-align:-0.2em;margin-right:5px;opacity:.85';
+   pin.innerHTML=SVG;
+   const par=node.parentNode;
+   if(before)par.insertBefore(document.createTextNode(before),node);
+   par.insertBefore(pin,node);
+   node.nodeValue=after;
+  });
+ }catch(e){}
+}
+setInterval(sweep,700);
+})();
