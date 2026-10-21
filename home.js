@@ -2309,7 +2309,7 @@ async function enhance(l){
   rb.textContent='Request call back';
   const row1=document.createElement('div');row1.style.cssText='display:flex;gap:10px';
   row1.appendChild(rb);
-  if(tel){const a=document.createElement('a');a.className='bq-call';a.href='tel:'+tel;a.innerHTML='📞 Call';a.style.cssText='flex:1;min-width:0;margin:0';row1.appendChild(a);}
+  if(tel){const a=document.createElement('a');a.className='bq-call';a.href='tel:'+tel;a.innerHTML='📞 Call';a.style.cssText='flex:1;min-width:0;margin:0';a.onclick=function(e){if(window.bqCallSheet){e.preventDefault();window.bqCallSheet({name:(prof&&(prof.business_name||prof.full_name))||'Seller',logo:prof&&prof.logo_url,phone:prof&&prof.phone,tel:tel});}};row1.appendChild(a);}
   wrap.appendChild(row1);
   if(tel){
    let d=String(prof.phone).trim();const plus=d.charAt(0)==='+';d=d.replace(/\D/g,'');
@@ -4227,4 +4227,77 @@ if(h.indexOf(mark)>-1)h=h.replace(mark,sec+mark);
 const med='<li>🥇 Medal: Paid identity verification, subject to successful verification.</li>';
 if(h.indexOf(med)>-1)h=h.replace(med,med+'<li>⭐ Star: Free recognition for how long the seller has been on BuyQora.</li>');
 window.bqBadgesHTML=h;
+})();
+
+
+/* ===== Call button opens a contact sheet (like Jiji): WhatsApp, Mobile call, safety tips ===== */
+(function(){
+const esc=x=>String(x==null?'':x).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+function close(){const o=document.getElementById('bqCallSheet');if(o)o.remove();}
+function open(a){
+ close();
+ const tel=(a.getAttribute('href')||'').replace(/^tel:/,'');
+ const shown=tel.replace(/^\+234/,'0');
+ const card=document.querySelector('#detailContent .bq-seller')||document.querySelector('.bq-seller');
+ let name='Seller',since='',ads='',av='';
+ if(card){
+  const b=card.querySelector('.bq-sinfo b');if(b)name=b.textContent.trim();
+  const pills=card.querySelectorAll('.bq-sinfo span[style*="inline-flex"]');
+  pills.forEach(p=>{const t=p.textContent.trim();if(/on BuyQora/i.test(t))since=t;});
+  const v=card.querySelector('.bq-viewads');if(v){const m=v.textContent.match(/\((\d+)\)/);if(m)ads=m[1]+(m[1]==='1'?' ad':' ads');}
+  const im=card.querySelector('.bq-av img');
+  av=im?'<img src="'+esc(im.getAttribute('src'))+'" alt="" style="width:100%;height:100%;object-fit:cover">':esc((name.charAt(0)||'S').toUpperCase());
+ }else{av=esc((name.charAt(0)||'S').toUpperCase());}
+ const wa=document.getElementById('bqWhatsApp');
+ const sub=[since,ads].filter(Boolean).join(', ');
+ const BTN='display:flex;align-items:center;justify-content:center;gap:8px;font-weight:700;font-size:16px;border-radius:12px;padding:13px 10px;text-decoration:none;min-width:150px;box-sizing:border-box';
+ const row=(t,s,btn)=>'<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 0;border-top:1px solid #e6ebe8"><div style="min-width:0"><div style="font-size:18px;font-weight:600;overflow:hidden;text-overflow:ellipsis">'+t+'</div><div style="color:#667;font-size:14px;margin-top:2px">'+s+'</div></div>'+btn+'</div>';
+ const o=document.createElement('div');o.id='bqCallSheet';
+ o.style.cssText='position:fixed;inset:0;z-index:100005;background:rgba(0,0,0,.5);display:flex;align-items:flex-end';
+ o.innerHTML='<div style="background:#fff;color:#1b2a22;width:100%;border-radius:18px 18px 0 0;padding:10px 16px 22px;max-height:90%;overflow-y:auto">'+
+  '<div style="width:48px;height:5px;border-radius:3px;background:#cfd6d2;margin:0 auto 14px"></div>'+
+  '<div style="display:flex;align-items:center;gap:12px;padding-bottom:14px"><span style="width:56px;height:56px;border-radius:14px;background:#dfe7e2;display:inline-flex;align-items:center;justify-content:center;font-weight:bold;font-size:22px;overflow:hidden;flex:none">'+av+'</span><div style="min-width:0"><div style="font-size:20px;font-weight:700;overflow:hidden;text-overflow:ellipsis">'+esc(name)+'</div>'+(sub?'<div style="color:#667;font-size:14px">'+esc(sub)+'</div>':'')+'</div></div>'+
+  (wa?row('WhatsApp','Message or call on WhatsApp','<a href="'+esc(wa.getAttribute('href'))+'" target="_blank" rel="noopener" style="'+BTN+';background:#25d366;color:#fff">💬 WhatsApp</a>'):'')+
+  row(esc(shown),'Charged at your operator\'s rate','<a href="tel:'+esc(tel)+'" style="'+BTN+';background:#fff;color:#0b6b3a;border:2px solid #0b6b3a">📞 Mobile call</a>')+
+  '<div style="border-top:1px solid #e6ebe8;padding-top:14px;font-size:15px;line-height:1.5"><div>❗ <b>Never pay in advance!</b> Even for the delivery.</div><div style="margin-top:8px">✅ Tell the seller you got their number on BuyQora so they know where you came from.</div></div></div>';
+ o.onclick=e=>{if(e.target===o)close();};
+ document.body.appendChild(o);
+}
+document.addEventListener('click',e=>{
+ const a=e.target.closest&&e.target.closest('a.bq-call');
+ if(!a)return;
+ e.preventDefault();e.stopPropagation();open(a);
+},true);
+})();
+
+
+
+/* ===== Call button opens a sheet: seller info, Mobile call, safety notes ===== */
+(function(){
+const esc=x=>String(x==null?'':x).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+function close(){const o=document.getElementById('bqCallOv');if(o)o.remove();}
+window.bqCallSheet=function(d){
+ close();
+ let since='',ads='';
+ try{
+  const card=document.querySelector('#detailContent .bq-seller')||document.querySelector('#detailContent');
+  const t=(card&&card.textContent)||'';
+  const m=t.match(/(New on BuyQora|\d+\+?\s+(?:week|weeks|month|months|year|years)\s+on BuyQora)/);if(m)since=m[1];
+  const va=document.querySelector('#detailContent .bq-viewads');
+  const n=va&&va.textContent.match(/\((\d+)\)/);if(n)ads=n[1]+(n[1]==='1'?' ad':' ads');
+ }catch(e){}
+ const sub=[since,ads].filter(Boolean).join(', ');
+ const nm=String(d.name||'Seller');
+ const av=d.logo?'<img src="'+esc(d.logo)+'" alt="" style="width:100%;height:100%;object-fit:cover">':esc(nm.charAt(0).toUpperCase());
+ const o=document.createElement('div');o.id='bqCallOv';
+ o.style.cssText='position:fixed;inset:0;z-index:100005;background:rgba(0,0,0,.5);display:flex;align-items:flex-end';
+ o.innerHTML='<div style="background:#fff;color:#222;width:100%;border-radius:18px 18px 0 0;padding:10px 16px calc(22px + env(safe-area-inset-bottom,0px))">'+
+  '<div style="width:44px;height:5px;border-radius:3px;background:#d0d5d2;margin:0 auto 14px"></div>'+
+  '<div style="display:flex;align-items:center;gap:12px;padding-bottom:14px;border-bottom:1px solid #e6e9e7"><span style="width:56px;height:56px;border-radius:50%;background:#e8f1ec;color:#0b6b3a;font-weight:bold;font-size:22px;display:inline-flex;align-items:center;justify-content:center;overflow:hidden;flex:none">'+av+'</span><div style="min-width:0"><div style="font-weight:bold;font-size:19px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(nm)+'</div>'+(sub?'<div style="color:#666;font-size:14px;margin-top:2px">'+esc(sub)+'</div>':'')+'</div></div>'+
+  '<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 0;border-bottom:1px solid #e6e9e7"><div style="min-width:0"><div style="font-size:19px;font-weight:600">'+esc(d.phone||'')+'</div><div style="color:#666;font-size:14px;margin-top:2px">Charged at your operator\'s rate</div></div><a id="bqCallGo" href="tel:'+esc(d.tel)+'" style="flex:none;display:inline-flex;align-items:center;gap:8px;padding:13px 18px;border-radius:12px;border:2px solid #0b6b3a;color:#0b6b3a;font-weight:700;font-size:16px;text-decoration:none">📞 Mobile call</a></div>'+
+  '<div style="padding-top:14px;line-height:1.5;font-size:15px"><div style="margin-bottom:8px">❗ <b>Never pay in advance!</b> Even for the delivery</div><div>✅ Inform the seller you got their number on BuyQora so they know where you came from</div></div>'+
+  '<button id="bqCallX" style="width:100%;margin-top:16px;padding:12px;border:0;border-radius:12px;background:#f1f3f2;color:#333;font-size:16px;font-weight:600">Close</button></div>';
+ o.onclick=e=>{if(e.target===o||e.target.id==='bqCallX')close();};
+ document.body.appendChild(o);
+};
 })();
