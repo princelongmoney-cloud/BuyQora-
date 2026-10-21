@@ -4374,3 +4374,41 @@ async function run(){
 }
 setInterval(run,800);
 })();
+
+
+/* ===== Premium VIP crown + faceted Diamond icons, and tap-to-explain for VIP, Diamond and Medal ===== */
+(function(){
+const CROWN='<svg width="17" height="17" viewBox="0 0 24 24" aria-hidden="true" style="flex:none;display:block"><path d="M3 9l4.500 4.500L12 5l4.500 8.500L21 9l-1.800 10H4.800z" fill="#f2c230" stroke="#a8791a" stroke-width="1.2" stroke-linejoin="round"/><path d="M7.500 13.500L12 5l4.500 8.500" fill="none" stroke="#ffe08a" stroke-width="1.200" stroke-linejoin="round"/><rect x="5" y="17" width="14" height="2.600" rx=".7" fill="#c99a18" stroke="#a8791a" stroke-width=".8"/><circle cx="3" cy="8.200" r="1.500" fill="#fff3c4" stroke="#a8791a" stroke-width=".8"/><circle cx="12" cy="4.300" r="1.600" fill="#fff3c4" stroke="#a8791a" stroke-width=".8"/><circle cx="21" cy="8.200" r="1.500" fill="#fff3c4" stroke="#a8791a" stroke-width=".8"/><circle cx="12" cy="13.800" r="1.400" fill="#e0405a" stroke="#8a1c30" stroke-width=".6"/></svg>';
+const DIAM='<svg width="17" height="17" viewBox="0 0 24 24" aria-hidden="true" style="flex:none;display:block"><g stroke="#14788a" stroke-width=".8" stroke-linejoin="round"><path d="M6.500 3H10L8 9H2z" fill="#aef0f8"/><path d="M10 3h4l2 6H8z" fill="#e3fcff"/><path d="M14 3h3.500L22 9h-6z" fill="#7ddbe8"/><path d="M2 9h6l4 12z" fill="#4fc3d6"/><path d="M8 9h8l-4 12z" fill="#8fe6f2"/><path d="M16 9h6L12 21z" fill="#34a8bd"/></g></svg>';
+const orig=window.bqBadge;
+if(typeof orig==='function'){
+ window.bqBadge=function(pkg,mode){
+  const h=orig(pkg,mode);
+  if(pkg!=='vip'&&pkg!=='diamond')return h;
+  return h.replace(/<svg[\s\S]*?<\/svg>/,pkg==='vip'?CROWN:DIAM).replace('height:22px','height:26px').replace('padding:0 8px 0 6px','padding:0 9px 0 6px').replace('class="bqBdg"','class="bqBdg" data-pk="'+pkg+'" role="button"');
+ };
+}
+const INFO={
+ vip:{t:'VIP Crown',s:'Paid VIP promotion',i:CROWN,x:'This seller has purchased an eligible VIP promotional package on BuyQora. It shows VIP status and may give the seller extra visibility, depending on the package. It does not guarantee that the seller is honest or that a transaction is safe.'},
+ diamond:{t:'Diamond',s:'Paid premium promotion',i:DIAM,x:'This seller has purchased an eligible Diamond (premium) promotional package on BuyQora. It shows premium promotional status and may give the seller enhanced visibility. It does not, by itself, confirm the seller\'s identity.'},
+ medal:{t:'Medal: Verified Seller',s:'Paid identity verification',i:'<svg width="17" height="17" viewBox="0 0 24 24"><path d="M7 1.5h10l-5 8.5z" fill="#4da3ff"/><circle cx="12" cy="15.5" r="6.500" fill="#d9dee2" stroke="#8fa0ab" stroke-width="1.400"/><circle cx="12" cy="15.5" r="3.600" fill="none" stroke="#8fa0ab" stroke-width="1.300"/></svg>',x:'This seller paid the verification fee and completed BuyQora\'s identity verification checks. Paying alone does not give this badge. It does not guarantee a risk-free transaction.'}
+};
+function close(){const o=document.getElementById('bqInfoOv');if(o)o.remove();}
+function open(k){
+ const d=INFO[k];if(!d)return;
+ close();
+ const big=d.i.replace('width="17" height="17"','width="56" height="56"');
+ const o=document.createElement('div');o.id='bqInfoOv';
+ o.style.cssText='position:fixed;inset:0;z-index:100004;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;padding:20px';
+ o.innerHTML='<div style="background:#fff;color:#222;border-radius:18px;max-width:420px;width:100%;padding:22px 20px;text-align:center"><div style="display:flex;justify-content:center">'+big+'</div><div style="font-weight:bold;font-size:20px;margin-top:8px">'+d.t+'</div><div style="color:#0b6b3a;font-weight:bold;margin-top:2px">'+d.s+'</div><p style="margin:12px 0 8px;line-height:1.5">'+d.x+'</p><p style="margin:0 0 14px;line-height:1.45;font-size:13px;color:#555">BuyQora badges describe specific membership or verification statuses. Always check listing details and take normal care before paying.</p><button id="bqInfoX" style="width:100%;padding:12px;border:0;border-radius:12px;background:#0b6b3a;color:#fff;font-size:16px;font-weight:bold">Close</button></div>';
+ o.onclick=e=>{if(e.target===o||e.target.id==='bqInfoX')close();};
+ document.body.appendChild(o);
+}
+document.addEventListener('click',e=>{
+ const t=e.target.closest&&e.target.closest('.bqBdg[data-pk],.bqMedalChip,.bqMedal');
+ if(!t)return;
+ const k=t.dataset&&t.dataset.pk?t.dataset.pk:'medal';
+ if(!INFO[k])return;
+ e.preventDefault();e.stopPropagation();open(k);
+},true);
+})();
