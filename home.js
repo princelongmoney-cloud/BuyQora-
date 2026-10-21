@@ -1127,7 +1127,7 @@ window.renderListings=function(){
    x.c.dataset.idx=i;grid.appendChild(x.c);
    const p=promoMap[x.l.id];
    const box=x.c.querySelector('.product-image');
-   if(p&&box&&!box.querySelector('.bqPromoTag'))box.insertAdjacentHTML('beforeend',tag(p.package_id,'left:6px;bottom:6px'));
+   if(p&&box&&!box.querySelector('.bqPromoTag'))box.insertAdjacentHTML('beforeend',tag(p.package_id,'left:6px;top:6px'));
   });
   currentFilteredListings=items.map(x=>x.l);
   renderFeatured();
