@@ -169,7 +169,7 @@ $('myList').onclick=async e=>{
  const l=mine.find(x=>String(x.id)===b.dataset.id);if(!l)return;
  const a=b.dataset.a;
  if(a==='edit'){editing=l;$('editError').style.display='none';
-  $('editTitle').value=l.title||'';$('editPrice').value=l.price||'';$('editCategory').value=l.category_id;fillSub('edit',l.category_id,l.subcategory);
+  $('editTitle').value=l.title||'';$('editPrice').value=(Number(l.price)===0?'0':(l.price||''));$('editCategory').value=l.category_id;fillSub('edit',l.category_id,l.subcategory);
   $('editCondition').value=l.condition||'used';$('editState').value=l.state;$('editDesc').value=l.description||'';
   $('editOverlay').classList.add('show');return;}
  let upd=null;
@@ -273,7 +273,7 @@ const openDetailCore=async function(l){
  (sim.length?'<h4 class="bq-simh">Similar listings</h4><div class="bq-sim">'+sim.map(x=>'<div data-id="'+x.id+'">'+(x.image_url?'<img src="'+esc(x.image_url)+'" alt="">':'<img alt="" style="background:#eee">')+'<span>'+esc(x.title)+'</span><b>₦'+Number(x.price).toLocaleString()+'</b></div>').join('')+'</div>':'');
  $('detailFavBtn').onclick=()=>toggleFavorite(l.id,$('detailFavBtn'));
  document.querySelectorAll('.bq-thumbs img').forEach(t=>t.onclick=()=>{$('dMainImg').src=t.src;document.querySelectorAll('.bq-thumbs img').forEach(x=>x.classList.toggle('on',x===t));});
- $('dShare').onclick=async()=>{const url=location.origin+location.pathname+'?l='+l.id;try{if(navigator.share){await navigator.share({title:l.title,text:l.title+' - ₦'+Number(l.price).toLocaleString()+' on BuyQora',url});}else{await navigator.clipboard.writeText(url);alert('Link copied!');}}catch(e){}};
+ $('dShare').onclick=async()=>{const url=location.origin+location.pathname+'?l='+l.id;try{if(navigator.share){await navigator.share({title:l.title,text:l.title+' - '+(Number(l.price)>0?'₦'+Number(l.price).toLocaleString():'Contact for price')+' on BuyQora',url});}else{await navigator.clipboard.writeText(url);alert('Link copied!');}}catch(e){}};
  if($('dManage'))$('dManage').onclick=()=>{closeDetail();openMine();};
  document.querySelectorAll('.bq-sim div').forEach(d=>d.onclick=()=>{const x=currentListings.find(z=>String(z.id)===d.dataset.id);if(x)openDetail(x);});
  $('detailOverlay').classList.add('show');
@@ -307,6 +307,7 @@ const $=id=>document.getElementById(id);
 const MAX=1000000000;
 function bad(raw){
  const n=parseFloat(String(raw).replace(/[^0-9.]/g,''));
+ if(String(raw).trim()==='0')return '';
  if(isNaN(n)||n<=0)return 'Enter a price greater than zero.';
  if(n>MAX)return 'Price is too high. The maximum is ₦1,000,000,000. Check for extra digits.';
  return '';
@@ -2315,7 +2316,7 @@ async function enhance(l){
    let d=String(prof.phone).trim();const plus=d.charAt(0)==='+';d=d.replace(/\D/g,'');
    if(!plus){if(d.indexOf('00')===0)d=d.slice(2);else if(d.charAt(0)==='0')d='234'+d.slice(1);else if(d.length===10)d='234'+d;}
    const link=location.origin+location.pathname+'?l='+l.id;
-   const msg='Hello, I saw "'+l.title+'" (₦'+Number(l.price).toLocaleString()+') on BuyQora and I am interested. '+link;
+   const msg='Hello, I saw "'+l.title+'" ('+(Number(l.price)>0?'₦'+Number(l.price).toLocaleString():'contact for price')+') on BuyQora and I am interested. '+link;
    const w=document.createElement('a');w.id='bqWhatsApp';w.href='https://wa.me/'+d+'?text='+encodeURIComponent(msg);w.target='_blank';w.rel='noopener';
    w.style.cssText=BS+'margin-top:10px;background:#25d366;color:#fff';
    w.innerHTML='💬 WhatsApp';
@@ -2524,7 +2525,7 @@ function validate(){
  ['sellTitle','sellPrice','sellSub','sellDesc','sellImage'].forEach(id=>clearOne($(id)));
  const t=$('sellTitle'),p=$('sellPrice'),s=$('sellSub'),d=$('sellDesc');
  if(t&&!t.value.trim())bad(t,'This field is required. Enter a title for your item.');
- if(p){
+ if(p&&!(document.getElementById('sellContact')&&document.getElementById('sellContact').checked)){
   const raw=p.value.trim(),num=parseFloat(raw.replace(/[^0-9.]/g,''));
   if(!raw)bad(p,'This field is required. Enter a price, for example 85000.');
   else if(isNaN(num)||num<=0)bad(p,'Enter a valid price in naira.');
@@ -4276,4 +4277,33 @@ document.addEventListener('click',e=>{
 const st=document.createElement('style');
 st.textContent='#bqWhatsApp{display:none !important}';
 document.head.appendChild(st);
+})();
+
+
+
+/* ===== "Contact for price": tick-box on Post form; price 0 is shown as "Contact for price" ===== */
+(function(){
+const $=id=>document.getElementById(id);
+const neg=$('sellNeg'),sp=$('sellPrice');
+if(neg&&sp&&!$('sellContact')){
+ const lab=neg.closest('label')||neg.parentElement;
+ lab.insertAdjacentHTML('afterend','<label style="display:flex;gap:8px;align-items:center;margin-bottom:12px"><input type="checkbox" id="sellContact" style="width:auto;margin:0"> Contact for price (no fixed price)</label>');
+ const cb=$('sellContact');
+ const apply=()=>{
+  if(cb.checked){sp.value='0';sp.disabled=true;sp.style.opacity='.5';neg.checked=false;neg.disabled=true;}
+  else{if(sp.value==='0')sp.value='';sp.disabled=false;sp.style.opacity='';neg.disabled=false;}
+ };
+ cb.addEventListener('change',()=>{apply();try{sp.dispatchEvent(new Event('input',{bubbles:true}));}catch(e){}});
+ setInterval(()=>{if(cb.checked&&sp.value===''){cb.checked=false;apply();}},700);
+}
+const SEL='#productGrid,#bqCatBody,#detailContent,#bqRec,#bqFeat,#bqRv,#favoritesOverlay,.bq-sim';
+function sweep(){
+ document.querySelectorAll(SEL).forEach(root=>{
+  const w=document.createTreeWalker(root,NodeFilter.SHOW_TEXT,null);
+  let n;const hits=[];
+  while((n=w.nextNode())){if(/^\s*₦\s*0\s*$/.test(n.nodeValue))hits.push(n);}
+  hits.forEach(t=>{t.nodeValue='Contact for price';const p=t.parentElement;if(p){p.style.color='#0b6b3a';p.style.fontWeight='700';}});
+ });
+}
+setInterval(sweep,600);
 })();
