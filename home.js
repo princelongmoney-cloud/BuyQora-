@@ -2309,7 +2309,7 @@ async function enhance(l){
   rb.textContent='Request call back';
   const row1=document.createElement('div');row1.style.cssText='display:flex;gap:10px';
   row1.appendChild(rb);
-  if(tel){const a=document.createElement('a');a.className='bq-call';a.href='tel:'+tel;a.innerHTML='📞 Call';a.style.cssText='flex:1;min-width:0;margin:0';a.onclick=function(e){if(window.bqCallSheet){e.preventDefault();window.bqCallSheet({name:(prof&&(prof.business_name||prof.full_name))||'Seller',logo:prof&&prof.logo_url,phone:prof&&prof.phone,tel:tel});}};row1.appendChild(a);}
+  if(tel){const a=document.createElement('a');a.className='bq-call';a.href='tel:'+tel;a.innerHTML='📞 Call';a.style.cssText='flex:1;min-width:0;margin:0';row1.appendChild(a);}
   wrap.appendChild(row1);
   if(tel){
    let d=String(prof.phone).trim();const plus=d.charAt(0)==='+';d=d.replace(/\D/g,'');
@@ -4271,33 +4271,9 @@ document.addEventListener('click',e=>{
 })();
 
 
-
-/* ===== Call button opens a sheet: seller info, Mobile call, safety notes ===== */
+/* ===== WhatsApp now lives only inside the Call sheet (page button hidden; its link feeds the sheet) ===== */
 (function(){
-const esc=x=>String(x==null?'':x).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-function close(){const o=document.getElementById('bqCallOv');if(o)o.remove();}
-window.bqCallSheet=function(d){
- close();
- let since='',ads='';
- try{
-  const card=document.querySelector('#detailContent .bq-seller')||document.querySelector('#detailContent');
-  const t=(card&&card.textContent)||'';
-  const m=t.match(/(New on BuyQora|\d+\+?\s+(?:week|weeks|month|months|year|years)\s+on BuyQora)/);if(m)since=m[1];
-  const va=document.querySelector('#detailContent .bq-viewads');
-  const n=va&&va.textContent.match(/\((\d+)\)/);if(n)ads=n[1]+(n[1]==='1'?' ad':' ads');
- }catch(e){}
- const sub=[since,ads].filter(Boolean).join(', ');
- const nm=String(d.name||'Seller');
- const av=d.logo?'<img src="'+esc(d.logo)+'" alt="" style="width:100%;height:100%;object-fit:cover">':esc(nm.charAt(0).toUpperCase());
- const o=document.createElement('div');o.id='bqCallOv';
- o.style.cssText='position:fixed;inset:0;z-index:100005;background:rgba(0,0,0,.5);display:flex;align-items:flex-end';
- o.innerHTML='<div style="background:#fff;color:#222;width:100%;border-radius:18px 18px 0 0;padding:10px 16px calc(22px + env(safe-area-inset-bottom,0px))">'+
-  '<div style="width:44px;height:5px;border-radius:3px;background:#d0d5d2;margin:0 auto 14px"></div>'+
-  '<div style="display:flex;align-items:center;gap:12px;padding-bottom:14px;border-bottom:1px solid #e6e9e7"><span style="width:56px;height:56px;border-radius:50%;background:#e8f1ec;color:#0b6b3a;font-weight:bold;font-size:22px;display:inline-flex;align-items:center;justify-content:center;overflow:hidden;flex:none">'+av+'</span><div style="min-width:0"><div style="font-weight:bold;font-size:19px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(nm)+'</div>'+(sub?'<div style="color:#666;font-size:14px;margin-top:2px">'+esc(sub)+'</div>':'')+'</div></div>'+
-  '<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 0;border-bottom:1px solid #e6e9e7"><div style="min-width:0"><div style="font-size:19px;font-weight:600">'+esc(d.phone||'')+'</div><div style="color:#666;font-size:14px;margin-top:2px">Charged at your operator\'s rate</div></div><a id="bqCallGo" href="tel:'+esc(d.tel)+'" style="flex:none;display:inline-flex;align-items:center;gap:8px;padding:13px 18px;border-radius:12px;border:2px solid #0b6b3a;color:#0b6b3a;font-weight:700;font-size:16px;text-decoration:none">📞 Mobile call</a></div>'+
-  '<div style="padding-top:14px;line-height:1.5;font-size:15px"><div style="margin-bottom:8px">❗ <b>Never pay in advance!</b> Even for the delivery</div><div>✅ Inform the seller you got their number on BuyQora so they know where you came from</div></div>'+
-  '<button id="bqCallX" style="width:100%;margin-top:16px;padding:12px;border:0;border-radius:12px;background:#f1f3f2;color:#333;font-size:16px;font-weight:600">Close</button></div>';
- o.onclick=e=>{if(e.target===o||e.target.id==='bqCallX')close();};
- document.body.appendChild(o);
-};
+const st=document.createElement('style');
+st.textContent='#bqWhatsApp{display:none !important}';
+document.head.appendChild(st);
 })();
