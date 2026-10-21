@@ -3098,7 +3098,7 @@ function card(l,i){
  const nm=p.business_name||p.full_name||'Seller';
  const img='<div class="product-image" style="'+(view==='list'?'width:130px;flex:0 0 130px;height:130px':'')+'">'+(l.image_url?'<img src="'+esc(l.image_url)+'" alt="" loading="lazy">':(CATEGORY_ICONS[l.category_id]||'🛍️'))+(l.image_url&&window.bqWm?window.bqWm(nm,false):'')+(l.condition?'<span class="bq-cond '+esc(l.condition)+'">'+(l.condition==='new'?'New':'Used')+'</span>':'')+(()=>{const pr=window.bqPromoOf&&window.bqPromoOf(l);if(!pr||!window.bqBadge)return '';return '<span style="position:absolute;top:8px;left:8px;z-index:2;max-width:calc(100% - 16px)">'+window.bqBadge(pr.package_id)+'</span>';})()+'</div>';
  const info='<div style="min-width:0;flex:1"><p class="price" style="margin:6px 0 2px;color:#0b6b3a;font-weight:bold">₦'+Number(l.price).toLocaleString()+'</p><h3 style="margin:0 0 3px;font-size:15px;line-height:1.3">'+esc(l.title)+'</h3><p class="loc" style="margin:0 0 6px">'+esc((l.city||l.state||'')+(l.condition?' • '+(l.condition==='new'?'Brand New':'Used'):''))+'</p>'+
-  '<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:6px">'+(ver&&window.bqVerTick?'<span style="display:inline-flex;align-items:center;font-size:12px;font-weight:600;color:#4da3ff">'+window.bqVerTick()+'<span style="margin-left:3px">Verified</span></span>':'')+(p.created_at?'<span style="font-size:12px;padding:3px 8px;border-radius:12px;background:#f1f4f2;color:#444">'+esc(since(p.created_at))+'</span>':'')+'</div>'+
+  '<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:6px">'+(ver&&window.bqMedalChip?window.bqMedalChip():'')+(p.created_at?'<span style="font-size:12px;padding:3px 8px;border-radius:12px;background:#f1f4f2;color:#444">'+esc(since(p.created_at))+'</span>':'')+(window.bqStarChip?window.bqStarChip(p.created_at,true):'')+'</div>'+
   (nm?'<div style="display:flex;align-items:center;gap:6px;font-size:13px;color:#444"><span style="width:22px;height:22px;border-radius:50%;background:#dfe7e2;flex:0 0 22px;overflow:hidden;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:bold">'+(p.logo_url?'<img src="'+esc(p.logo_url)+'" alt="" style="width:100%;height:100%;object-fit:cover">':esc(nm.charAt(0).toUpperCase()))+'</span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(nm)+'</span>'+(p.avg?'<span style="margin-left:auto;font-weight:600;white-space:nowrap"><span style="color:#f5a623">★</span> '+p.avg.toFixed(1)+'</span>':'')+'</div>':'')+'</div>';
  return '<div class="product" data-i="'+i+'" style="'+(view==='list'?'display:flex;gap:12px;align-items:flex-start;padding:10px':'')+'">'+img+info+'</div>';
 }
@@ -4196,9 +4196,9 @@ function icon(L,sz){
  return '<svg width="'+sz+'" height="'+sz+'" viewBox="0 0 24 24" aria-hidden="true" style="flex:none">'+body+'</svg>';
 }
 window.bqStarIconHTML=icon;window.bqStarLevels=LEVELS;
-window.bqStarChip=function(created){
+window.bqStarChip=function(created,small){
  const L=window.bqStarLevel(created);if(!L)return '';
- return '<span class="bqStarChip" role="button" tabindex="0" aria-label="'+esc(L.name)+' — tap for details" data-c="'+esc(created)+'" style="display:inline-flex;align-items:center;gap:6px;background:rgba(128,128,128,.2);border-radius:10px;padding:5px 11px;font-size:14px;font-weight:600;white-space:nowrap;cursor:pointer">'+icon(L,16)+esc(L.name)+'</span>';
+ return '<span class="bqStarChip" role="button" tabindex="0" aria-label="'+esc(L.name)+' — tap for details" data-c="'+esc(created)+'" style="display:inline-flex;align-items:center;gap:'+(small?'4':'6')+'px;background:rgba(128,128,128,.2);border-radius:'+(small?'12':'10')+'px;padding:'+(small?'3px 8px':'5px 11px')+';font-size:'+(small?'12':'14')+'px;font-weight:600;white-space:nowrap;cursor:pointer">'+icon(L,small?13:16)+esc(L.name)+'</span>';
 };
 function close(){const o=document.getElementById('bqStarOv');if(o)o.remove();}
 function open(created){
@@ -4335,4 +4335,42 @@ function sweep(){
  }catch(e){}
 }
 setInterval(sweep,700);
+})();
+
+
+
+/* ===== Medal ("Verified") and Star chips on listing cards, like Jiji ===== */
+(function(){
+const MED='<svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" style="flex:none"><path d="M7 1.5h10l-5 8.5z" fill="#4da3ff"/><circle cx="12" cy="15.5" r="6.5" fill="#d9dee2" stroke="#8fa0ab" stroke-width="1.4"/><circle cx="12" cy="15.5" r="3.6" fill="none" stroke="#8fa0ab" stroke-width="1.3"/></svg>';
+window.bqMedalChip=function(){
+ return '<span class="bqMedalChip" title="Verified seller" style="display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:600;padding:3px 8px;border-radius:12px;background:#eaf3ff;color:#1f6fd1;white-space:nowrap">'+MED+'Verified</span>';
+};
+const C={};let busy=false;
+async function run(){
+ if(busy)return;
+ const grid=document.getElementById('productGrid');if(!grid)return;
+ const cards=[...grid.querySelectorAll('.product[data-idx]')].filter(c=>!c.hasAttribute('data-bqchips')&&c.querySelector('.bqSel'));
+ if(!cards.length)return;
+ let list=[];try{list=window.currentFilteredListings||currentFilteredListings||[];}catch(e){}
+ const need=[...new Set(cards.map(c=>(list[c.dataset.idx]||{}).seller_id).filter(id=>id&&!C[id]))];
+ busy=true;
+ try{
+  if(need.length){
+   const{data}=await supabaseClient.from('profiles').select('id,verification_status,created_at').in('id',need);
+   (data||[]).forEach(p=>{C[p.id]=p;});
+   need.forEach(id=>{if(!C[id])C[id]={id:id};});
+  }
+  cards.forEach(c=>{
+   const l=list[c.dataset.idx];if(!l)return;
+   c.setAttribute('data-bqchips','1');
+   const p=C[l.seller_id]||{};
+   const ch=(p.verification_status==='verified'?window.bqMedalChip():'')+(window.bqStarChip?window.bqStarChip(p.created_at,true):'');
+   if(!ch)return;
+   const sel=c.querySelector('.bqSel');
+   sel.insertAdjacentHTML('afterend','<div class="bqChips" style="display:flex;flex-wrap:wrap;gap:5px;margin:6px 0 2px">'+ch+'</div>');
+  });
+ }catch(e){}
+ busy=false;
+}
+setInterval(run,800);
 })();
