@@ -4424,7 +4424,7 @@ document.addEventListener('click',e=>{
 
 /* ===== Small app version line at the bottom of the Profile buttons (so we can tell which file is live) ===== */
 (function(){
-const V='21Oct-K';
+const V='21Oct-L';
 setInterval(()=>{
  const b=document.getElementById('bqBadgeBtn');
  if(!b||document.getElementById('bqVer'))return;
@@ -4529,4 +4529,18 @@ document.head.appendChild(st);
 const st=document.createElement('style');
 st.textContent='#bqBadgeBtn{display:none !important}';
 document.head.appendChild(st);
+})();
+
+
+
+/* ===== App version label: moved from Profile to the bottom of Settings ===== */
+(function(){
+const st=document.createElement('style');
+st.textContent='#bqVer{display:none !important}';
+document.head.appendChild(st);
+setInterval(()=>{
+ const o=document.getElementById('bqSetScr');
+ if(!o||document.getElementById('bqVer2'))return;
+ o.insertAdjacentHTML('beforeend','<div id="bqVer2" style="text-align:center;color:#8a948e;font-size:12px;padding:0 0 24px">App version 21Oct-L</div>');
+},700);
 })();
