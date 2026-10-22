@@ -4424,7 +4424,7 @@ document.addEventListener('click',e=>{
 
 /* ===== Small app version line at the bottom of the Profile buttons (so we can tell which file is live) ===== */
 (function(){
-const V='21Oct-J';
+const V='21Oct-K';
 setInterval(()=>{
  const b=document.getElementById('bqBadgeBtn');
  if(!b||document.getElementById('bqVer'))return;
@@ -4519,5 +4519,14 @@ setInterval(()=>{
 (function(){
 const st=document.createElement('style');
 st.textContent='#bqHelpBtn{display:none !important}';
+document.head.appendChild(st);
+})();
+
+
+
+/* ===== "Understand our badges" lives in Settings only (Profile tile hidden) ===== */
+(function(){
+const st=document.createElement('style');
+st.textContent='#bqBadgeBtn{display:none !important}';
 document.head.appendChild(st);
 })();
