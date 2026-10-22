@@ -3316,7 +3316,7 @@ async function openSet(){
  grp(row('👤','#e8f5ee','Personal details',prof.full_name,'personal')+row('🏢','#fff0e0','Business info',prof.business_name,'business'))+
  grp(row('📞','#e3f7e8','Phone numbers',prof.phone,'phone')+row('✉️','#fff0e0','Change email',user.email,'email')+row('🌐','#e3f7e8','Change language','English','lang'))+
  grp(row('😊','#fff0e0','Disable feedback',prof.feedback_disabled?'Disabled':'Enabled','fb')+row('📲','#e1f1fb','In-app calls','Disabled','calls')+row('🔔','#fde8ea','Manage notifications','','notif'))+
- grp(row('ℹ️','#e9eef3','About BuyQora','','about')+row('🏆','#fff6dd','Understand our badges','','badges')+row('📶','#e9eef3','Check connection','','conn')+row('🌙','#e9eef3','Dark mode',THEMENAME[themePref()],'theme'))+
+ grp(row('ℹ️','#e9eef3','About BuyQora','','about')+row('🏆','#fff6dd','Understand our badges','','badges')+row('🔖','#e9f5ee','Saved searches','','savedsearch')+row('📶','#e9eef3','Check connection','','conn')+row('🌙','#e9eef3','Dark mode',THEMENAME[themePref()],'theme'))+
  grp(row('🔒','#e9eef3','Change password','','pass')+row('🗑️','#e9eef3','Delete my account permanently','','del')+row('🚪','#e9eef3','Log out','','out'))+
  '<div style="height:30px"></div>';
  o.onclick=e=>{const b=e.target.closest('[data-a]');if(b)act(b.dataset.a);};
@@ -3354,6 +3354,9 @@ function act(a){
  }
  if(a==='about'){
   sheet('About BuyQora','<div style="line-height:1.6;font-size:15px">BuyQora is a Nigerian marketplace where you can buy and sell almost anything, near you.<br><br>Support: <a href="mailto:'+SUPPORT+'" style="color:#0b6b3a;font-weight:bold">'+SUPPORT+'</a><br>Support is by email only.</div>');return;
+ }
+ if(a==='savedsearch'){
+  closeSet();const sb=$('bqSavedBtn');if(sb)sb.click();return;
  }
  if(a==='badges'){
   sheet('Understand our badges',window.bqBadgesHTML);return;
@@ -4418,7 +4421,7 @@ document.addEventListener('click',e=>{
 
 /* ===== Small app version line at the bottom of the Profile buttons (so we can tell which file is live) ===== */
 (function(){
-const V='21Oct-H';
+const V='21Oct-I';
 setInterval(()=>{
  const b=document.getElementById('bqBadgeBtn');
  if(!b||document.getElementById('bqVer'))return;
@@ -4492,4 +4495,17 @@ setInterval(()=>{if(Notification&&Notification.permission==='granted')ensure(fal
 document.addEventListener('click',()=>{
  try{if(Notification.permission==='default'&&!asking){asking=true;ensure(true).then(()=>{asking=false;},()=>{asking=false;});}}catch(e){}
 },true);
+})();
+
+
+
+/* ===== Cleaner Profile and Home: Log out lives in Settings only; no "Save this search" button on Home ===== */
+(function(){
+const st=document.createElement('style');
+st.textContent='#bqLogout{display:none !important}';
+document.head.appendChild(st);
+setInterval(()=>{
+ const b=document.getElementById('bqSaveSearch');
+ if(b&&b.parentElement&&b.parentElement.style.display!=='none')b.parentElement.style.display='none';
+},600);
 })();
