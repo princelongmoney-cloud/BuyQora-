@@ -2675,6 +2675,7 @@ function tidy(){
   else if(id==='bqBadgeBtn')css(b,true,'#fff','#0b6b3a','1.5px solid #0b6b3a');
   else if(id==='bqAlertBtn')css(b,false,'#fff','#0b6b3a','1.5px solid #0b6b3a');
   else if(id==='bqPush')css(b,false,'#e8f5ee','#0b6b3a','1.5px solid #0b6b3a');
+  else if(id==='bqHelpBtn')css(b,true,'#fff','#0b6b3a','1.5px solid #0b6b3a');
   else css(b,false,'#fff','#0b6b3a','1.5px solid #0b6b3a');
  });
  css(lo,true,'#fff','#c0392b','1.5px solid #c0392b');
@@ -4380,6 +4381,7 @@ setInterval(run,800);
 (function(){
 const CROWN='<svg width="17" height="17" viewBox="0 0 24 24" aria-hidden="true" style="flex:none;display:block"><path d="M3 9l4.500 4.500L12 5l4.500 8.500L21 9l-1.800 10H4.800z" fill="#f2c230" stroke="#a8791a" stroke-width="1.2" stroke-linejoin="round"/><path d="M7.500 13.500L12 5l4.500 8.500" fill="none" stroke="#ffe08a" stroke-width="1.200" stroke-linejoin="round"/><rect x="5" y="17" width="14" height="2.600" rx=".7" fill="#c99a18" stroke="#a8791a" stroke-width=".8"/><circle cx="3" cy="8.200" r="1.500" fill="#fff3c4" stroke="#a8791a" stroke-width=".8"/><circle cx="12" cy="4.300" r="1.600" fill="#fff3c4" stroke="#a8791a" stroke-width=".8"/><circle cx="21" cy="8.200" r="1.500" fill="#fff3c4" stroke="#a8791a" stroke-width=".8"/><circle cx="12" cy="13.800" r="1.400" fill="#e0405a" stroke="#8a1c30" stroke-width=".6"/></svg>';
 const DIAM='<svg width="17" height="17" viewBox="0 0 24 24" aria-hidden="true" style="flex:none;display:block"><g stroke="#14788a" stroke-width=".8" stroke-linejoin="round"><path d="M6.500 3H10L8 9H2z" fill="#aef0f8"/><path d="M10 3h4l2 6H8z" fill="#e3fcff"/><path d="M14 3h3.500L22 9h-6z" fill="#7ddbe8"/><path d="M2 9h6l4 12z" fill="#4fc3d6"/><path d="M8 9h8l-4 12z" fill="#8fe6f2"/><path d="M16 9h6L12 21z" fill="#34a8bd"/></g></svg>';
+window.bqCrownSvg=CROWN;window.bqDiamSvg=DIAM;
 const orig=window.bqBadge;
 if(typeof orig==='function'){
  window.bqBadge=function(pkg,mode){
@@ -4410,5 +4412,84 @@ document.addEventListener('click',e=>{
  const k=t.dataset&&t.dataset.pk?t.dataset.pk:'medal';
  if(!INFO[k])return;
  e.preventDefault();e.stopPropagation();open(k);
+},true);
+})();
+
+
+/* ===== Small app version line at the bottom of the Profile buttons (so we can tell which file is live) ===== */
+(function(){
+const V='21Oct-H';
+setInterval(()=>{
+ const b=document.getElementById('bqBadgeBtn');
+ if(!b||document.getElementById('bqVer'))return;
+ b.insertAdjacentHTML('afterend','<div id="bqVer" style="grid-column:1 / -1;text-align:center;color:#8a948e;font-size:12px;margin:4px 0 2px">App version '+V+'</div>');
+},1000);
+})();
+
+
+
+/* ===== My listings: crown / diamond icon instead of the rocket in the VIP and Diamond status line ===== */
+(function(){
+function sweep(){
+ try{
+  document.querySelectorAll('#myList .bqPromoLine').forEach(line=>{
+   const n=line.firstChild;
+   if(!n||n.nodeType!==3)return;
+   const m=n.nodeValue.match(/^🚀\s*(VIP|Diamond)\b/i);
+   if(!m)return;
+   const svg=(m[1].toLowerCase()==='vip'?window.bqCrownSvg:window.bqDiamSvg);
+   if(!svg)return;
+   const sp=document.createElement('span');
+   sp.style.cssText='display:inline-flex;vertical-align:-3px;margin-right:6px';
+   sp.innerHTML=svg.replace('width="17" height="17"','width="16" height="16"');
+   line.insertBefore(sp,n);
+   n.nodeValue=n.nodeValue.replace(/^🚀\s*/,'');
+  });
+ }catch(e){}
+}
+setInterval(sweep,700);
+})();
+
+
+
+/* ===== Phone alerts are automatic: no buttons. Hides Saved searches / Phone alerts / Alert settings tiles on Profile ===== */
+(function(){
+const VAPID='BBi-GQBfLogfGYbiqT7vNTSCfm7T8zTOOp6LYqAlbhRJaSSu8x0-AVa_vDWsODJF_TY3wGHNusgKI5c1iagj9gw';
+function toKey(x){const p='='.repeat((4-x.length%4)%4);const raw=atob((x+p).replace(/-/g,'+').replace(/_/g,'/'));return Uint8Array.from([...raw].map(c=>c.charCodeAt(0)));}
+const st=document.createElement('style');
+st.textContent='#bqSavedBtn,#bqPush,#bqAlertBtn{display:none !important}';
+document.head.appendChild(st);
+let doneFor='',asking=false,nextAsk=0;
+async function ensure(canAsk){
+ try{
+  if(!('serviceWorker' in navigator)||!('PushManager' in window)||!('Notification' in window))return;
+  const{data:{session}}=await supabaseClient.auth.getSession();
+  if(!session)return;
+  if(doneFor===session.user.id)return;
+  let perm=Notification.permission;
+  if(perm==='denied')return;
+  if(perm==='default'){
+   if(!canAsk||Date.now()<nextAsk)return;
+   let last=0;try{last=+localStorage.getItem('bqAskPush')||0;}catch(e){}
+   if(Date.now()-last<7*864e5){nextAsk=Date.now()+600000;return;}
+   try{localStorage.setItem('bqAskPush',String(Date.now()));}catch(e){}
+   nextAsk=Date.now()+600000;
+   perm=await Notification.requestPermission();
+  }
+  if(perm!=='granted')return;
+  let r=await navigator.serviceWorker.getRegistration();
+  if(!r)r=await navigator.serviceWorker.register('service-worker.js');
+  await navigator.serviceWorker.ready;
+  let sub=await r.pushManager.getSubscription();
+  if(!sub)sub=await r.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:toKey(VAPID)});
+  const j=sub.toJSON();
+  const{error}=await supabaseClient.from('push_subscriptions').upsert({user_id:session.user.id,endpoint:j.endpoint,p256dh:j.keys.p256dh,auth:j.keys.auth},{onConflict:'endpoint'});
+  if(!error)doneFor=session.user.id;
+ }catch(e){}
+}
+setTimeout(()=>ensure(false),3000);
+setInterval(()=>{if(Notification&&Notification.permission==='granted')ensure(false);},30000);
+document.addEventListener('click',()=>{
+ try{if(Notification.permission==='default'&&!asking){asking=true;ensure(true).then(()=>{asking=false;},()=>{asking=false;});}}catch(e){}
 },true);
 })();
