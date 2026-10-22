@@ -3316,7 +3316,7 @@ async function openSet(){
  grp(row('👤','#e8f5ee','Personal details',prof.full_name,'personal')+row('🏢','#fff0e0','Business info',prof.business_name,'business'))+
  grp(row('📞','#e3f7e8','Phone numbers',prof.phone,'phone')+row('✉️','#fff0e0','Change email',user.email,'email')+row('🌐','#e3f7e8','Change language','English','lang'))+
  grp(row('😊','#fff0e0','Disable feedback',prof.feedback_disabled?'Disabled':'Enabled','fb')+row('📲','#e1f1fb','In-app calls','Disabled','calls')+row('🔔','#fde8ea','Manage notifications','','notif'))+
- grp(row('ℹ️','#e9eef3','About BuyQora','','about')+row('🏆','#fff6dd','Understand our badges','','badges')+row('🔖','#e9f5ee','Saved searches','','savedsearch')+row('📶','#e9eef3','Check connection','','conn')+row('🌙','#e9eef3','Dark mode',THEMENAME[themePref()],'theme'))+
+ grp(row('ℹ️','#e9eef3','About BuyQora','','about')+row('💬','#e3f7e8','Help & Support','','help')+row('🏆','#fff6dd','Understand our badges','','badges')+row('🔖','#e9f5ee','Saved searches','','savedsearch')+row('📶','#e9eef3','Check connection','','conn')+row('🌙','#e9eef3','Dark mode',THEMENAME[themePref()],'theme'))+
  grp(row('🔒','#e9eef3','Change password','','pass')+row('🗑️','#e9eef3','Delete my account permanently','','del')+row('🚪','#e9eef3','Log out','','out'))+
  '<div style="height:30px"></div>';
  o.onclick=e=>{const b=e.target.closest('[data-a]');if(b)act(b.dataset.a);};
@@ -3354,6 +3354,9 @@ function act(a){
  }
  if(a==='about'){
   sheet('About BuyQora','<div style="line-height:1.6;font-size:15px">BuyQora is a Nigerian marketplace where you can buy and sell almost anything, near you.<br><br>Support: <a href="mailto:'+SUPPORT+'" style="color:#0b6b3a;font-weight:bold">'+SUPPORT+'</a><br>Support is by email only.</div>');return;
+ }
+ if(a==='help'){
+  closeSet();const hl=document.querySelector('#legalLinks [data-l="contact"]');if(hl)hl.click();return;
  }
  if(a==='savedsearch'){
   closeSet();const sb=$('bqSavedBtn');if(sb)sb.click();return;
@@ -4421,7 +4424,7 @@ document.addEventListener('click',e=>{
 
 /* ===== Small app version line at the bottom of the Profile buttons (so we can tell which file is live) ===== */
 (function(){
-const V='21Oct-I';
+const V='21Oct-J';
 setInterval(()=>{
  const b=document.getElementById('bqBadgeBtn');
  if(!b||document.getElementById('bqVer'))return;
@@ -4508,4 +4511,13 @@ setInterval(()=>{
  const b=document.getElementById('bqSaveSearch');
  if(b&&b.parentElement&&b.parentElement.style.display!=='none')b.parentElement.style.display='none';
 },600);
+})();
+
+
+
+/* ===== Help & Support lives in Settings only (Profile tile hidden) ===== */
+(function(){
+const st=document.createElement('style');
+st.textContent='#bqHelpBtn{display:none !important}';
+document.head.appendChild(st);
 })();
