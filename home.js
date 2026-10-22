@@ -2676,6 +2676,7 @@ function tidy(){
   else if(id==='bqAlertBtn')css(b,false,'#fff','#0b6b3a','1.5px solid #0b6b3a');
   else if(id==='bqPush')css(b,false,'#e8f5ee','#0b6b3a','1.5px solid #0b6b3a');
   else if(id==='bqHelpBtn')css(b,true,'#fff','#0b6b3a','1.5px solid #0b6b3a');
+  else if(id==='bqMyAds')css(b,true,'#fff','#0b6b3a','1.5px solid #0b6b3a');
   else css(b,false,'#fff','#0b6b3a','1.5px solid #0b6b3a');
  });
  css(lo,true,'#fff','#c0392b','1.5px solid #c0392b');
@@ -3315,7 +3316,7 @@ async function openSet(){
  o.innerHTML='<div style="position:sticky;top:0;z-index:3;background:#0b6b3a;color:#fff;display:flex;align-items:center;gap:12px;padding:10px 12px"><button data-a="back" style="flex:none;width:52px;height:52px;font-size:40px;line-height:1;font-weight:bold;background:rgba(255,255,255,.18);border:0;border-radius:14px;color:#fff;display:flex;align-items:center;justify-content:center;padding:0 0 4px">←</button><div style="font-size:20px;font-weight:bold">Settings</div></div>'+
  grp(row('👤','#e8f5ee','Personal details',prof.full_name,'personal')+row('🏢','#fff0e0','Business info',prof.business_name,'business'))+
  grp(row('📞','#e3f7e8','Phone numbers',prof.phone,'phone')+row('✉️','#fff0e0','Change email',user.email,'email')+row('🌐','#e3f7e8','Change language','English','lang'))+
- grp(row('😊','#fff0e0','Disable feedback',prof.feedback_disabled?'Disabled':'Enabled','fb')+row('📲','#e1f1fb','In-app calls','Disabled','calls')+row('🔔','#fde8ea','Manage notifications','','notif'))+
+ grp(row('😊','#fff0e0','Disable feedback',prof.feedback_disabled?'Disabled':'Enabled','fb')+row('📲','#e1f1fb','In-app calls','Disabled','calls')+row('🔔','#fde8ea','Manage notifications','','notif')+row('🚫','#fde8ea','Blocked users','','blocked'))+
  grp(row('ℹ️','#e9eef3','About BuyQora','','about')+row('💬','#e3f7e8','Help & Support','','help')+row('🏆','#fff6dd','Understand our badges','','badges')+row('🔖','#e9f5ee','Saved searches','','savedsearch')+row('📶','#e9eef3','Check connection','','conn')+row('🌙','#e9eef3','Dark mode',THEMENAME[themePref()],'theme'))+
  grp(row('🔒','#e9eef3','Change password','','pass')+row('🗑️','#e9eef3','Delete my account permanently','','del')+row('🚪','#e9eef3','Log out','','out'))+
  '<div style="height:30px"></div>';
@@ -3354,6 +3355,9 @@ function act(a){
  }
  if(a==='about'){
   sheet('About BuyQora','<div style="line-height:1.6;font-size:15px">BuyQora is a Nigerian marketplace where you can buy and sell almost anything, near you.<br><br>Support: <a href="mailto:'+SUPPORT+'" style="color:#0b6b3a;font-weight:bold">'+SUPPORT+'</a><br>Support is by email only.</div>');return;
+ }
+ if(a==='blocked'){
+  closeSet();const bb=$('bqBlocked');if(bb)bb.click();return;
  }
  if(a==='help'){
   closeSet();const hl=document.querySelector('#legalLinks [data-l="contact"]');if(hl)hl.click();return;
@@ -4424,7 +4428,7 @@ document.addEventListener('click',e=>{
 
 /* ===== Small app version line at the bottom of the Profile buttons (so we can tell which file is live) ===== */
 (function(){
-const V='21Oct-L';
+const V='21Oct-M';
 setInterval(()=>{
  const b=document.getElementById('bqBadgeBtn');
  if(!b||document.getElementById('bqVer'))return;
@@ -4541,6 +4545,15 @@ document.head.appendChild(st);
 setInterval(()=>{
  const o=document.getElementById('bqSetScr');
  if(!o||document.getElementById('bqVer2'))return;
- o.insertAdjacentHTML('beforeend','<div id="bqVer2" style="text-align:center;color:#8a948e;font-size:12px;padding:0 0 24px">App version 21Oct-L</div>');
+ o.insertAdjacentHTML('beforeend','<div id="bqVer2" style="text-align:center;color:#8a948e;font-size:12px;padding:0 0 24px">App version 21Oct-M</div>');
 },700);
+})();
+
+
+
+/* ===== Blocked users lives in Settings only (Profile tile hidden) ===== */
+(function(){
+const st=document.createElement('style');
+st.textContent='#bqBlocked{display:none !important}';
+document.head.appendChild(st);
 })();
