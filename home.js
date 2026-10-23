@@ -90,8 +90,8 @@ $('bqRec').onclick=e=>{const d=e.target.closest('[data-id]');if(!d)return;const 
 window.renderListings=function(){
  const grid=$('productGrid'),q=$('bqQ').value.trim().toLowerCase();
  const f=currentListings.filter(l=>(activeCategory==='all'||l.category_id===activeCategory)&&(activeSub==='all'||l.subcategory===activeSub)&&(activeState==='all'||l.state===activeState)&&(condFilter==='all'||l.condition===condFilter)&&(!q||(l.title||'').toLowerCase().includes(q)||(l.description||'').toLowerCase().includes(q))&&(!window.bqExtraFilter||window.bqExtraFilter(l)));
- if(sortMode==='lo')f.sort((a,b)=>Number(a.price)-Number(b.price));
- else if(sortMode==='hi')f.sort((a,b)=>Number(b.price)-Number(a.price));
+ if(sortMode==='lo')f.sort((a,b)=>window.bqPriceCmp?window.bqPriceCmp(a,b,1):Number(a.price)-Number(b.price));
+ else if(sortMode==='hi')f.sort((a,b)=>window.bqPriceCmp?window.bqPriceCmp(a,b,-1):Number(b.price)-Number(a.price));
  else f.sort((a,b)=>new Date(b.created_at||0)-new Date(a.created_at||0));
  currentFilteredListings=f;
  document.querySelector('#products h2').textContent=activeCategory==='all'?'Trending':(activeSub!=='all'&&SUBLABEL[activeSub]?SUBLABEL[activeSub]:(CATEGORY_LABELS[activeCategory]||'Listings'));
@@ -294,7 +294,7 @@ const baseRender=window.renderListings;
 window.renderListings=function(){
  const lo=parseFloat($('bqMin').value),hi=parseFloat($('bqMax').value),cq=$('bqCity').value.trim().toLowerCase();
  const all=currentListings;
- if(lo>0||hi>0||cq){currentListings=all.filter(l=>(!(lo>0)||Number(l.price)>=lo)&&(!(hi>0)||Number(l.price)<=hi)&&(!cq||(l.city||'').toLowerCase().includes(cq)));}
+ if(lo>0||hi>0||cq){currentListings=all.filter(l=>((!(lo>0)&&!(hi>0))||Number(l.price)>0)&&(!(lo>0)||Number(l.price)>=lo)&&(!(hi>0)||Number(l.price)<=hi)&&(!cq||(l.city||'').toLowerCase().includes(cq)));}
  try{baseRender();}finally{currentListings=all;}
 };
 ['bqMin','bqMax','bqCity'].forEach(id=>$(id).addEventListener('input',()=>renderListings()));
@@ -3071,9 +3071,9 @@ function matches(l){
  if(onlyVer){const p=profs[l.seller_id];if(!p||p.verification_status!=='verified')return false;}
  if(q){const t=((l.title||'')+' '+(l.description||'')).toLowerCase();if(t.indexOf(q)<0)return false;}
  if(cond&&l.condition!==cond)return false;
- const pr=Number(l.price);if(pmin!==''&&pr<Number(pmin))return false;if(pmax!==''&&pr>Number(pmax))return false;
+ const pr=Number(l.price);if((pmin!==''||pmax!=='')&&!(pr>0))return false;if(pmin!==''&&pr<Number(pmin))return false;if(pmax!==''&&pr>Number(pmax))return false;
  const d=det(l),T=TILES[sub];
- if(chips.budget){if(_med===null){const a=base().map(x=>Number(x.price)).filter(x=>x>0).sort((p,q)=>p-q);_med=a.length?a[Math.floor((a.length-1)/2)]:0;}if(!(Number(l.price)<=_med))return false;}
+ if(chips.budget){if(_med===null){const a=base().map(x=>Number(x.price)).filter(x=>x>0).sort((p,q)=>p-q);_med=a.length?a[Math.floor((a.length-1)/2)]:0;}if(!(Number(l.price)>0&&Number(l.price)<=_med))return false;}
  if(chips.kids||chips.sim){const t=((l.title||'')+' '+(l.description||'')).toLowerCase();
   if(chips.kids&&!/\b(kid|kids|child|children|baby|toddler)\b/.test(t))return false;
   if(chips.sim&&!/\bsim\b|sim card|\b4g\b|\blte\b|cellular/.test(t))return false;}
@@ -3111,8 +3111,8 @@ function paint(){
  _med=null;
  const T=TILES[sub],X=EXTRA[sub]||[];
  let f=base().filter(matches);
- if(sort==='lo')f.sort((a,b)=>Number(a.price)-Number(b.price));
- else if(sort==='hi')f.sort((a,b)=>Number(b.price)-Number(a.price));
+ if(sort==='lo')f.sort((a,b)=>window.bqPriceCmp?window.bqPriceCmp(a,b,1):Number(a.price)-Number(b.price));
+ else if(sort==='hi')f.sort((a,b)=>window.bqPriceCmp?window.bqPriceCmp(a,b,-1):Number(b.price)-Number(a.price));
  else f.sort((a,b)=>new Date(b.created_at||0)-new Date(a.created_at||0));
  shown=f;
  const tile=(lbl,ic,on,attr)=>'<button '+attr+' style="flex:none;width:calc(25% - 6px);padding:10px 4px 8px;border-radius:14px;background:#fff;border:2px solid '+(on?'#0b6b3a':'#e3e8e5')+';display:flex;flex-direction:column;align-items:center;gap:6px;min-width:0"><span style="width:52px;height:52px;border-radius:50%;background:'+(on?'#e8f5ee':'#f1f4f2')+';display:flex;align-items:center;justify-content:center;font-size:28px">'+ic+'</span><span style="font-size:12.5px;font-weight:600;color:#222;line-height:1.2;max-width:100%;min-height:2.4em;white-space:normal;word-break:break-word;text-align:center">'+esc(lbl)+'</span></button>';
@@ -4428,7 +4428,7 @@ document.addEventListener('click',e=>{
 
 /* ===== Small app version line at the bottom of the Profile buttons (so we can tell which file is live) ===== */
 (function(){
-const V='21Oct-O';
+const V='21Oct-P';
 setInterval(()=>{
  const b=document.getElementById('bqBadgeBtn');
  if(!b||document.getElementById('bqVer'))return;
@@ -4545,7 +4545,7 @@ document.head.appendChild(st);
 setInterval(()=>{
  const o=document.getElementById('bqSetScr');
  if(!o||document.getElementById('bqVer2'))return;
- o.insertAdjacentHTML('beforeend','<div id="bqVer2" style="text-align:center;color:#8a948e;font-size:12px;padding:0 0 24px">App version 21Oct-O</div>');
+ o.insertAdjacentHTML('beforeend','<div id="bqVer2" style="text-align:center;color:#8a948e;font-size:12px;padding:0 0 24px">App version 21Oct-P</div>');
 },700);
 })();
 
@@ -4602,3 +4602,15 @@ const st=document.createElement('style');
 st.textContent='#productGrid .product{min-width:0 !important;max-width:100%}#productGrid .bqSpecLine{min-width:0}';
 document.head.appendChild(st);
 })();
+
+
+
+/* ===== Price sorting: ads with "Contact for price" (price 0) always go last ===== */
+window.bqPriceCmp=function(a,b,dir){
+ const pa=Number(a.price),pb=Number(b.price);
+ const za=!(pa>0),zb=!(pb>0);
+ if(za&&zb)return 0;
+ if(za)return 1;
+ if(zb)return -1;
+ return dir>0?pa-pb:pb-pa;
+};
