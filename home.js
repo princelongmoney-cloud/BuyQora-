@@ -4428,7 +4428,7 @@ document.addEventListener('click',e=>{
 
 /* ===== Small app version line at the bottom of the Profile buttons (so we can tell which file is live) ===== */
 (function(){
-const V='21Oct-P';
+const V='21Oct-Q';
 setInterval(()=>{
  const b=document.getElementById('bqBadgeBtn');
  if(!b||document.getElementById('bqVer'))return;
@@ -4545,7 +4545,7 @@ document.head.appendChild(st);
 setInterval(()=>{
  const o=document.getElementById('bqSetScr');
  if(!o||document.getElementById('bqVer2'))return;
- o.insertAdjacentHTML('beforeend','<div id="bqVer2" style="text-align:center;color:#8a948e;font-size:12px;padding:0 0 24px">App version 21Oct-P</div>');
+ o.insertAdjacentHTML('beforeend','<div id="bqVer2" style="text-align:center;color:#8a948e;font-size:12px;padding:0 0 24px">App version 21Oct-Q</div>');
 },700);
 })();
 
@@ -4614,3 +4614,12 @@ window.bqPriceCmp=function(a,b,dir){
  if(zb)return -1;
  return dir>0?pa-pb:pb-pa;
 };
+
+
+
+/* ===== Listing photo: keep the heart button fully inside the photo (it was cut off at the top) ===== */
+(function(){
+const st=document.createElement('style');
+st.textContent='#detailContent .detail-image{position:relative} #detailContent #detailFavBtn{position:absolute !important;top:10px !important;right:10px !important;bottom:auto !important;left:auto !important;z-index:3}';
+document.head.appendChild(st);
+})();
