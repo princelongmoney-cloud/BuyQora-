@@ -4428,7 +4428,7 @@ document.addEventListener('click',e=>{
 
 /* ===== Small app version line at the bottom of the Profile buttons (so we can tell which file is live) ===== */
 (function(){
-const V='21Oct-N';
+const V='21Oct-O';
 setInterval(()=>{
  const b=document.getElementById('bqBadgeBtn');
  if(!b||document.getElementById('bqVer'))return;
@@ -4545,7 +4545,7 @@ document.head.appendChild(st);
 setInterval(()=>{
  const o=document.getElementById('bqSetScr');
  if(!o||document.getElementById('bqVer2'))return;
- o.insertAdjacentHTML('beforeend','<div id="bqVer2" style="text-align:center;color:#8a948e;font-size:12px;padding:0 0 24px">App version 21Oct-N</div>');
+ o.insertAdjacentHTML('beforeend','<div id="bqVer2" style="text-align:center;color:#8a948e;font-size:12px;padding:0 0 24px">App version 21Oct-O</div>');
 },700);
 })();
 
@@ -4587,9 +4587,18 @@ function sweep(){
    const loc=c.querySelector('.loc');if(!loc)return;
    c.setAttribute('data-bqspec','1');
    const t=window.bqSpec(l);if(!t)return;
-   loc.insertAdjacentHTML('afterend','<div class="bqSpecLine" style="font-size:13px;color:#667;margin:0 0 6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+t.replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))+'</div>');
+   loc.insertAdjacentHTML('afterend','<div class="bqSpecLine" style="font-size:13px;color:#667;margin:0 0 6px;max-width:100%;overflow-wrap:anywhere">'+t.replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))+'</div>');
   });
  }catch(e){}
 }
 setInterval(sweep,800);
+})();
+
+
+
+/* ===== Keep the home grid inside the screen (long spec lines must never widen a column) ===== */
+(function(){
+const st=document.createElement('style');
+st.textContent='#productGrid .product{min-width:0 !important;max-width:100%}#productGrid .bqSpecLine{min-width:0}';
+document.head.appendChild(st);
 })();
