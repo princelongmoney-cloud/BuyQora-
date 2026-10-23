@@ -3074,6 +3074,7 @@ function matches(l){
  const pr=Number(l.price);if((pmin!==''||pmax!=='')&&!(pr>0))return false;if(pmin!==''&&pr<Number(pmin))return false;if(pmax!==''&&pr>Number(pmax))return false;
  const d=det(l),T=TILES[sub];
  if(chips.budget){if(_med===null){const a=base().map(x=>Number(x.price)).filter(x=>x>0).sort((p,q)=>p-q);_med=a.length?a[Math.floor((a.length-1)/2)]:0;}if(!(Number(l.price)>0&&Number(l.price)<=_med))return false;}
+ {const RG={r1:[0,3e6],r2:[3e6,6e6],r3:[6e6,12e6],r4:[12e6,1e15]};for(const k in RG){if(chips[k]){const p=Number(l.price);if(!(p>0)||p<RG[k][0]||p>RG[k][1])return false;}}}
  if(chips.kids||chips.sim){const t=((l.title||'')+' '+(l.description||'')).toLowerCase();
   if(chips.kids&&!/\b(kid|kids|child|children|baby|toddler)\b/.test(t))return false;
   if(chips.sim&&!/\bsim\b|sim card|\b4g\b|\blte\b|cellular/.test(t))return false;}
@@ -3118,7 +3119,7 @@ function paint(){
  const tile=(lbl,ic,on,attr)=>'<button '+attr+' style="flex:none;width:calc(25% - 6px);padding:10px 4px 8px;border-radius:14px;background:#fff;border:2px solid '+(on?'#0b6b3a':'#e3e8e5')+';display:flex;flex-direction:column;align-items:center;gap:6px;min-width:0"><span style="width:52px;height:52px;border-radius:50%;background:'+(on?'#e8f5ee':'#f1f4f2')+';display:flex;align-items:center;justify-content:center;font-size:28px">'+ic+'</span><span style="font-size:12.5px;font-weight:600;color:#222;line-height:1.2;max-width:100%;min-height:2.4em;white-space:normal;word-break:break-word;text-align:center">'+esc(lbl)+'</span></button>';
  const pill=(t,on,act)=>'<button data-act="'+act+'" style="flex:none;padding:8px 13px;border-radius:12px;font-size:14px;font-weight:600;border:1.5px solid '+(on?'#0b6b3a':'#cfd8d3')+';background:'+(on?'#e8f5ee':'#fff')+';color:'+(on?'#0b6b3a':'#333')+'">'+t+'</button>';
  let top='';
- {const CH=[['budget','Budget-friendly']].concat((sub==='ph_tablets'||/kid|baby|toy/.test(sub))?[['kids','For kids']]:[]).concat(sub==='ph_tablets'?[['sim','With SIM']]:[]);
+ {const CH=[['budget','Budget-friendly']].concat((sub==='ph_tablets'||/kid|baby|toy/.test(sub))?[['kids','For kids']]:[]).concat(sub==='ph_tablets'?[['sim','With SIM']]:[]).concat(sub==='cars'?[['r1','< ₦3M'],['r2','₦3M - 6M'],['r3','₦6M - 12M'],['r4','> ₦12M']]:[]);
   top+='<div style="display:flex;gap:8px;overflow-x:auto;padding:12px 12px 0">'+CH.map(c=>pill((chips[c[0]]?'✓ ':'')+c[1],!!chips[c[0]],'chip:'+c[0])).join('')+'</div>';}
  if(T)top+='<div style="display:flex;gap:8px;overflow-x:auto;padding:12px 12px 4px">'+T.top.map(x=>tile(x,T.ic||('<b style="font-size:26px;color:#0b6b3a">'+esc(String(x).charAt(0))+'</b>'),tileSel===x,'data-tile="'+esc(x)+'"')).join('')+tile('Other','⋯',false,'data-act="o:tile"')+'</div>';
  top+='<div style="display:flex;flex-wrap:wrap;gap:8px;padding:10px 12px 4px">';
@@ -3171,7 +3172,7 @@ function open(c,s){
   const a=e.target.closest('[data-act]');if(!a)return;
   const act=a.dataset.act;
   if(act==='back'){const c0=cat;try{sessionStorage.removeItem('bqCatScr');}catch(x){}close();try{window.bqOpenPicker(c0);}catch(x){}}
-  else if(act&&act.indexOf('chip:')===0){const k=act.slice(5);chips[k]=!chips[k];paint();}
+  else if(act&&act.indexOf('chip:')===0){const k=act.slice(5);if(/^r[1-4]$/.test(k)){const was=chips[k];['r1','r2','r3','r4'].forEach(x=>{chips[x]=false;});chips[k]=!was;}else chips[k]=!chips[k];paint();}
   else if(act==='savesearch'){(async()=>{
    const{data:{session}}=await supabaseClient.auth.getSession();
    if(!session){if(window.openAuth)openAuth('login');return;}
@@ -4428,7 +4429,7 @@ document.addEventListener('click',e=>{
 
 /* ===== Small app version line at the bottom of the Profile buttons (so we can tell which file is live) ===== */
 (function(){
-const V='21Oct-Q';
+const V='21Oct-R';
 setInterval(()=>{
  const b=document.getElementById('bqBadgeBtn');
  if(!b||document.getElementById('bqVer'))return;
@@ -4545,7 +4546,7 @@ document.head.appendChild(st);
 setInterval(()=>{
  const o=document.getElementById('bqSetScr');
  if(!o||document.getElementById('bqVer2'))return;
- o.insertAdjacentHTML('beforeend','<div id="bqVer2" style="text-align:center;color:#8a948e;font-size:12px;padding:0 0 24px">App version 21Oct-Q</div>');
+ o.insertAdjacentHTML('beforeend','<div id="bqVer2" style="text-align:center;color:#8a948e;font-size:12px;padding:0 0 24px">App version 21Oct-R</div>');
 },700);
 })();
 
