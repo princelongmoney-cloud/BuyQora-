@@ -2564,7 +2564,7 @@ const yrs=[];for(let y=new Date().getFullYear()+1;y>=1990;y--)yrs.push(String(y)
 const nums=['1','2','3','4','5','6','7','8+'];
 const F={
  phones:[['brand','Brand','s',['Apple (iPhone)','Samsung','Tecno','Infinix','Itel','Xiaomi','Oppo','Nokia','Huawei','Google Pixel','Other']],['storage','Storage','s',['16GB','32GB','64GB','128GB','256GB','512GB','1TB']],['color','Color','t','e.g. Black, Blue']],
- vehicles:[['make','Make','s',['Toyota','Honda','Lexus','Mercedes-Benz','Hyundai','Kia','Nissan','Ford','Peugeot','Volkswagen','BMW','Mazda','Suzuki','Other']],['year','Year','s',yrs],['mileage','Mileage (km)','t','e.g. 85000'],['transmission','Transmission','s',['Automatic','Manual']],['fuel','Fuel','s',['Petrol','Diesel','Electric','Hybrid','Gas']]],
+ vehicles:[['make','Make','s',['Toyota','Honda','Lexus','Mercedes-Benz','Hyundai','Kia','Nissan','Ford','Peugeot','Volkswagen','BMW','Mazda','Suzuki','Qlink','Kymco','Yamaha','Bajaj','TVS','Haojue','Kawasaki','Caterpillar','JCB','Komatsu','Case','Bobcat','Sany','XCMG','Volvo','Other']],['year','Year','s',yrs],['mileage','Mileage (km)','t','e.g. 85000'],['transmission','Transmission','s',['Automatic','Manual']],['fuel','Fuel','s',['Petrol','Diesel','Electric','Hybrid','Gas']]],
  property:[['bedrooms','Bedrooms','s',nums],['bathrooms','Bathrooms','s',nums],['furnished','Furnished','s',['Yes','No','Semi-furnished']]],
  electronics:[['brand','Brand','s',['Apple','Samsung','JBL','HP','Dell','Lenovo','LG','Sony','Hisense','TCL','Other']],['model','Model','t','e.g. MacBook Air M1']],
  fashion:[['size','Size','t','e.g. M, L, 42'],['color','Color','t','e.g. Black, Blue']]
@@ -3037,7 +3037,7 @@ const nums=['1','2','3','4','5','6','7','8+'];
 const ages=['Under 1 month','1-3 months','3-6 months','6-12 months','1-2 years','2+ years'];
 const DOGB=['Rottweiler','German Shepherd','Lhasa Apso','Caucasian Shepherd','Cane Corso','Boerboel','Alsatian','Pitbull','Husky','Poodle','Local / Mixed','Other'];
 const CATB=['Persian','Siamese','Maine Coon','British Shorthair','Local / Mixed','Other'];
-const CARB=['Toyota','Honda','Lexus','Mercedes-Benz','Hyundai','Kia','Nissan','Ford','Peugeot','Volkswagen','BMW','Mazda','Suzuki','Other'];
+const CARB=['Toyota','Honda','Lexus','Mercedes-Benz','Hyundai','Kia','Nissan','Ford','Peugeot','Volkswagen','BMW','Mazda','Suzuki','Qlink','Kymco','Yamaha','Bajaj','TVS','Haojue','Kawasaki','Caterpillar','JCB','Komatsu','Case','Bobcat','Sany','XCMG','Volvo','Other'];
 const PHB=['Apple (iPhone)','Samsung','Tecno','Infinix','Itel','Xiaomi','Oppo','Nokia','Huawei','Google Pixel','Other'];
 const ELB=['Apple','Samsung','JBL','HP','Dell','Lenovo','LG','Sony','Hisense','TCL','Other'];
 const ACCT=['Power Bank','Cases','Stands & Holders','Chargers & Cables','Screen Protectors','Memory Cards','Other'];
@@ -3048,7 +3048,9 @@ const TILES={
  cars:{k:'make',all:CARB,top:['Toyota','Honda','Lexus','Mercedes-Benz','Hyundai','Kia'],w:'Make'},
  buses:{k:'make',all:CARB,top:['Toyota','Hyundai','Honda','Mercedes-Benz','Kia','Nissan'],w:'Make'},
  trucks:{k:'make',all:CARB,top:['Toyota','Ford','Nissan','Mercedes-Benz','Hyundai','Kia'],w:'Make'},
- motorcycles:{k:'make',all:CARB,top:['Honda','Suzuki','Toyota','Kia','Hyundai'],w:'Make'},
+ motorcycles:{k:'make',all:CARB,top:['Qlink','Honda','Kymco','Yamaha','Suzuki','Bajaj'],w:'Make'},
+ sv_car:{k:'type',kw:{'Taxi Services':['taxi','cab','ride'],'Tuning Services':['tuning','tune','remap','ecu','speed limiter'],'Detailing Services':['detailing','polish','ceramic','coating'],'Car Wash':['car wash','carwash','washing']},all:['Taxi Services','Tuning Services','Detailing Services','Car Wash'],top:['Taxi Services','Tuning Services','Detailing Services','Car Wash'],w:'Type',ic:'🚗'},
+ heavy:{k:'type',kw:{'Excavators':['excavator','digger','backhoe'],'Loaders':['loader','payloader','bobcat','skid steer'],'LPG Tanks':['lpg','gas tank','gas cylinder','cylinder']},all:['Excavators','Loaders','LPG Tanks'],top:['Excavators','Loaders','LPG Tanks'],w:'Type',ic:'🚜'},
  ph_phones:{k:'brand',all:PHB,top:['Apple (iPhone)','Samsung','Tecno','Infinix','Itel','Xiaomi'],w:'Brand'},
  ph_tablets:{k:'brand',all:PHB,top:['Apple (iPhone)','Samsung','Tecno','Huawei','Xiaomi'],w:'Brand'},
  el_laptops:{k:'brand',all:ELB,top:['Apple','HP','Dell','Lenovo','Samsung','Sony'],w:'Brand'},
@@ -3065,7 +3067,9 @@ const PRO=[{k:'bedrooms',l:'Bedrooms',t:'s',o:nums},{k:'bathrooms',l:'Bathrooms'
 const PHX=[{k:'storage',l:'Storage',t:'s',o:['16GB','32GB','64GB','128GB','256GB','512GB','1TB']},{k:'color',l:'Color',t:'t'}];
 const FAS=[{k:'size',l:'Size',t:'t'},{k:'color',l:'Color',t:'t'}];
 const PETX=[{k:'gender',l:'Gender',t:'s',o:['Male','Female']},{k:'age',l:'Age',t:'s',o:ages}];
-const EXTRA={an_dogs:PETX,an_cats:PETX,cars:VEH,buses:VEH,trucks:VEH,motorcycles:VEH,new_builds:PRO,rent_homes:PRO,sale_homes:PRO,short_let:PRO,ph_phones:PHX,ph_tablets:PHX,fa_women:FAS,fa_men:FAS,fa_shoes:FAS,fa_bags:[{k:'color',l:'Color',t:'t'}],fa_trad:FAS};
+const HVX=[{k:'make',l:'Make',t:'s',o:['Caterpillar','JCB','Komatsu','Case','Bobcat','Sany','XCMG','Volvo','Hyundai','Other']}];
+const PMX=[{k:'ptype',l:'Type',t:'s',o:['E-bike','Electric scooter','Bicycle','Skateboard','Hoverboard'],kw:{'E-bike':['e-bike','ebike','electric bike'],'Electric scooter':['scooter'],'Bicycle':['bicycle','bike'],'Skateboard':['skateboard'],'Hoverboard':['hoverboard']}}];
+const EXTRA={an_dogs:PETX,an_cats:PETX,cars:VEH,buses:VEH,trucks:VEH,motorcycles:[],heavy:HVX,personal:PMX,new_builds:PRO,rent_homes:PRO,sale_homes:PRO,short_let:PRO,ph_phones:PHX,ph_tablets:PHX,fa_women:FAS,fa_men:FAS,fa_shoes:FAS,fa_bags:[{k:'color',l:'Color',t:'t'}],fa_trad:FAS};
 const NOCOND={animals:1,services:1,jobs:1,food:1};
 let st='all',cat='',sub='',tileSel='',vals={},cond='',pmin='',pmax='',sort='new',pop=null,q='',onlyVer=false,view='grid',profs={},shown=[],chips={},_med=null;
 function close(){const o=$('bqCatScr');if(o)o.remove();}
@@ -3083,9 +3087,10 @@ function matches(l){
  if(chips.kids||chips.sim){const t=((l.title||'')+' '+(l.description||'')).toLowerCase();
   if(chips.kids&&!/\b(kid|kids|child|children|baby|toddler)\b/.test(t))return false;
   if(chips.sim&&!/\bsim\b|sim card|\b4g\b|\blte\b|cellular/.test(t))return false;}
- if(T&&tileSel){const known=T.all.filter(x=>x!=='Other');const b=d[T.k]||'';
+ if(T&&tileSel&&T.kw){const tt=((l.title||'')+' '+(l.description||'')).toLowerCase();const hit=n=>(T.kw[n]||[n.toLowerCase()]).some(w=>tt.indexOf(w)>-1);if(tileSel==='Other'){if(T.all.some(hit))return false;}else if(!hit(tileSel))return false;}
+ else if(T&&tileSel){const known=T.all.filter(x=>x!=='Other');const b=d[T.k]||'';
   if(tileSel==='Other'){if(!b||known.indexOf(b)>-1)return false;}else if(b!==tileSel)return false;}
- for(const f of (EXTRA[sub]||[])){const v=vals[f.k];if(!v)continue;const x=String(d[f.k]||'');
+ for(const f of (EXTRA[sub]||[])){const v=vals[f.k];if(!v)continue;if(f.kw){const tt=((l.title||'')+' '+(l.description||'')).toLowerCase();if(!(f.kw[v]||[v.toLowerCase()]).some(w=>tt.indexOf(w)>-1))return false;continue;}const x=String(d[f.k]||'');
   if(f.t==='s'){if(x!==v)return false;}else if(x.toLowerCase().indexOf(v.toLowerCase())<0)return false;}
  return true;
 }
@@ -4434,7 +4439,7 @@ document.addEventListener('click',e=>{
 
 /* ===== Small app version line at the bottom of the Profile buttons (so we can tell which file is live) ===== */
 (function(){
-const V='21Oct-W';
+const V='21Oct-X';
 setInterval(()=>{
  const b=document.getElementById('bqBadgeBtn');
  if(!b||document.getElementById('bqVer'))return;
@@ -4551,7 +4556,7 @@ document.head.appendChild(st);
 setInterval(()=>{
  const o=document.getElementById('bqSetScr');
  if(!o||document.getElementById('bqVer2'))return;
- o.insertAdjacentHTML('beforeend','<div id="bqVer2" style="text-align:center;color:#8a948e;font-size:12px;padding:0 0 24px">App version 21Oct-W</div>');
+ o.insertAdjacentHTML('beforeend','<div id="bqVer2" style="text-align:center;color:#8a948e;font-size:12px;padding:0 0 24px">App version 21Oct-X</div>');
 },700);
 })();
 
