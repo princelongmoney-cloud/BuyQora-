@@ -2586,10 +2586,11 @@ function build(){
  const c=document.getElementById('sellCategory'),box=document.getElementById('catFields');
  const cat=c?c.value:'';
  const sb=document.getElementById('sellSub');const sub=((cat==='animals'||cat==='phones')&&sb)?sb.value:'';
- const key=cat+':'+sub;
+ const subv=sb?sb.value:'';const hasO=!!(window.bqSubF&&window.bqSubF[subv]);
+ const key=cat+':'+sub+(hasO?'|'+subv:'');
  if(box.dataset.cat===key)return;
  box.dataset.cat=key;
- const list=(cat==='animals')?(PET[sub]||[]):(cat==='phones'&&sub==='ph_acc')?ACC:(F[cat]||[]);
+ const list=hasO?window.bqSubF[subv]:(cat==='animals')?(PET[sub]||[]):(cat==='phones'&&sub==='ph_acc')?ACC:(F[cat]||[]);
  box.innerHTML=list.map(f=>'<label>'+f[1]+'</label>'+(f[2]==='s'?'<select data-k="'+f[0]+'"><option value="">Choose</option>'+f[3].map(o=>'<option>'+o+'</option>').join('')+'</select>':'<input data-k="'+f[0]+'" placeholder="'+f[3]+'">')).join('');
 }
 document.addEventListener('change',e=>{if(e.target&&e.target.id==='sellCategory')build();});
@@ -4439,7 +4440,7 @@ document.addEventListener('click',e=>{
 
 /* ===== Small app version line at the bottom of the Profile buttons (so we can tell which file is live) ===== */
 (function(){
-const V='21Oct-X';
+const V='21Oct-Z';
 setInterval(()=>{
  const b=document.getElementById('bqBadgeBtn');
  if(!b||document.getElementById('bqVer'))return;
@@ -4556,7 +4557,7 @@ document.head.appendChild(st);
 setInterval(()=>{
  const o=document.getElementById('bqSetScr');
  if(!o||document.getElementById('bqVer2'))return;
- o.insertAdjacentHTML('beforeend','<div id="bqVer2" style="text-align:center;color:#8a948e;font-size:12px;padding:0 0 24px">App version 21Oct-X</div>');
+ o.insertAdjacentHTML('beforeend','<div id="bqVer2" style="text-align:center;color:#8a948e;font-size:12px;padding:0 0 24px">App version 21Oct-Z</div>');
 },700);
 })();
 
@@ -4689,4 +4690,51 @@ window.addEventListener('click',e=>{
   if(window.SUB3&&window.SUB3[r.dataset.k]){e.stopImmediatePropagation();e.preventDefault();show(r.dataset.k);}
  }catch(err){}
 },true);
+})();
+
+
+
+/* ===== Sell form: the extra questions depend on the exact type (a motorcycle is not asked about transmission) ===== */
+(function(){
+const yrs=[];for(let y=new Date().getFullYear()+1;y>=1990;y--)yrs.push(String(y));
+const CARS=['Toyota','Honda','Lexus','Mercedes-Benz','Hyundai','Kia','Nissan','Ford','Peugeot','Volkswagen','BMW','Mazda','Suzuki','Other'];
+const carF=[['make','Make','s',CARS],['year','Year','s',yrs],['mileage','Mileage (km)','t','e.g. 85000'],['transmission','Transmission','s',['Automatic','Manual']],['fuel','Fuel','s',['Petrol','Diesel','Electric','Hybrid','Gas']]];
+const size=lab=>[['size',lab,'t','e.g. 600 sqm']];
+window.bqSubF={
+ cars:carF,buses:carF,trucks:carF,
+ motorcycles:[['make','Make','s',['Qlink','Honda','Kymco','Yamaha','Suzuki','Bajaj','TVS','Haojue','Kawasaki','Other']],['year','Year','s',yrs],['mileage','Mileage (km)','t','e.g. 12000']],
+ tricycles:[['make','Make','s',['Bajaj','TVS','Piaggio','Qlink','Other']],['year','Year','s',yrs],['fuel','Fuel','s',['Petrol','Gas','Electric']]],
+ heavy:[['make','Make','s',['Caterpillar','JCB','Komatsu','Case','Bobcat','Sany','XCMG','Volvo','Hyundai','Other']],['year','Year','s',yrs]],
+ boats:[['year','Year','s',yrs]],
+ parts:[['brand','Brand','t','e.g. Toyota, Bosch']],
+ personal:[['brand','Brand','t','e.g. Xiaomi, Segway']],
+ sv_car:[],
+ land_rent:size('Plot size'),land_sale:size('Plot size'),
+ comm_rent:size('Size (sqm)'),comm_sale:size('Size (sqm)'),
+ venues:[['capacity','Capacity','t','e.g. 300 people']]
+};
+})();
+
+
+
+/* ===== Remember which ads a logged-in person views (used later for the "Still looking?" alert) ===== */
+(function(){
+const seen={};
+async function record(l){
+ try{
+  if(!l||!l.id||seen[l.id])return;
+  const {data:{session}}=await supabaseClient.auth.getSession();
+  if(!session)return;
+  if(l.seller_id&&l.seller_id===session.user.id)return;
+  seen[l.id]=1;
+  await supabaseClient.from('user_views').upsert({user_id:session.user.id,listing_id:l.id,category_id:l.category_id||null,subcategory:l.subcategory||null,viewed_at:new Date().toISOString()},{onConflict:'user_id,listing_id'});
+ }catch(e){}
+}
+const prev=window.openDetail;
+if(typeof prev==='function'){
+ window.openDetail=function(l){
+  try{record(l);}catch(e){}
+  return prev.apply(this,arguments);
+ };
+}
 })();
