@@ -15,14 +15,18 @@ self.addEventListener('push',e=>{
  let d={};
  try{d=e.data?e.data.json():{};}catch(_){d={title:'BuyQora',body:e.data?e.data.text():''};}
  e.waitUntil(self.registration.showNotification(d.title||'BuyQora',{
-  body:d.body||'',icon:'icon-192.png',badge:'badge-96.png',data:{url:d.url||'./'}
+  body:d.body||'',icon:'icon-192.png',badge:'badge-96.png',image:d.image||undefined,data:{url:d.url||'./',nav:d.nav===true}
  }));
 });
 self.addEventListener('notificationclick',e=>{
  e.notification.close();
- const url=(e.notification.data&&e.notification.data.url)||'./';
+ const dt=e.notification.data||{};
+ const url=dt.url||'./';
  e.waitUntil(clients.matchAll({type:'window',includeUncontrolled:true}).then(l=>{
-  for(const c of l){if('focus' in c)return c.focus();}
+  for(const c of l){if('focus' in c){
+   if(dt.nav&&'navigate' in c){return c.focus().then(w=>(w||c).navigate(url)).catch(()=>clients.openWindow(url));}
+   return c.focus();
+  }}
   return clients.openWindow(url);
  }));
 });
