@@ -599,10 +599,11 @@ function btn(a,id,t,c){return '<button data-a="'+a+'" data-id="'+id+'" style="ba
 async function load(){
  const box=$('verList');
  box.innerHTML='<p style="color:#999">Loading...</p>';
- const{data,error}=await supabaseClient.from('profiles').select('id,full_name,phone,state,business_name,business_description,logo_url,verification_status').eq('verification_status',tab).order('full_name');
+ const{data,error}=await supabaseClient.from('profiles').select('id,full_name,state,business_name,business_description,logo_url,verification_status').eq('verification_status',tab).order('full_name');
  if(error){box.innerHTML='<p style="color:#c0392b">'+esc(error.message)+'</p>';return;}
  rows=data||[];
  if(!rows.length){box.innerHTML='<p style="color:#999">None in this list.</p>';return;}
+ try{const q=await supabaseClient.rpc('get_phones',{p_ids:rows.map(r=>r.id)});if(!q.error&&q.data){const pm={};q.data.forEach(x=>{pm[x.id]=x.phone;});rows.forEach(r=>{r.phone=pm[r.id]||'';});}else{const o=await supabaseClient.from('profiles').select('id,phone').in('id',rows.map(r=>r.id));(o.data||[]).forEach(x=>{const r=rows.find(y=>y.id===x.id);if(r)r.phone=x.phone;});}}catch(e){}
  box.innerHTML=rows.map(p=>{
   let b='';
   if(tab==='pending')b=btn('approve',p.id,'Approve','#2e7d32')+btn('reject',p.id,'Reject','#c0392b');
@@ -2157,10 +2158,12 @@ function since(d){
  return y+(m%12?'+':'')+' year'+(y===1?'':'s')+' on BuyQora';
 }
 async function sellerProfile(id){
- let r=await supabaseClient.from('profiles').select('full_name,business_name,logo_url,phone,show_phone,verification_status,created_at,last_seen').eq('id',id).maybeSingle();
- if(r.error){r=await supabaseClient.from('profiles').select('full_name,business_name,logo_url,phone,show_phone,verification_status,created_at').eq('id',id).maybeSingle();}
- if(r.error){r=await supabaseClient.from('profiles').select('full_name,business_name,logo_url,phone,show_phone,verification_status').eq('id',id).maybeSingle();}
- return r.data||null;
+ let r=await supabaseClient.from('profiles').select('full_name,business_name,logo_url,show_phone,verification_status,created_at,last_seen').eq('id',id).maybeSingle();
+ if(r.error){r=await supabaseClient.from('profiles').select('full_name,business_name,logo_url,show_phone,verification_status,created_at').eq('id',id).maybeSingle();}
+ if(r.error){r=await supabaseClient.from('profiles').select('full_name,business_name,logo_url,show_phone,verification_status').eq('id',id).maybeSingle();}
+ const d=r.data||null;
+ if(d){try{const q=await supabaseClient.rpc('get_phones',{p_ids:[id]});if(!q.error&&q.data){d.phone=(q.data[0]&&q.data[0].phone)||null;}else{const o=await supabaseClient.from('profiles').select('phone').eq('id',id).maybeSingle();d.phone=(o.data&&o.data.phone)||null;}}catch(e){}}
+ return d;
 }
 const seenTxt=t=>{if(!t)return '';const s=(Date.now()-new Date(t))/1000;if(!(s>=0))return '';if(s<300)return '<span style="color:#1fbf63;font-weight:700">● Online now</span>';let w;if(s<3600)w=Math.round(s/60)+' min ago';else if(s<86400){const h=Math.round(s/3600);w=h+' hour'+(h===1?'':'s')+' ago';}else{const d=Math.round(s/86400);w=d===1?'yesterday':d<30?d+' days ago':new Date(t).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});}return 'Online '+w;};
 async function bottom(l,prof,own){
@@ -2332,7 +2335,7 @@ async function enhance(l){
    const {data:{session:s3}}=await supabaseClient.auth.getSession();
    if(!s3){alert('Please log in first.');if(typeof openAuth==='function')openAuth('login');return;}
    let ph='';
-   try{const {data:mp}=await supabaseClient.from('profiles').select('phone').eq('id',s3.user.id).maybeSingle();ph=(mp&&mp.phone)||'';}catch(e){}
+   try{const q=await supabaseClient.rpc('get_phones',{p_ids:[s3.user.id]});if(!q.error&&q.data&&q.data[0]){ph=q.data[0].phone||'';}else{const {data:mp}=await supabaseClient.from('profiles').select('phone').eq('id',s3.user.id).maybeSingle();ph=(mp&&mp.phone)||'';}}catch(e){}
    if(!ph){ph=(prompt('Enter your phone number so the seller can call you back:')||'').trim();}
    if(!ph)return;
    rb.disabled=true;
@@ -3312,9 +3315,11 @@ const btn=(id,t,bg)=>'<button id="'+id+'" style="width:100%;margin-top:16px;padd
 const msg=(t,ok)=>{const m=$('bqShMsg');if(m){m.style.color=ok?'#0b6b3a':'#c0392b';m.textContent=t;}};
 async function load(){
  try{const{data:{session}}=await supabaseClient.auth.getSession();if(!session)return false;user=session.user;
-  let r=await supabaseClient.from('profiles').select('full_name,phone,state,business_name,account_type,feedback_disabled').eq('id',user.id).maybeSingle();
-  if(r.error)r=await supabaseClient.from('profiles').select('full_name,phone,state,business_name,account_type').eq('id',user.id).maybeSingle();
-  prof=r.data||{};return true;}catch(e){return false;}
+  let r=await supabaseClient.from('profiles').select('full_name,state,business_name,account_type,feedback_disabled').eq('id',user.id).maybeSingle();
+  if(r.error)r=await supabaseClient.from('profiles').select('full_name,state,business_name,account_type').eq('id',user.id).maybeSingle();
+  prof=r.data||{};
+  try{const q=await supabaseClient.rpc('get_phones',{p_ids:[user.id]});if(!q.error&&q.data&&q.data[0]){prof.phone=q.data[0].phone;}else{const o=await supabaseClient.from('profiles').select('phone').eq('id',user.id).maybeSingle();if(o.data)prof.phone=o.data.phone;}}catch(e){}
+  return true;}catch(e){return false;}
 }
 function row(ic,bg,label,val,act){
  return '<button data-a="'+act+'" style="display:flex;align-items:center;gap:14px;width:100%;padding:12px 14px;background:#fff;border:0;border-bottom:1px solid #eef1ef;text-align:left;color:#222"><span style="width:44px;height:44px;border-radius:10px;background:'+bg+';display:flex;align-items:center;justify-content:center;font-size:22px;flex:none">'+ic+'</span><span style="flex:1;min-width:0;font-size:16px">'+esc(label)+'</span>'+(val?'<span style="color:#777;font-size:14px;max-width:42%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(val)+'</span>':'')+'<span style="color:#999;font-size:22px">›</span></button>';

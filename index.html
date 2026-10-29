@@ -774,11 +774,20 @@ async function openProfile(){
   document.getElementById('profileSuccess').style.display = 'none';
   const { data: profile } = await supabaseClient
     .from('profiles')
-    .select('full_name, phone, state')
+    .select('full_name, state')
     .eq('id', session.user.id)
     .single();
+  let myPhone = "";
+  try{
+    const q = await supabaseClient.rpc('get_phones', { p_ids: [session.user.id] });
+    if(!q.error && q.data && q.data[0]){ myPhone = q.data[0].phone || ""; }
+    else {
+      const o = await supabaseClient.from('profiles').select('phone').eq('id', session.user.id).maybeSingle();
+      myPhone = (o.data && o.data.phone) || "";
+    }
+  }catch(e){}
   document.getElementById('profileName').value = profile?.full_name || "";
-  document.getElementById('profilePhone').value = profile?.phone || "";
+  document.getElementById('profilePhone').value = myPhone;
   document.getElementById('profileState').value = profile?.state || "";
   document.getElementById('profileOverlay').classList.add('show');
 }
