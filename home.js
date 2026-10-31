@@ -4263,6 +4263,19 @@ window.bqBadgesHTML=h;
 (function(){
 const esc=x=>String(x==null?'':x).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 function close(){const o=document.getElementById('bqCallSheet');if(o)o.remove();}
+function reveal(a){
+const tel=(a.getAttribute('href')||'').replace(/^tel:/,'');
+const shown=tel.replace(/^\+234/,'0');
+a.innerHTML='\uD83D\uDCDE '+esc(shown);
+a.dataset.shown='1';
+const wrap=a.closest('.bq-contactrow')||a.parentNode;
+if(wrap&&!document.getElementById('bqPayWarn')){
+const w=document.createElement('div');w.id='bqPayWarn';
+w.style.cssText='display:flex;align-items:center;gap:12px;border:1.5px solid rgba(128,128,128,.55);border-radius:12px;padding:14px;margin:10px 0;font-size:16px;line-height:1.35';
+w.innerHTML='<span style="font-size:26px;line-height:1">\u26A0\uFE0F</span><span>Do not pay in advance even for the delivery!</span>';
+wrap.insertAdjacentElement('afterend',w);
+}
+}
 function open(a){
  close();
  const tel=(a.getAttribute('href')||'').replace(/^tel:/,'');
@@ -4295,7 +4308,8 @@ function open(a){
 document.addEventListener('click',e=>{
  const a=e.target.closest&&e.target.closest('a.bq-call');
  if(!a)return;
- e.preventDefault();e.stopPropagation();open(a);
+ if(a.dataset.shown==='1')return;
+e.preventDefault();e.stopPropagation();reveal(a);
 },true);
 })();
 
@@ -4303,7 +4317,7 @@ document.addEventListener('click',e=>{
 /* ===== WhatsApp now lives only inside the Call sheet (page button hidden; its link feeds the sheet) ===== */
 (function(){
 const st=document.createElement('style');
-st.textContent='#bqWhatsApp{display:none !important}';
+st.textContent='/* WhatsApp button is shown on the ad page again */';
 document.head.appendChild(st);
 })();
 
@@ -4742,4 +4756,72 @@ if(typeof prev==='function'){
   return prev.apply(this,arguments);
  };
 }
+})();
+
+
+/* ===== Ad page details like Jiji: two-column grid (value on top, label below) with Show more ===== */
+(function(){
+const prev=window.openDetail;
+if(typeof prev!=='function')return;
+const esc=x=>String(x==null?'':x).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const st=document.createElement('style');
+st.textContent='.bq-specs{margin:12px 0;border:1px solid rgba(128,128,128,.35);border-radius:14px;padding:14px}'
++'.bq-spec-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px 14px}'
++'.bq-spec-grid>div{min-width:0}'
++'.bq-spec-v{font-size:17px;font-weight:600;line-height:1.25;word-break:break-word}'
++'.bq-spec-l{font-size:14px;opacity:.65;margin-top:2px}'
++'.bq-spec-hide{display:none}'
++'.bq-spec-more{display:block;text-align:right;margin-top:14px;font-weight:700;color:#0b6b3a;cursor:pointer}';
+document.head.appendChild(st);
+function specs(l){
+const items=[],chips=[];
+if(l.details&&typeof l.details==='object'){
+Object.keys(l.details).forEach(k=>{
+let v=l.details[k];
+if(v===null||v===undefined||v===''||v===false)return;
+if(Array.isArray(v))v=v.filter(Boolean).join(', ');
+else if(v===true)v='Yes';
+else if(typeof v==='object')return;
+v=String(v);
+const label=k.replace(/_/g,' ').replace(/^./,c=>c.toUpperCase());
+const nl=['brand','storage','make','model'].includes(k)?'':(k.charAt(0).toUpperCase()+k.slice(1)+': ');
+items.push([v,label]);
+chips.push(nl+String(l.details[k]));
+});
+}
+if(l.condition){const c=l.condition==='new'?'New':'Used';items.push([c,'Condition']);chips.push(c);}
+return {items,chips};
+}
+function build(l){
+const root=document.getElementById('detailContent');
+if(!root||!l||root.querySelector('.bq-specs'))return;
+const sp=specs(l);
+if(!sp.items.length)return;
+const tags=Array.from(root.querySelectorAll('.detail-tag'));
+sp.chips.forEach(t=>{
+for(let i=tags.length-1;i>=0;i--){
+if(tags[i].textContent.trim()===String(t).trim()){tags[i].remove();tags.splice(i,1);break;}
+}
+});
+const LIMIT=8;
+const box=document.createElement('div');box.className='bq-specs';
+box.innerHTML='<div class="bq-spec-grid">'+sp.items.map((it,i)=>'<div class="'+(i>=LIMIT?'bq-spec-hide':'')+'"><div class="bq-spec-v">'+esc(it[0])+'</div><div class="bq-spec-l">'+esc(it[1])+'</div></div>').join('')+'</div>'
++(sp.items.length>LIMIT?'<a class="bq-spec-more">Show more \u25BE</a>':'');
+const more=box.querySelector('.bq-spec-more');
+if(more)more.onclick=()=>{
+const open=more.dataset.open==='1';
+box.querySelectorAll('.bq-spec-grid>div').forEach((d,i)=>{if(i>=LIMIT)d.classList.toggle('bq-spec-hide',open);});
+more.dataset.open=open?'0':'1';
+more.textContent=open?'Show more \u25BE':'Show less \u25B4';
+};
+const desc=root.querySelector('.detail-desc');
+if(desc)desc.insertAdjacentElement('beforebegin',box);
+else root.appendChild(box);
+}
+window.openDetail=async function(l){
+const r=await prev.apply(this,arguments);
+try{build(l);}catch(e){}
+return r;
+};
+window.__bqSpecs=specs;
 })();
