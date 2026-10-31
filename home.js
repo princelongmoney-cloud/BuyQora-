@@ -2326,7 +2326,7 @@ async function enhance(l){
    const link=location.origin+location.pathname+'?l='+l.id;
    const msg='Hello, I saw "'+l.title+'" ('+(Number(l.price)>0?'₦'+Number(l.price).toLocaleString():'contact for price')+') on BuyQora and I am interested. '+link;
    const w=document.createElement('a');w.id='bqWhatsApp';w.href='https://wa.me/'+d+'?text='+encodeURIComponent(msg);w.target='_blank';w.rel='noopener';
-   w.style.cssText=BS+'margin-top:10px;background:#25d366;color:#fff';
+   w.style.cssText=BS+'margin-top:10px;background:#fff;color:#0b6b3a;border:2px solid #0b6b3a';
    w.innerHTML='💬 WhatsApp';
    wrap.appendChild(w);
   }
@@ -4268,6 +4268,7 @@ const tel=(a.getAttribute('href')||'').replace(/^tel:/,'');
 const shown=tel.replace(/^\+234/,'0');
 a.innerHTML='\uD83D\uDCDE '+esc(shown);
 a.dataset.shown='1';
+const wa=document.getElementById('bqWhatsApp');if(wa)wa.classList.add('bq-wa-on');
 const wrap=a.closest('.bq-contactrow')||a.parentNode;
 if(wrap&&!document.getElementById('bqPayWarn')){
 const w=document.createElement('div');w.id='bqPayWarn';
@@ -4317,7 +4318,7 @@ e.preventDefault();e.stopPropagation();reveal(a);
 /* ===== WhatsApp now lives only inside the Call sheet (page button hidden; its link feeds the sheet) ===== */
 (function(){
 const st=document.createElement('style');
-st.textContent='/* WhatsApp button is shown on the ad page again */';
+st.textContent='#bqWhatsApp:not(.bq-wa-on){display:none !important}';
 document.head.appendChild(st);
 })();
 
