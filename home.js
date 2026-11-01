@@ -4826,3 +4826,102 @@ return r;
 };
 window.__bqSpecs=specs;
 })();
+
+
+/* ===== Market price (like Jiji): row on the ad page, info sheet, "Show ads" opens the matching ads ===== */
+(function(){
+const prev=window.openDetail;
+if(typeof prev!=='function')return;
+const MIN_ADS=4; /* other active ads needed before a market price is shown */
+const esc=x=>String(x==null?'':x).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const g=id=>document.getElementById(id);
+function pct(a,p){const i=(a.length-1)*p,lo=Math.floor(i),hi=Math.ceil(i);return a[lo]+(a[hi]-a[lo])*(i-lo);}
+function step(n){return n>=1e6?10000:n>=1e5?5000:n>=1e4?1000:100;}
+function stats(prices){
+const a=prices.map(Number).filter(n=>n>0).sort((x,y)=>x-y);
+if(a.length<MIN_ADS)return null;
+let lo=pct(a,.25),hi=pct(a,.75);
+lo=Math.floor(lo/step(lo))*step(lo);hi=Math.ceil(hi/step(hi))*step(hi);
+return {low:lo,high:hi,n:a.length};
+}
+function num(n){return n>=1e6?String(Math.round(n/1e4)/100)+' M':Number(n).toLocaleString();}
+function rangeText(s){return s.low===s.high?'\u20A6'+num(s.low):'\u20A6'+num(s.low)+' - '+num(s.high);}
+function verdict(price,s){
+const p=Number(price);
+if(p>s.high)return 'The advert\u2019s price is above average!';
+if(p<s.low)return 'The advert\u2019s price is below average!';
+return 'The advert\u2019s price is within the market range!';
+}
+function closeSheet(){const o=g('bqMarketSheet');if(o)o.remove();}
+function showAds(l,s){
+closeSheet();
+try{if(typeof closeDetail==='function')closeDetail();}catch(e){}
+if(g('bqMin'))g('bqMin').value=String(s.low);
+if(g('bqMax'))g('bqMax').value=String(s.high);
+if(g('bqCity'))g('bqCity').value='';
+if(window.bqSetView)window.bqSetView({cat:l.category_id||'all',sub:l.subcategory||'all',st:'all',cond:l.condition||'all',sort:'new',q:''});
+const h=document.querySelector('#products h2');if(h)h.scrollIntoView({behavior:'smooth'});
+}
+function openSheet(l,s){
+closeSheet();
+const OUT='font-weight:700;font-size:16px;border-radius:12px;padding:12px 16px;background:#fff;color:#0b6b3a;border:2px solid #0b6b3a;cursor:pointer';
+const o=document.createElement('div');o.id='bqMarketSheet';
+o.style.cssText='position:fixed;inset:0;z-index:100005;background:rgba(0,0,0,.5);display:flex;align-items:flex-end';
+const fav=g('detailFavBtn');const saved=fav&&fav.textContent.indexOf('\u2665')>-1;
+o.innerHTML='<div style="background:#fff;color:#1b2a22;width:100%;border-radius:18px 18px 0 0;padding:14px 16px 22px;max-height:90%;overflow-y:auto">'
++'<div style="text-align:right"><button id="bqMkX" type="button" style="font-size:28px;background:none;border:0;color:#1b2a22;line-height:1;padding:4px 8px">\u2715</button></div>'
++'<div style="font-size:20px;font-weight:700;line-height:1.3;margin:6px 0 8px">We\u2019ve analyzed prices for '+esc(l.title)+' from all sellers on BuyQora</div>'
++'<div style="font-size:16px;margin-bottom:14px">'+esc(verdict(l.price,s))+'</div>'
++'<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 0;border-top:1px solid #e6ebe8;border-bottom:1px solid #e6ebe8;margin-bottom:16px"><div style="font-size:17px;min-width:0">Price range <b>'+esc(rangeText(s))+'</b></div><button id="bqMkShow" type="button" style="'+OUT+';flex:none">Show ads</button></div>'
++'<button id="bqMkOffer" type="button" style="width:100%;display:block;font-weight:700;font-size:17px;border-radius:12px;padding:14px;background:#0b6b3a;color:#fff;border:0;margin-bottom:12px;cursor:pointer">\uD83D\uDCAC Make an offer</button>'
++'<button id="bqMkSave" type="button" style="width:100%;display:block;'+OUT+'">'+(saved?'\u2713 Saved':'\uD83D\uDD16 Save this ad')+'</button></div>';
+o.onclick=e=>{if(e.target===o)closeSheet();};
+document.body.appendChild(o);
+g('bqMkX').onclick=closeSheet;
+g('bqMkShow').onclick=()=>showAds(l,s);
+g('bqMkOffer').onclick=()=>{
+closeSheet();
+const chip=document.querySelector('#detailContent .bq-qchips button');
+if(chip)chip.click();
+const cb=document.querySelector('#detailContent .bq-chatbox');
+if(cb)cb.scrollIntoView({behavior:'smooth',block:'center'});
+};
+g('bqMkSave').onclick=()=>{closeSheet();if(!saved&&fav)fav.click();};
+}
+async function market(l){
+const root=g('detailContent');
+if(!root||!l||!(Number(l.price)>0))return;
+const chat=root.querySelector('.bq-chatbox');
+if(!chat||root.querySelector('#bqMarket'))return;
+let rows=null;
+try{
+let q=supabaseClient.from('listings').select('id,price').eq('status','active').eq('category_id',l.category_id).gt('price',0).limit(300);
+if(l.subcategory)q=q.eq('subcategory',l.subcategory);
+if(l.condition)q=q.eq('condition',l.condition);
+const r=await q;
+if(r&&!r.error&&Array.isArray(r.data))rows=r.data;
+}catch(e){}
+if(!rows&&typeof currentListings!=='undefined'&&Array.isArray(currentListings)){
+rows=currentListings.filter(x=>x.category_id===l.category_id&&(!l.subcategory||x.subcategory===l.subcategory)&&(!l.condition||x.condition===l.condition)&&Number(x.price)>0);
+}
+if(!rows)return;
+rows=rows.filter(x=>String(x.id)!==String(l.id));
+const s=stats(rows.map(x=>x.price));
+if(!s)return;
+/* the person may have opened another ad meanwhile */
+if(window.currentDetailListing&&String(window.currentDetailListing.id)!==String(l.id))return;
+const root2=g('detailContent');const chat2=root2&&root2.querySelector('.bq-chatbox');
+if(!chat2||root2.querySelector('#bqMarket'))return;
+const row=document.createElement('div');row.id='bqMarket';
+row.style.cssText='display:flex;align-items:center;justify-content:space-between;gap:12px;border:1px solid rgba(128,128,128,.35);border-radius:12px;padding:14px;margin:10px 0;font-size:16px;cursor:pointer';
+row.innerHTML='<span>Market price: <b>'+esc(rangeText(s))+'</b></span><span aria-label="About market price" style="flex:none;width:28px;height:28px;border:2px solid currentColor;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:15px;opacity:.75">i</span>';
+row.onclick=()=>openSheet(l,s);
+chat2.insertAdjacentElement('beforebegin',row);
+}
+window.openDetail=async function(l){
+const r=await prev.apply(this,arguments);
+try{market(l).catch(()=>{});}catch(e){}
+return r;
+};
+window.__bqMarket={stats,rangeText,verdict};
+})();
