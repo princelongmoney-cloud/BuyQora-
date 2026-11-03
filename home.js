@@ -784,7 +784,7 @@ list.addEventListener('click',async e=>{
 const $=id=>document.getElementById(id);
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 const naira=n=>'₦'+Number(n||0).toLocaleString();
-const NAMES={basic:'Basic Boost',featured:'Featured',premium:'Premium',top:'Top Advert',vip:'VIP',diamond:'Diamond'};
+const NAMES={basic:'Basic Boost',featured:'Featured',premium:'Premium',top:'Top Advert',vip:'VIP',diamond:'Diamond',bq_basic:'Basic',bq_featured:'Featured',bq_premium:'Premium',bq_top:'TOP',bq_topplus:'TOP+',bq_viptop:'VIP TOP',bq_viptopplus:'VIP TOP+',bq_vip2x:'2X VIP TOP+',boost1:'Boost 1',boost2:'Boost 2',boost3:'Boost 3',boost4:'Boost 4'};
 document.body.insertAdjacentHTML('beforeend','<div class="modal-overlay" id="promoOverlay"><div class="modal" style="color:#222"><span class="close" id="promoClose">✕</span><h3>Promote this listing</h3><p id="promoTitle" style="font-weight:bold;margin-bottom:10px"></p><p class="error" id="promoError"></p><label>Package</label><div id="promoPkgs"></div><label>Duration</label><select id="promoDays"></select><div id="promoTotal" style="font-size:16px;font-weight:bold;color:#ff6b00;margin:4px 0 12px"></div><div id="promoPay" style="font-size:14px;line-height:1.6"></div><label>Payment reference</label><input type="text" id="promoRef" placeholder="Sender name or transaction ID"><button class="button" id="promoSubmit">I have paid, submit promotion</button></div></div>');
 $('promoClose').onclick=()=>$('promoOverlay').classList.remove('show');
 const st={listing:null,pkgs:[],durs:[],pkg:null,instr:'',vipOk:false};
@@ -792,7 +792,8 @@ function yearPrice(p){const y=Number(p.price_year);if(y>0)return Math.round(y);c
 function isYr(id){return id==='vip'||id==='diamond';}
 function yearDur(){return st.durs.find(x=>Number(x.days)===365);}
 function fillDays(){
- const y=yearDur();
+ const fp0=st.pkgs.find(x=>x.id===st.pkg);if(fp0&&fp0.fixed_days){$('promoDays').innerHTML='<option value="'+fp0.fixed_days+'" selected>'+fp0.fixed_days+' days</option>';return;}
+const y=yearDur();
  if(isYr(st.pkg)&&y){
   $('promoDays').innerHTML='<option value="365" selected>1 year (365 days)</option>';
  }else{
@@ -804,7 +805,8 @@ function fillDays(){
 
 function total(){
  const p=st.pkgs.find(x=>x.id===st.pkg);
- const d=st.durs.find(x=>String(x.days)===$('promoDays').value);
+ if(p&&p.fixed_days)return Math.round(Number(p.price_7d));
+const d=st.durs.find(x=>String(x.days)===$('promoDays').value);
  if(!p||!d)return 0;
  if(isYr(p.id)&&Number(d.days)===365)return yearPrice(p);
  return Math.round(Number(p.price_7d)*Number(d.multiplier));
@@ -812,14 +814,15 @@ function total(){
 function showTotal(){
  const p=st.pkgs.find(x=>x.id===st.pkg);
  if(!p){$('promoTotal').textContent='Choose a package';return;}
- let t='Total: '+naira(total())+' for '+$('promoDays').value+' day(s) · shown as "'+p.label+'"';
+ let t='Total: '+naira(total())+' for '+(p.fixed_days||$('promoDays').value)+' day(s) · shown as "'+p.label+'"';
  if(isYr(p.id)&&yearDur())t='Total: '+naira(total())+' for 1 year · '+(p.id==='vip'?'VIP crown':'Diamond badge')+'\nPay once and it stays on your listing for a full year. After the year ends you can renew it.';
  if(p.id==='top')t+='\nTop Advert is reviewed by our team before it goes live. Larger campaigns may cost more.';
  $('promoTotal').style.whiteSpace='pre-line';
  $('promoTotal').textContent=t;
 }
 function drawPkgs(){
- $('promoPkgs').innerHTML=st.pkgs.map(p=>(p.id==='vip'&&!st.vipOk)?'<div data-lock="1" style="border:2px dashed #ccc;border-radius:10px;padding:10px;margin-bottom:8px;cursor:pointer;opacity:.75"><b>'+esc(p.name)+'</b><span style="float:right;color:#888;font-weight:bold">Locked</span><div style="font-size:12.5px;color:#666;margin-top:2px">The VIP crown is for verified business brands only.</div></div>':'<div data-p="'+p.id+'" style="border:2px solid '+(p.id===st.pkg?'#ff6b00':'#ddd')+';border-radius:10px;padding:10px;margin-bottom:8px;cursor:pointer"><b>'+esc(p.name)+'</b><span style="float:right;color:#ff6b00;font-weight:bold">'+((isYr(p.id)&&yearDur())?naira(yearPrice(p))+' / year':naira(p.price_7d)+' / 7 days')+'</span><div style="font-size:12.5px;color:#666;margin-top:2px">'+esc(p.description||'')+'</div></div>').join('');
+ $('promoPkgs').innerHTML=st.pkgs.map(p=>(p.id==='vip'&&!st.vipOk)?'<div data-lock="1" style="border:2px dashed #ccc;border-radius:10px;padding:10px;margin-bottom:8px;cursor:pointer;opacity:.75"><b>'+esc(p.name)+'</b><span style="float:right;color:#888;font-weight:bold">Locked</span><div style="font-size:12.5px;color:#666;margin-top:2px">The VIP crown is for verified business brands only.</div></div>':'<div data-p="'+p.id+'" style="border:2px solid '+(p.id===st.pkg?'#ff6b00':'#ddd')+';border-radius:10px;padding:10px;margin-bottom:8px;cursor:pointer"><b>'+esc(p.name)+'</b><span style="float:right;color:#ff6b00;font-weight:bold">'+((isYr(p.id)&&yearDur())?naira(yearPrice(p))+' / year':(p.fixed_days?naira(p.price_7d)+' / '+p.fixed_days+' days':naira(p.price_7d)+' / 7 days'))+'</span><div style="font-size:12.5px;color:#666;margin-top:2px">'+esc(p.description||'')+'</div></div>').join('');
+{const fb=$('promoPkgs').querySelector('[data-p^="boost"]');if(fb&&!$('promoPkgs').querySelector('.bqBoostH'))fb.insertAdjacentHTML('beforebegin','<div class="bqBoostH" style="font-weight:700;margin:14px 0 6px;color:#00695c">\u26A1 BuyQora Boost <span style="font-weight:400;color:#666;font-size:12.5px">extra exposure, ranked below Basic</span></div>');}
 }
 $('promoPkgs').onclick=e=>{if(e.target.closest('[data-lock]')){alert('The VIP crown is for verified business brands only. Set your account type to Business and get verified to unlock it.');return;}const c=e.target.closest('[data-p]');if(!c)return;st.pkg=c.dataset.p;fillDays();drawPkgs();showTotal();};
 $('promoDays').onchange=showTotal;
@@ -940,7 +943,7 @@ const $=id=>document.getElementById(id);
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 const naira=n=>'₦'+Number(n||0).toLocaleString();
 const dt=d=>d?new Date(d).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):'-';
-const NAMES={basic:'Basic Boost',featured:'Featured',premium:'Premium',top:'Top Advert',vip:'VIP',diamond:'Diamond'};
+const NAMES={basic:'Basic Boost',featured:'Featured',premium:'Premium',top:'Top Advert',vip:'VIP',diamond:'Diamond',bq_basic:'Basic',bq_featured:'Featured',bq_premium:'Premium',bq_top:'TOP',bq_topplus:'TOP+',bq_viptop:'VIP TOP',bq_viptopplus:'VIP TOP+',bq_vip2x:'2X VIP TOP+',boost1:'Boost 1',boost2:'Boost 2',boost3:'Boost 3',boost4:'Boost 4'};
 const sty=document.createElement('style');
 sty.textContent='.modal-overlay#aprOverlay>.modal{position:fixed !important;inset:0 !important;width:100% !important;height:100% !important;max-width:none !important;max-height:none !important;margin:0 !important;border-radius:0 !important;box-sizing:border-box !important;overflow-y:auto !important;padding:calc(env(safe-area-inset-top,0px) + 12px) 16px calc(env(safe-area-inset-bottom,0px) + 12px) !important}';
 document.head.appendChild(sty);
@@ -1010,21 +1013,33 @@ async function joinRenewal(r){
  }catch(e){}
 }
 async function loadPk(){
- let r=await supabaseClient.from('promotion_packages').select('id,name,price_7d,price_year').order('sort_order');
- if(r.error)r=await supabaseClient.from('promotion_packages').select('id,name,price_7d').order('sort_order');
- const data=r.data;
- $('aprPk').innerHTML=(data||[]).map(p=>{
-  const yr=(p.id==='vip'||p.id==='diamond');
-  const val=yr?(Number(p.price_year)>0?p.price_year:Math.round(Number(p.price_7d)*40)):p.price_7d;
-  return '<label>'+esc(p.name)+(yr?' (₦ per YEAR)':' (₦ per 7 days)')+'</label><input type="number" inputmode="numeric" data-pk="'+p.id+'"'+(yr?' data-yr="1"':'')+' value="'+val+'">';
- }).join('');
+let r=await supabaseClient.from('promotion_packages').select('id,name,price_7d,price_year,fixed_days,active,kind').order('sort_order');
+if(r.error)r=await supabaseClient.from('promotion_packages').select('id,name,price_7d,price_year').order('sort_order');
+if(r.error)r=await supabaseClient.from('promotion_packages').select('id,name,price_7d').order('sort_order');
+const data=r.data||[];
+const DAYS=[1,3,7,14,21,30];
+const row=p=>{
+const yr=(p.id==='vip'||p.id==='diamond');
+const fx=p.fixed_days!=null&&p.fixed_days!=='';
+const val=yr?(Number(p.price_year)>0?p.price_year:Math.round(Number(p.price_7d)*40)):p.price_7d;
+const lab=esc(p.name)+(yr?' (₦ per YEAR)':fx?' (₦ for '+p.fixed_days+' days)':' (₦ per 7 days)');
+const act=('active' in p)?'<label style="display:inline-flex;align-items:center;gap:6px;font-weight:400;margin-left:10px"><input type="checkbox" data-act="1"'+(p.active?' checked':'')+'> On sale</label>':'';
+const days=fx?'<label style="font-weight:400;margin-left:10px">Days <select data-fd="1">'+DAYS.map(d=>'<option value="'+d+'"'+(Number(p.fixed_days)===d?' selected':'')+'>'+d+'</option>').join('')+'</select></label>':'';
+return '<div class="bqPkRow" style="border-bottom:1px solid #eee;padding:8px 0"><label>'+lab+'</label><input type="number" inputmode="numeric" data-pk="'+p.id+'"'+(yr?' data-yr="1"':'')+' value="'+val+'">'+days+act+'</div>';
+};
+const head=t=>'<div style="font-weight:700;margin:14px 0 4px;color:#0b6b3a">'+t+'</div>';
+const pk=data.filter(p=>p.fixed_days!=null&&p.fixed_days!==''&&p.kind!=='boost');
+const bo=data.filter(p=>p.kind==='boost');
+const old=data.filter(p=>!(p.fixed_days!=null&&p.fixed_days!==''));
+$('aprPk').innerHTML=(pk.length?head('BuyQora packages (fixed price and days)')+pk.map(row).join(''):'')+(bo.length?head('\u26A1 BuyQora Boost')+bo.map(row).join(''):'')+(old.length?head('Old packages')+old.map(row).join(''):'');
 }
 $('aprPkSave').onclick=async()=>{
  const b=$('aprPkSave');b.disabled=true;
  for(const i of document.querySelectorAll('#aprPk input[data-pk]')){
   const v=parseFloat(i.value);
   if(isNaN(v)||v<0){alert('Enter valid prices.');b.disabled=false;return;}
-  const{error}=await supabaseClient.from('promotion_packages').update(i.dataset.yr?{price_year:v}:{price_7d:v}).eq('id',i.dataset.pk);
+  const rw=i.closest('.bqPkRow');const upd=i.dataset.yr?{price_year:v}:{price_7d:v};const fdS=rw&&rw.querySelector('select[data-fd]');const acC=rw&&rw.querySelector('input[data-act]');if(fdS)upd.fixed_days=parseInt(fdS.value,10);if(acC)upd.active=acC.checked;
+const{error}=await supabaseClient.from('promotion_packages').update(upd).eq('id',i.dataset.pk);
   if(error){alert('Could not save: '+error.message);b.disabled=false;return;}
  }
  b.disabled=false;alert('Prices saved. New requests will use them.');
@@ -1080,8 +1095,8 @@ if(anchor){
 (function(){
 const $=id=>document.getElementById(id);
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-const LBL={basic:['Promoted','#0277bd'],featured:['Featured','#ff6b00'],premium:['Premium','#8e24aa'],top:['Sponsored','#c62828'],vip:['⭐ VIP','#b8860b'],diamond:['💎 Diamond','#00838f']};
-const RANK={basic:1,featured:2,premium:3,top:4,diamond:5,vip:6};
+const LBL={basic:['Promoted','#0277bd'],featured:['Featured','#ff6b00'],premium:['Premium','#8e24aa'],top:['Sponsored','#c62828'],vip:['⭐ VIP','#b8860b'],diamond:['💎 Diamond','#00838f'],bq_basic:['Basic','#0277bd'],bq_featured:['Featured','#ff6b00'],bq_premium:['Premium','#8e24aa'],bq_top:['TOP','#c62828'],bq_topplus:['TOP+','#ad1457'],bq_viptop:['👑 VIP TOP','#b8860b'],bq_viptopplus:['👑 VIP TOP+','#9a6700'],bq_vip2x:['👑 2X VIP TOP+','#4a148c'],boost1:['⚡ Boost','#00897b'],boost2:['⚡ Boost','#00897b'],boost3:['⚡ Boost','#00897b'],boost4:['⚡ Boost','#00897b']};
+const RANK={basic:1,featured:2,premium:3,top:4,diamond:5,vip:6,boost1:.4,boost2:.5,boost3:.6,boost4:.7,bq_basic:1,bq_featured:2,bq_premium:3,bq_top:4,bq_topplus:5,bq_viptop:7,bq_viptopplus:8,bq_vip2x:9};
 let promoMap={};
 window.bqPromoOf=l=>promoMap[l.id]||null;
 window.bqPromoLbl=LBL;
@@ -1096,11 +1111,11 @@ async function loadPromos(){
 }
 function rankOf(l){
  const p=promoMap[l.id];if(!p)return 0;
- if(p.package_id==='basic'&&activeCategory==='all'&&!$('bqQ').value.trim())return 0;
+ if(['basic','bq_basic','boost1','boost2','boost3','boost4'].includes(p.package_id)&&activeCategory==='all'&&!$('bqQ').value.trim())return 0;
  return RANK[p.package_id]||0;
 }
 function tag(pk,style){
- if((pk==='vip'||pk==='diamond')&&window.bqBadge)return '<span class="bqPromoTag" style="position:absolute;'+style+';z-index:3">'+window.bqBadge(pk)+'</span>';
+ if((pk==='vip'||pk==='diamond'||/^bq_vip/.test(pk))&&window.bqBadge)return '<span class="bqPromoTag" style="position:absolute;'+style+';z-index:3">'+window.bqBadge(pk)+'</span>';
  const t=LBL[pk]||LBL.basic;
  return '<b class="bqPromoTag" style="position:absolute;'+style+';background:'+t[1]+';color:#fff;font-size:10px;padding:2px 7px;border-radius:999px;z-index:3">'+t[0]+'</b>';
 }
@@ -1115,7 +1130,7 @@ fr.onclick=e=>{
  if(l)openDetail(l);
 };
 function renderFeatured(){
- const items=currentListings.filter(l=>{const p=promoMap[l.id];return p&&(p.package_id==='featured'||p.package_id==='premium'||p.package_id==='top'||p.package_id==='vip'||p.package_id==='diamond');})
+ const items=currentListings.filter(l=>{const p=promoMap[l.id];return p&&['featured','premium','top','vip','diamond','bq_featured','bq_premium','bq_top','bq_topplus','bq_viptop','bq_viptopplus','bq_vip2x'].includes(p.package_id);})
   .sort((a,b)=>RANK[promoMap[b.id].package_id]-RANK[promoMap[a.id].package_id]).slice(0,10);
  fh.style.display=fr.style.display=items.length?'':'none';
  fr.innerHTML=items.map(l=>'<div data-id="'+l.id+'" style="position:relative">'+(l.image_url?'<img src="'+esc(l.image_url)+'" alt="" loading="lazy">':'<img alt="" style="background:#eee">')+'<span>'+esc(l.title)+'</span>'+tag(promoMap[l.id].package_id,'top:6px;left:6px')+'</div>').join('');
@@ -2868,7 +2883,7 @@ function draw(){
   pkgs.map(p=>{
    if(p.id==='vip'&&!vipOk)return card('lock',p.name,'For verified business brands only.','Locked',false);
    if(p.id==='vip'||p.id==='diamond')return card(p.id,p.name,(p.description||'').replace(/[.\s]*$/,'.')+' Pay once for a full year, then renew.',naira(Number(p.price_year)>0?Math.round(Number(p.price_year)):Math.round(Number(p.price_7d)*yearMult))+' / year',chosen===p.id);
-   return card(p.id,p.name,p.description,naira(p.price_7d)+' / 7 days',chosen===p.id);
+   return card(p.id,p.name,p.description,naira(p.price_7d)+' / '+(p.fixed_days?p.fixed_days:7)+' days',chosen===p.id);
   }).join('');
 }
 async function load(){
@@ -3718,12 +3733,13 @@ verified:'<path d="M12 2l8 3v6c0 5-3.4 9.4-8 11-4.6-1.6-8-6-8-11V5z"/><path d="M
 };
 const ST={
  vip:['VIP','#d4af37','crown'],diamond:['DIAMOND','#2fc4d9','diamond'],top:['SPONSORED','#f08a8a','star'],
- verified:['VERIFIED','#4da3ff','verified'],premium:['PREMIUM','#c995e6','star'],featured:['FEATURED','#ffab66','star'],basic:['PROMOTED','#86bdea','star']
+ verified:['VERIFIED','#4da3ff','verified'],premium:['PREMIUM','#c995e6','star'],featured:['FEATURED','#ffab66','star'],basic:['PROMOTED','#86bdea','star'],
+bq_basic:['BASIC','#86bdea','star'],bq_featured:['FEATURED','#ffab66','star'],bq_premium:['PREMIUM','#c995e6','star'],bq_top:['TOP','#f08a8a','star'],bq_topplus:['TOP+','#ff6f91','star'],bq_viptop:['VIP TOP','#d4af37','crown'],bq_viptopplus:['VIP TOP+','#f0c040','crown'],bq_vip2x:['2X VIP TOP+','#ffd54f','crown'],boost1:['BOOST','#4db6ac','star'],boost2:['BOOST','#4db6ac','star'],boost3:['BOOST','#4db6ac','star'],boost4:['BOOST','#4db6ac','star']
 };
 window.bqVerTick=function(){return '<svg width="15" height="15" viewBox="0 0 24 24" fill="#4da3ff" role="img" aria-label="Verified" style="flex:none;display:inline-block;vertical-align:-2px;margin-left:4px"><title>Verified</title>'+ICON.verified+'</svg>';};
 window.bqBadge=function(pkg,mode){
  const x=ST[pkg]||ST.basic;
- const ic=(pkg==='vip')?ICON.vip:(pkg==='diamond')?ICON.diamond:(pkg==='verified')?ICON.verified:ICON.star;
+ const ic=(pkg==='vip'||x[2]==='crown')?ICON.vip:(pkg==='diamond')?ICON.diamond:(pkg==='verified')?ICON.verified:ICON.star;
  const col=x[1];
  return '<span class="bqBdg" title="'+x[0]+'" style="display:inline-flex;align-items:center;justify-content:center;gap:5px;height:22px;max-width:100%;box-sizing:border-box;padding:0 8px 0 6px;border-radius:6px;background:#1b1b1d;border:1px solid '+col+';color:'+col+';font-size:10.5px;font-weight:700;letter-spacing:.1em;line-height:1;white-space:nowrap;vertical-align:middle;box-shadow:0 1px 4px rgba(0,0,0,.35)"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" style="flex:none;display:block">'+ic+'</svg><span style="display:block;line-height:1">'+x[0]+'</span></span>';
 };
@@ -4202,11 +4218,12 @@ setInterval(add,1000);
 /* ===== Seller Longevity Star badge (membership time only; free and automatic) ===== */
 (function(){
 const LEVELS=[
- {k:'legendary',m:36,name:'Legendary Star',title:'Longstanding Member',txt:'at least 3 years',c:'#f2b01e',s:'#a56a00'},
- {k:'platinum',m:24,name:'Platinum Star',title:'Veteran Member',txt:'at least 2 years',c:'#9cc3d5',s:'#4f7f95'},
- {k:'gold',m:12,name:'Gold Star',title:'Loyal Member',txt:'at least 1 year',c:'#f2b01e',s:'#a56a00'},
- {k:'silver',m:6,name:'Silver Star',title:'Established Member',txt:'at least 6 months',c:'#c3c9ce',s:'#7a848b'},
- {k:'bronze',m:3,name:'Bronze Star',title:'Recognized Member',txt:'at least 3 months',c:'#cd7f32',s:'#8a4f14'}
+{k:'legacy',m:96,name:'Legacy',title:'Legacy Member',txt:'at least 8 years',desc:'Recognises sellers who have maintained an active BuyQora membership for eight years. This is a permanent loyalty achievement.',c:'#ffc83d',s:'#8a5a00'},
+{k:'royal',m:60,name:'Royal',title:'Distinguished Member',txt:'at least 5 years',desc:'Recognises sellers who have reached five years of active BuyQora membership.',c:'#8e5be8',s:'#4a2c8f'},
+{k:'platinum',m:36,name:'Platinum',title:'Veteran Member',txt:'at least 3 years',desc:'Recognises sellers who have reached three years of BuyQora membership.',c:'#9cc3d5',s:'#4f7f95'},
+{k:'gold',m:24,name:'Gold',title:'Loyal Member',txt:'at least 2 years',desc:'Recognises sellers who have reached two years of BuyQora membership.',c:'#f2b01e',s:'#a56a00'},
+{k:'silver',m:12,name:'Silver',title:'Established Member',txt:'at least 1 year',desc:'Recognises sellers who have reached one year of BuyQora membership.',c:'#c3c9ce',s:'#7a848b'},
+{k:'bronze',m:6,name:'Bronze',title:'Recognized Member',txt:'at least 6 months',desc:'Recognises sellers who have reached six months of BuyQora membership.',c:'#cd7f32',s:'#8a4f14'}
 ];
 function addMonths(d,n){const x=new Date(d.getTime());const day=x.getDate();x.setMonth(x.getMonth()+n);if(x.getDate()!==day)x.setDate(0);return x;}
 const esc=x=>String(x==null?'':x).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
@@ -4217,11 +4234,14 @@ window.bqStarLevel=function(created){
  return null;
 };
 function icon(L,sz){
- const star='<path d="M12 2.5l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17.4l-5.9 3.1 1.2-6.5L2.5 9.4l6.6-.9z" fill="'+L.c+'" stroke="'+L.s+'" stroke-width="1.6" stroke-linejoin="round"/>';
- const body=L.k==='legendary'
-  ?'<g transform="translate(12 12) scale(.74) translate(-12 -12)">'+star+'</g><path d="M3.2 7c-1.6 4-1.2 8.800 1.600 12" fill="none" stroke="'+L.s+'" stroke-width="1.6" stroke-linecap="round"/><path d="M20.8 7c1.600 4 1.200 8.800-1.600 12" fill="none" stroke="'+L.s+'" stroke-width="1.6" stroke-linecap="round"/>'
-  :star;
- return '<svg width="'+sz+'" height="'+sz+'" viewBox="0 0 24 24" aria-hidden="true" style="flex:none">'+body+'</svg>';
+const star='<path d="M12 2.5l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17.4l-5.9 3.1 1.2-6.5L2.5 9.4l6.6-.9z" fill="'+L.c+'" stroke="'+L.s+'" stroke-width="1.6" stroke-linejoin="round"/>';
+let body=star;
+if(L.k==='legacy'){
+body='<g transform="translate(12 12) scale(.74) translate(-12 -12)">'+star+'</g><path d="M3.2 7c-1.6 4-1.2 8.8 1.6 12" fill="none" stroke="'+L.s+'" stroke-width="1.6" stroke-linecap="round"/><path d="M20.8 7c1.6 4 1.2 8.8-1.6 12" fill="none" stroke="'+L.s+'" stroke-width="1.6" stroke-linecap="round"/>';
+}else if(L.k==='royal'){
+body='<g transform="translate(12 14.2) scale(.74) translate(-12 -12)">'+star+'</g><path d="M6.8 7.4L8 3.6l2.3 2.5L12 2.8l1.7 3.3L16 3.6l1.2 3.8z" fill="#f2b01e" stroke="#8a5a00" stroke-width="1.1" stroke-linejoin="round"/>';
+}
+return '<svg width="'+sz+'" height="'+sz+'" viewBox="0 0 24 24" aria-hidden="true" style="flex:none">'+body+'</svg>';
 }
 window.bqStarIconHTML=icon;window.bqStarLevels=LEVELS;
 window.bqStarChip=function(created,small){
@@ -4234,7 +4254,7 @@ function open(created){
  close();
  const o=document.createElement('div');o.id='bqStarOv';
  o.style.cssText='position:fixed;inset:0;z-index:100004;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;padding:20px';
- o.innerHTML='<div style="background:#fff;color:#222;border-radius:18px;max-width:420px;width:100%;padding:22px 20px;text-align:center"><div style="display:flex;justify-content:center">'+icon(L,56)+'</div><div style="font-weight:bold;font-size:20px;margin-top:8px">'+esc(L.name)+'</div><div style="color:#0b6b3a;font-weight:bold;margin-top:2px">'+esc(L.title)+'</div><p style="margin:12px 0 8px;line-height:1.5">This seller has been on BuyQora for '+esc(L.txt)+'.</p><p style="margin:0 0 14px;line-height:1.45;font-size:13px;color:#555">The Star badge shows membership time only. It is not proof of identity, honesty or successful sales, and it does not guarantee a risk-free transaction.</p><button id="bqStarX" style="width:100%;padding:12px;border:0;border-radius:12px;background:#0b6b3a;color:#fff;font-size:16px;font-weight:bold">Close</button></div>';
+ o.innerHTML='<div style="background:#fff;color:#222;border-radius:18px;max-width:420px;width:100%;padding:22px 20px;text-align:center"><div style="display:flex;justify-content:center">'+icon(L,56)+'</div><div style="font-weight:bold;font-size:20px;margin-top:8px">'+esc(L.name)+'</div><div style="color:#0b6b3a;font-weight:bold;margin-top:2px">'+esc(L.title)+'</div><p style="margin:12px 0 8px;line-height:1.5">'+esc(L.desc)+'</p><p style="margin:0 0 10px;line-height:1.55;font-size:14px;text-align:left"><b>Why this seller has it:</b> an active member for '+esc(L.txt)+'.<br><b>Paid or earned:</b> earned automatically. It cannot be bought.<br><b>Permanent:</b> it stays on the profile once earned.<br><b>What it shows:</b> long-term membership on BuyQora.</p><p style="margin:0 0 14px;line-height:1.45;font-size:13px;color:#555">The Star badge shows membership time only. It is not proof of identity, honesty or successful sales, and it does not guarantee a risk-free transaction.</p><button id="bqStarX" style="width:100%;padding:12px;border:0;border-radius:12px;background:#0b6b3a;color:#fff;font-size:16px;font-weight:bold">Close</button></div>';
  o.onclick=e=>{if(e.target===o||e.target.id==='bqStarX')close();};
  document.body.appendChild(o);
 }
@@ -4249,7 +4269,7 @@ document.addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&e.tar
 if(!window.bqBadgesHTML||!window.bqStarLevels)return;
 const L=window.bqStarLevels.slice().reverse();
 const rows=L.map(x=>'<li style="list-style:none;margin:0 0 8px -18px;display:flex;align-items:center;gap:10px">'+window.bqStarIconHTML(x,24)+'<span><b>'+x.name+'</b> — '+x.title+' ('+x.txt.replace('at least ','')+')</span></li>').join('');
-const sec='<h4 style="margin:14px 0 4px">⭐ 4. Star Badge — Membership Time</h4><p>The Star badge represents how long a seller has maintained a BuyQora account. It is free and automatic, and sellers cannot buy it or edit it.</p><p><b>Levels:</b></p><ul style="margin:0 0 6px 18px;padding:0">'+rows+'</ul><p><b>Important:</b> The Star badge shows membership time only. It is not proof of identity, honesty or successful sales, and it does not by itself make a transaction risk-free.</p>';
+const sec='<h4 style="margin:14px 0 4px">⭐ 4. Loyalty Badges (Star) — Membership Time</h4><p>The Star badge represents how long a seller has maintained a BuyQora account. It is free and automatic, and sellers cannot buy it or edit it.</p><p><b>Levels:</b></p><ul style="margin:0 0 6px 18px;padding:0">'+rows+'</ul><p><b>Important:</b> The Star badge shows membership time only. It is not proof of identity, honesty or successful sales, and it does not by itself make a transaction risk-free.</p>';
 let h=window.bqBadgesHTML;
 const mark='<h4 style="margin:14px 0 4px">🔒 Our Commitment to Transparency</h4>';
 if(h.indexOf(mark)>-1)h=h.replace(mark,sec+mark);
