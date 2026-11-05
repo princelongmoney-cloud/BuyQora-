@@ -1430,7 +1430,7 @@ $('adTermsBody').innerHTML='<p><i>Last updated: October 2026</i></p>'+
 '<h4>7. Our right to reject or remove</h4><p>BuyQora may reject, pause or remove any advert or promotion that breaks these terms or our Terms of Use, without a refund where the breach is serious.</p>'+
 '<h4>8. No guarantee of results</h4><p>A promotion increases visibility but we cannot guarantee a number of views, messages or sales.</p>'+
 '<h4>9. Verified business badge</h4><p>The verified badge is a paid service. We may remove it if the business information turns out to be false.</p>'+
-'<h4>10. Extra listing fee</h4><p>Every seller can post 3 listings for free. After that, a fee applies for each extra listing and is shown before you pay. Listings you delete still count towards the 3 free listings. A listing is published only after BuyQora has received and confirmed your payment.</p>'+
+'<h4>10. Extra listing fee</h4><p>Every seller can post 3 listings for free. After that, a fee applies for each extra listing and is shown before you pay. Listings you delete still count towards the 3 free listings. Sellers who stay on BuyQora for longer also earn extra free listings as a membership reward, based on how long their account has existed (see Understand our badges). This reward is separate from paid packages and verification. A listing is published only after BuyQora has received and confirmed your payment.</p>'+
 '<h4>11. Contact</h4><p>For any advertising question, email '+EMAIL+'.</p>';
 $('adTermsBody').querySelectorAll('h4').forEach(h=>{h.style.margin='14px 0 4px';});
 $('adTermsClose').onclick=()=>$('adTermsOverlay').classList.remove('show');
@@ -4274,9 +4274,10 @@ const rows=L.map(x=>'<li style="list-style:none;margin:0 0 8px -18px;display:fle
 const sec='<h4 style="margin:14px 0 4px">⭐ 4. Loyalty Badges (Star) — Membership Time</h4><p>The Star badge represents how long a seller has maintained a BuyQora account. It is free and automatic, and sellers cannot buy it or edit it.</p><p><b>Levels:</b></p><ul style="margin:0 0 6px 18px;padding:0">'+rows+'</ul><p><b>Important:</b> The Star badge shows membership time only. It is not proof of identity, honesty or successful sales, and it does not by itself make a transaction risk-free.</p>';
 let h=window.bqBadgesHTML;
 const mark='<h4 style="margin:14px 0 4px">🔒 Our Commitment to Transparency</h4>';
-if(h.indexOf(mark)>-1)h=h.replace(mark,sec+mark);
+const rew='<h4 style="margin:14px 0 4px">🎁 5. Membership Reward — Extra Free Listings</h4><p>Every seller can post 3 listings for free. Sellers who stay on BuyQora for a long time also earn extra free listings. The reward is free and automatic, and it is not a paid package or a verification badge.</p><p><b>Extra free listings by account age:</b></p><ul style="margin:0 0 6px 18px;padding:0"><li>3 months: 1</li><li>6 months: 2</li><li>9 months: 3</li><li>12 months: 3</li><li>18 months: 4</li><li>24 months: 4</li><li>36 months: 5</li><li>48 months: 6</li><li>60 months: 7</li></ul><p><b>Important:</b> The reward is counted from the real date the account was created. It is shown in the Seller dashboard. It does not mean the seller is verified, honest or risk-free to deal with.</p>';
+if(h.indexOf(mark)>-1)h=h.replace(mark,sec+rew+mark);
 const med='<li>🥇 Medal: Paid identity verification, subject to successful verification.</li>';
-if(h.indexOf(med)>-1)h=h.replace(med,med+'<li>⭐ Star: Free recognition for how long the seller has been on BuyQora.</li>');
+if(h.indexOf(med)>-1)h=h.replace(med,med+'<li>⭐ Star: Free recognition for how long the seller has been on BuyQora.</li><li>🎁 Membership reward: Extra free listings for long-term members. Free and automatic.</li>');
 window.bqBadgesHTML=h;
 })();
 
