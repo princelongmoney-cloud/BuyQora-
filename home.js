@@ -4952,6 +4952,6 @@ window.__bqMarket={stats,rangeText,verdict};
 /* ===== Tap-for-info hint: small (i) on badges that open an explanation when tapped ===== */
 (function(){
 const st=document.createElement('style');
-st.textContent='.bqBdg[data-pk]::after,.bqMedalChip::after,.bqStarChip::after{content:"ⓘ";font-size:11px;margin-left:4px;opacity:.7;font-weight:700}';
+st.textContent='.bqBdg[data-pk]::after,.bqMedalChip::after,.bqStarChip::after,.bqMedal::after{content:"ⓘ";font-size:11px;margin-left:4px;opacity:.7;font-weight:700}.bqMedal{width:auto !important;min-width:36px;padding:0 7px !important;box-sizing:border-box}';
 document.head.appendChild(st);
 })();
