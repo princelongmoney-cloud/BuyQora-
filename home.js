@@ -4948,3 +4948,10 @@ return r;
 };
 window.__bqMarket={stats,rangeText,verdict};
 })();
+
+/* ===== Tap-for-info hint: small (i) on badges that open an explanation when tapped ===== */
+(function(){
+const st=document.createElement('style');
+st.textContent='.bqBdg[data-pk]::after,.bqMedalChip::after,.bqStarChip::after{content:"ⓘ";font-size:11px;margin-left:4px;opacity:.7;font-weight:700}';
+document.head.appendChild(st);
+})();
