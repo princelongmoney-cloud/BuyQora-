@@ -4959,31 +4959,57 @@ st.textContent='.bqBdg[data-pk]::after,.bqMedalChip::after,.bqStarChip::after,.b
 document.head.appendChild(st);
 })();
 
-/* ---- Locations: city suggestions (new, additive). Does not change how city is stored or filtered. ---- */
+/* ---- Locations: city suggestions as tappable buttons (new, additive). Does not change how city is stored or filtered. ---- */
 (function(){
 const $=id=>document.getElementById(id);
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 if(!window.bqCitiesFor)return;
-function list(id){let d=$(id);if(!d){d=document.createElement('datalist');d.id=id;document.body.appendChild(d);}return d;}
-function put(d,arr){const seen={},out=[];arr.forEach(c=>{const k=String(c).toLowerCase();if(c&&!seen[k]){seen[k]=1;out.push(c);}});d.innerHTML=out.map(c=>'<option value="'+esc(c)+'"></option>').join('');}
+const CSS='display:none;flex-wrap:wrap;gap:8px;max-height:132px;overflow-y:auto;margin:6px 0 10px;padding:2px 0;';
+const CHIP='padding:8px 12px;border-radius:18px;border:1.5px solid #0b6b3a;background:transparent;color:#0b6b3a;font-size:14px;cursor:pointer;';
+function box(id,after){let b=$(id);if(!b&&after){b=document.createElement('div');b.id=id;b.setAttribute('style',CSS);after.insertAdjacentElement('afterend',b);}return b;}
+function names(state,live){const seen={},out=[];
+ (state&&state!=='all'?window.bqCitiesFor(state):[]).concat(live||[]).forEach(c=>{c=String(c||'').trim();const k=c.toLowerCase();if(c&&!seen[k]){seen[k]=1;out.push(c);}});return out;}
+function live(stateSel){const a=[];try{(currentListings||[]).forEach(l=>{if(l.city&&(stateSel==='all'||l.state===stateSel))a.push(l.city);});}catch(e){}return a;}
+function show(b,input,list){
+ const q=input.value.trim().toLowerCase();
+ const f=list.filter(c=>!q||c.toLowerCase().includes(q)).filter(c=>c.toLowerCase()!==q);
+ if(!f.length){b.style.display='none';b.innerHTML='';return;}
+ b.innerHTML=f.map(c=>'<button type="button" data-c="'+esc(c)+'" style="'+CHIP+'">'+esc(c)+'</button>').join('');
+ b.style.display='flex';
+}
+function hide(b){if(b){b.style.display='none';}}
+/* HOME city box */
+function homeBox(){const c=$('bqCity');if(!c)return null;c.removeAttribute('list');c.setAttribute('autocomplete','off');
+ return box('bqCitySug',c.closest('.bq-filter2')||c);}
+function homeShow(){const c=$('bqCity'),s=$('bqState'),b=homeBox();if(!c||!s||!b)return;show(b,c,names(s.value,live(s.value)));}
+/* SELL city box */
+function sellBox(){const c=$('sellCity');if(!c)return null;c.removeAttribute('list');c.setAttribute('autocomplete','off');
+ return box('bqSellCitySug',c);}
 function sellSync(){
  const c=$('sellCity'),s=$('sellState');if(!c||!s)return;
- c.setAttribute('list','bqSellCityList');c.setAttribute('autocomplete','off');
- put(list('bqSellCityList'),window.bqCitiesFor(s.value));
  const fct=s.value==='Abuja',lab=c.previousElementSibling;
  if(lab&&lab.tagName==='LABEL')lab.textContent=fct?'Area Council (FCT)':'City / area';
  c.placeholder=fct?'e.g. Bwari, Kuje, Municipal Area Council (AMAC)':'e.g. Owerri, Ikeja, Onitsha';
 }
-function homeSync(){
- const c=$('bqCity'),s=$('bqState');if(!c||!s)return;
- c.setAttribute('list','bqHomeCityList');c.setAttribute('autocomplete','off');
- const have=[];try{(currentListings||[]).forEach(l=>{if(l.city&&(s.value==='all'||l.state===s.value))have.push(String(l.city).trim());});}catch(e){}
- put(list('bqHomeCityList'),(s.value==='all'?[]:window.bqCitiesFor(s.value)).concat(have));
-}
+function sellShow(){const c=$('sellCity'),s=$('sellState'),b=sellBox();if(!c||!s||!b)return;sellSync();show(b,c,names(s.value,[]));}
+document.addEventListener('focusin',e=>{const t=e.target;if(!t)return;
+ if(t.id==='bqCity')homeShow();
+ if(t.id==='sellCity')sellShow();
+ if(t.id==='sellState')sellSync();});
+document.addEventListener('input',e=>{const t=e.target;if(!t)return;
+ if(t.id==='bqCity'&&document.activeElement===t)homeShow();
+ if(t.id==='sellCity'&&document.activeElement===t)sellShow();});
 document.addEventListener('change',e=>{const t=e.target;if(!t)return;
- if(t.id==='sellState')sellSync();
- if(t.id==='bqState')homeSync();
- if(t.id==='sellCity'){const s=$('sellState');t.value=window.bqCanonCity?window.bqCanonCity(s?s.value:'',t.value):t.value;}
-});
-document.addEventListener('focusin',e=>{const t=e.target;if(!t)return;if(t.id==='sellCity'||t.id==='sellState')sellSync();if(t.id==='bqCity'||t.id==='bqState')homeSync();});
+ if(t.id==='sellState'){sellSync();if(document.activeElement===$('sellCity'))sellShow();}
+ if(t.id==='bqState'){const c=$('bqCity');if(c&&document.activeElement===c)homeShow();}
+ if(t.id==='sellCity'){const s=$('sellState');t.value=window.bqCanonCity?window.bqCanonCity(s?s.value:'',t.value):t.value;}});
+document.addEventListener('focusout',e=>{const t=e.target;if(!t)return;
+ if(t.id==='bqCity')setTimeout(()=>hide($('bqCitySug')),250);
+ if(t.id==='sellCity')setTimeout(()=>hide($('bqSellCitySug')),250);});
+/* tapping a button fills the box (hide is delayed 250 ms so the tap is never lost) */
+document.addEventListener('mousedown',e=>{if(e.target&&e.target.closest&&e.target.closest('#bqCitySug button,#bqSellCitySug button'))e.preventDefault();});
+document.addEventListener('click',e=>{const b=e.target&&e.target.closest?e.target.closest('#bqCitySug button,#bqSellCitySug button'):null;if(!b)return;
+ e.preventDefault();const home=b.parentNode.id==='bqCitySug',inp=$(home?'bqCity':'sellCity');if(!inp)return;
+ inp.value=b.dataset.c;inp.dispatchEvent(new Event('input',{bubbles:true}));inp.dispatchEvent(new Event('change',{bubbles:true}));
+ hide(b.parentNode);try{inp.blur();}catch(x){}});
 })();
