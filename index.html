@@ -664,16 +664,39 @@ const BUYQORA_STATES = [
   "Kano","Oyo","Kaduna","Katsina","Ogun","Delta","Edo","Benue","Plateau","Kwara","Osun","Ondo"
 ];
 BUYQORA_STATES.push("Adamawa","Bauchi","Bayelsa","Borno","Ekiti","Gombe","Jigawa","Kebbi","Kogi","Nasarawa","Niger","Sokoto","Taraba","Yobe","Zamfara");
+
+/* ---- BuyQora nationwide locations: 36 states + FCT (Abuja) with Area Councils ----
+   Stored values never change: a state is saved by its name (FCT is saved as "Abuja", as before). */
+const BUYQORA_FCT = {key:"Abuja", label:"FCT (Abuja)", councils:["Abaji", "Bwari", "Gwagwalada", "Kuje", "Kwali", "Municipal Area Council (AMAC)"]};
+const BUYQORA_CITIES = {"Abia": ["Umuahia", "Aba", "Arochukwu", "Ohafia", "Bende", "Isuikwuato"], "Adamawa": ["Yola", "Jimeta", "Mubi", "Numan", "Ganye", "Guyuk"], "Akwa Ibom": ["Uyo", "Eket", "Ikot Ekpene", "Oron", "Abak", "Ikot Abasi"], "Anambra": ["Awka", "Onitsha", "Nnewi", "Ekwulobia", "Ihiala", "Agulu"], "Bauchi": ["Bauchi", "Azare", "Misau", "Jama'are", "Katagum", "Ningi"], "Bayelsa": ["Yenagoa", "Brass", "Ogbia", "Sagbama", "Ekeremor"], "Benue": ["Makurdi", "Gboko", "Otukpo", "Katsina-Ala", "Vandeikya", "Adikpo"], "Borno": ["Maiduguri", "Bama", "Biu", "Dikwa", "Gwoza", "Konduga"], "Cross River": ["Calabar", "Ogoja", "Ikom", "Obudu", "Akamkpa", "Ugep"], "Delta": ["Asaba", "Warri", "Effurun", "Sapele", "Ughelli", "Agbor", "Ozoro", "Kwale"], "Ebonyi": ["Abakaliki", "Afikpo", "Onueke", "Ishiagu", "Effium"], "Edo": ["Benin City", "Auchi", "Ekpoma", "Uromi", "Igarra", "Sabongida-Ora"], "Ekiti": ["Ado-Ekiti", "Ikere-Ekiti", "Ikole-Ekiti", "Oye-Ekiti", "Ijero-Ekiti", "Efon-Alaaye"], "Enugu": ["Enugu", "Nsukka", "Agbani", "Oji River", "Udi", "Awgu"], "Gombe": ["Gombe", "Kumo", "Dukku", "Bajoga", "Billiri", "Kaltungo"], "Imo": ["Owerri", "Orlu", "Okigwe", "Oguta", "Nkwerre", "Mgbidi", "Mbaise"], "Jigawa": ["Dutse", "Hadejia", "Gumel", "Kazaure", "Ringim", "Birnin Kudu"], "Kaduna": ["Kaduna", "Zaria", "Kafanchan", "Kagoro", "Saminaka", "Birnin Gwari"], "Kano": ["Kano", "Wudil", "Gaya", "Rano", "Bichi", "Dambatta"], "Katsina": ["Katsina", "Daura", "Funtua", "Malumfashi", "Kankia", "Dutsin-Ma"], "Kebbi": ["Birnin Kebbi", "Argungu", "Yauri", "Zuru", "Jega", "Koko"], "Kogi": ["Lokoja", "Okene", "Kabba", "Idah", "Ankpa", "Dekina"], "Kwara": ["Ilorin", "Offa", "Omu-Aran", "Jebba", "Lafiagi", "Patigi"], "Lagos": ["Ikeja", "Lagos Island", "Victoria Island", "Lekki", "Ajah", "Surulere", "Yaba", "Apapa", "Ikorodu", "Badagry", "Epe", "Mushin", "Oshodi", "Alimosho"], "Nasarawa": ["Lafia", "Keffi", "Karu", "Akwanga", "Nasarawa", "Doma", "Mararaba"], "Niger": ["Minna", "Bida", "Suleja", "Kontagora", "New Bussa", "Lapai"], "Ogun": ["Abeokuta", "Ijebu-Ode", "Sagamu", "Ota", "Ilaro", "Ifo", "Ago-Iwoye"], "Ondo": ["Akure", "Ondo", "Owo", "Ikare-Akoko", "Okitipupa", "Ore"], "Osun": ["Osogbo", "Ile-Ife", "Ilesa", "Ede", "Iwo", "Ikirun"], "Oyo": ["Ibadan", "Ogbomoso", "Oyo", "Iseyin", "Saki", "Igbo-Ora"], "Plateau": ["Jos", "Bukuru", "Pankshin", "Shendam", "Barkin Ladi", "Mangu"], "Rivers": ["Port Harcourt", "Obio-Akpor", "Bonny", "Ahoada", "Omoku", "Eleme", "Okrika"], "Sokoto": ["Sokoto", "Tambuwal", "Wurno", "Gwadabawa", "Illela", "Bodinga"], "Taraba": ["Jalingo", "Wukari", "Bali", "Takum", "Zing", "Gembu"], "Yobe": ["Damaturu", "Potiskum", "Gashua", "Nguru", "Geidam", "Buni Yadi"], "Zamfara": ["Gusau", "Kaura Namoda", "Tsafe", "Anka", "Talata Mafara", "Maru"], "Abuja": ["Abaji", "Bwari", "Gwagwalada", "Kuje", "Kwali", "Municipal Area Council (AMAC)"]};
+(function(){
+  const esc = s => String(s==null?'':s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  const norm = s => String(s==null?'':s).replace(/\s+/g,' ').trim();
+  const stateOnly = () => BUYQORA_STATES.filter(s => s !== BUYQORA_FCT.key).sort((a,b)=>a.localeCompare(b));
+  window.bqStateLabel = s => (s === BUYQORA_FCT.key ? BUYQORA_FCT.label : s);
+  window.bqCitiesFor = s => (BUYQORA_CITIES[s] || []).slice();
+  // mode: 'blank' = "Select your state" first, 'all' = "All states" first, '' = none
+  window.bqStateOptionsHtml = mode => {
+    const first = mode === 'blank' ? '<option value="">Select your state</option>' : (mode === 'all' ? '<option value="all">All states</option>' : '');
+    return first +
+      '<optgroup label="Federal Capital Territory"><option value="'+esc(BUYQORA_FCT.key)+'">'+esc(BUYQORA_FCT.label)+'</option></optgroup>' +
+      '<optgroup label="States">' + stateOnly().map(s => '<option value="'+esc(s)+'">'+esc(s)+'</option>').join('') + '</optgroup>';
+  };
+  // Same town typed in any capitalisation/spacing becomes one spelling; unknown towns are kept (trimmed).
+  window.bqCanonCity = (state, text) => {
+    const t = norm(text); if (!t) return '';
+    const hit = (BUYQORA_CITIES[state] || []).find(c => c.toLowerCase() === t.toLowerCase());
+    return hit || t;
+  };
+})();
 function buildStateOptions(selectEl, includeBlank){
-  selectEl.innerHTML =
-    (includeBlank ? '<option value="">Select your state</option>' : '') +
-    BUYQORA_STATES.map(s => `<option value="${s}">${s}</option>`).join('');
+  selectEl.innerHTML = bqStateOptionsHtml(includeBlank ? 'blank' : '');
 }
 
 function buildStateFilterChips(){
   const row = document.getElementById('stateFilters');
   row.innerHTML = '<div class="filter-chip active" data-state="all">All states</div>' +
-    BUYQORA_STATES.map(s => `<div class="filter-chip" data-state="${s}">${s}</div>`).join('');
+    BUYQORA_STATES.map(s => `<div class="filter-chip" data-state="${s}">${bqStateLabel(s)}</div>`).join('');
 }
 
 let authMode = "login";

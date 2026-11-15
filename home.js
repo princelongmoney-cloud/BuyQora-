@@ -38,7 +38,7 @@ const nav=document.createElement('nav');nav.id='bqNav';
 nav.innerHTML=[['home','🏠','Home'],['saved','🔖','Saved'],['sell','➕','Sell'],['msg','💬','Messages'],['me','👤','Profile']].map(n=>`<button data-n="${n[0]}"${n[0]==='home'?' class="on"':''}><b>${n[1]}</b>${n[2]}</button>`).join('');
 document.body.appendChild(nav);
 
-$('bqState').innerHTML='<option value="all">All states</option>'+BUYQORA_STATES.map(s=>`<option>${s}</option>`).join('');
+$('bqState').innerHTML='<option value="all">All states</option>'+(window.bqStateOptionsHtml?window.bqStateOptionsHtml(''):BUYQORA_STATES.map(s=>`<option>${s}</option>`).join(''));
 $('bqState').onchange=e=>{activeState=e.target.value;renderListings();};
 $('bqQ').oninput=()=>renderListings();
 $('bqQ').onkeydown=e=>{if(e.key==='Enter'){e.target.blur();$('products').scrollIntoView({behavior:'smooth'});}};
@@ -141,7 +141,7 @@ document.body.insertAdjacentHTML('beforeend',`
 <button class="button" id="editSave">Save changes</button></div></div>`);
 $('editCategory').innerHTML=$('sellCategory').innerHTML;
 $('editCategory').addEventListener('change',()=>fillSub('edit',$('editCategory').value));
-$('editState').innerHTML=BUYQORA_STATES.map(s=>'<option>'+s+'</option>').join('');
+$('editState').innerHTML=window.bqStateOptionsHtml?window.bqStateOptionsHtml(''):BUYQORA_STATES.map(s=>'<option>'+s+'</option>').join('');
 const lo=$('bqLogout');
 if(lo){lo.insertAdjacentHTML('beforebegin','<button class="button" id="bqMine" style="margin-top:10px">My listings</button>');
  $('bqMine').onclick=()=>{closeProfile();openMine();};}
@@ -243,7 +243,7 @@ window.submitListing=async function(){
   images.push(supabaseClient.storage.from('listing-images').getPublicUrl(path).data.publicUrl);
  }
  btn.textContent='Posting...';
- const row={seller_id:session.user.id,title,description:$('sellDesc').value.trim(),price,category_id:$('sellCategory').value,state:$('sellState').value,city:$('sellCity').value.trim()||null,negotiable:$('sellNeg').checked,condition:$('sellCondition').value,image_url:images[0]||null,images,subcategory:SUBCATS[$('sellCategory').value]?($('sellSub').value||null):null,details:(window.getListingDetails?window.getListingDetails():{})};
+ const row={seller_id:session.user.id,title,description:$('sellDesc').value.trim(),price,category_id:$('sellCategory').value,state:$('sellState').value,city:(window.bqCanonCity?window.bqCanonCity($('sellState').value,$('sellCity').value):$('sellCity').value.trim())||null,negotiable:$('sellNeg').checked,condition:$('sellCondition').value,image_url:images[0]||null,images,subcategory:SUBCATS[$('sellCategory').value]?($('sellSub').value||null):null,details:(window.getListingDetails?window.getListingDetails():{})};
  let{error}=await supabaseClient.from('listings').insert(row);
  if(error&&/condition/i.test(error.message)){delete row.condition;({error}=await supabaseClient.from('listings').insert(row));}
  if(error&&/subcategory/i.test(error.message)){delete row.subcategory;({error}=await supabaseClient.from('listings').insert(row));}
@@ -3154,7 +3154,7 @@ function paint(){
   top+='<div style="display:flex;gap:8px;overflow-x:auto;padding:12px 12px 0">'+CH.map(c=>pill((chips[c[0]]?'✓ ':'')+c[1],!!chips[c[0]],'chip:'+c[0])).join('')+'</div>';}
  if(T)top+='<div style="display:flex;gap:8px;overflow-x:auto;padding:12px 12px 4px">'+T.top.map(x=>tile(x,T.ic||('<b style="font-size:26px;color:#0b6b3a">'+esc(String(x).charAt(0))+'</b>'),tileSel===x,'data-tile="'+esc(x)+'"')).join('')+tile('Other','⋯',false,'data-act="o:tile"')+'</div>';
  top+='<div style="display:flex;flex-wrap:wrap;gap:8px;padding:10px 12px 4px">';
- top+=(st!=='all')?pill('📍 '+esc(st)+' ✕',true,'x:state'):pill('📍 State ▾',false,'o:state');
+ top+=(st!=='all')?pill('📍 '+esc(window.bqStateLabel?window.bqStateLabel(st):st)+' ✕',true,'x:state'):pill('📍 State ▾',false,'o:state');
  if(T&&tileSel&&T.top.indexOf(tileSel)<0)top+=pill('✓ '+esc(tileSel)+' ✕',true,'x:tile');
  X.forEach(fd=>{const v=vals[fd.k];top+=v?pill('✓ '+esc(v)+' ✕',true,'x:'+fd.k):pill(esc(fd.l)+' ▾',false,'o:'+fd.k);});
  if(!NOCOND[cat])top+=cond?pill('✓ '+(cond==='new'?'New':'Used')+' ✕',true,'x:cond'):pill('Condition ▾',false,'o:cond');
@@ -3169,7 +3169,7 @@ function paint(){
  let sheet='';
  const stOpts=[];try{const so=$('bqState');if(so)for(const o of so.options){if(o.value&&o.value!=='all')stOpts.push(o.value);}}catch(e){}
  const inSt=base().filter(l=>st==='all'||l.state===st);const nVer=inSt.filter(l=>{const p=profs[l.seller_id];return p&&p.verification_status==='verified';}).length;
- if(pop==='state')sheet=wrap(head('Select state')+stOpts.map(x=>opt('data-st="'+esc(x)+'"',x,st===x)).join('')+anyb('data-st="all"'));
+ if(pop==='state')sheet=wrap(head('Select state')+stOpts.map(x=>opt('data-st="'+esc(x)+'"',window.bqStateLabel?window.bqStateLabel(x):x,st===x)).join('')+anyb('data-st="all"'));
  else if(pop==='sort')sheet=wrap(head('Sort by')+opt('data-sort="new"','Newest',sort==='new')+opt('data-sort="lo"','Lowest price',sort==='lo')+opt('data-sort="hi"','Highest price',sort==='hi'));
  else if(pop==='ver')sheet=wrap(head('Select verified sellers')+opt('data-ver="0"','Show all ('+inSt.length+' ads)',!onlyVer)+opt('data-ver="1"','Verified sellers ('+nVer+' ads)',onlyVer));
  else if(pop==='tile'&&T)sheet=wrap(head(T.w)+T.all.map(x=>opt('data-pick="'+esc(x)+'"',x,tileSel===x)).join('')+anyb('data-pick=""'));
@@ -4957,4 +4957,33 @@ window.__bqMarket={stats,rangeText,verdict};
 const st=document.createElement('style');
 st.textContent='.bqBdg[data-pk]::after,.bqMedalChip::after,.bqStarChip::after,.bqMedal::after{content:"ⓘ";font-size:11px;margin-left:4px;opacity:.7;font-weight:700}.bqMedal{width:auto !important;min-width:36px;padding:0 7px !important;box-sizing:border-box}';
 document.head.appendChild(st);
+})();
+
+/* ---- Locations: city suggestions (new, additive). Does not change how city is stored or filtered. ---- */
+(function(){
+const $=id=>document.getElementById(id);
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+if(!window.bqCitiesFor)return;
+function list(id){let d=$(id);if(!d){d=document.createElement('datalist');d.id=id;document.body.appendChild(d);}return d;}
+function put(d,arr){const seen={},out=[];arr.forEach(c=>{const k=String(c).toLowerCase();if(c&&!seen[k]){seen[k]=1;out.push(c);}});d.innerHTML=out.map(c=>'<option value="'+esc(c)+'"></option>').join('');}
+function sellSync(){
+ const c=$('sellCity'),s=$('sellState');if(!c||!s)return;
+ c.setAttribute('list','bqSellCityList');c.setAttribute('autocomplete','off');
+ put(list('bqSellCityList'),window.bqCitiesFor(s.value));
+ const fct=s.value==='Abuja',lab=c.previousElementSibling;
+ if(lab&&lab.tagName==='LABEL')lab.textContent=fct?'Area Council (FCT)':'City / area';
+ c.placeholder=fct?'e.g. Bwari, Kuje, Municipal Area Council (AMAC)':'e.g. Owerri, Ikeja, Onitsha';
+}
+function homeSync(){
+ const c=$('bqCity'),s=$('bqState');if(!c||!s)return;
+ c.setAttribute('list','bqHomeCityList');c.setAttribute('autocomplete','off');
+ const have=[];try{(currentListings||[]).forEach(l=>{if(l.city&&(s.value==='all'||l.state===s.value))have.push(String(l.city).trim());});}catch(e){}
+ put(list('bqHomeCityList'),(s.value==='all'?[]:window.bqCitiesFor(s.value)).concat(have));
+}
+document.addEventListener('change',e=>{const t=e.target;if(!t)return;
+ if(t.id==='sellState')sellSync();
+ if(t.id==='bqState')homeSync();
+ if(t.id==='sellCity'){const s=$('sellState');t.value=window.bqCanonCity?window.bqCanonCity(s?s.value:'',t.value):t.value;}
+});
+document.addEventListener('focusin',e=>{const t=e.target;if(!t)return;if(t.id==='sellCity'||t.id==='sellState')sellSync();if(t.id==='bqCity'||t.id==='bqState')homeSync();});
 })();
