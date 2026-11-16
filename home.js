@@ -4959,57 +4959,59 @@ st.textContent='.bqBdg[data-pk]::after,.bqMedalChip::after,.bqStarChip::after,.b
 document.head.appendChild(st);
 })();
 
-/* ---- Locations: city suggestions as tappable buttons (new, additive). Does not change how city is stored or filtered. ---- */
+/* ---- Locations: city dropdown under the City box (new, additive). Does not change how city is stored or filtered. ---- */
 (function(){
 const $=id=>document.getElementById(id);
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 if(!window.bqCitiesFor)return;
-const CSS='display:none;flex-wrap:wrap;gap:8px;max-height:132px;overflow-y:auto;margin:6px 0 10px;padding:2px 0;';
-const CHIP='padding:8px 12px;border-radius:18px;border:1.5px solid #0b6b3a;background:transparent;color:#0b6b3a;font-size:14px;cursor:pointer;';
-function box(id,after){let b=$(id);if(!b&&after){b=document.createElement('div');b.id=id;b.setAttribute('style',CSS);after.insertAdjacentElement('afterend',b);}return b;}
+let panel=null,owner=null;
+function ensure(){if(!panel){panel=document.createElement('div');panel.id='bqCityPanel';
+ panel.setAttribute('style','position:fixed;display:none;z-index:2147483000;overflow-y:auto;-webkit-overflow-scrolling:touch;border-radius:12px;box-sizing:border-box;box-shadow:0 10px 28px rgba(0,0,0,.5);');
+ document.body.appendChild(panel);}return panel;}
+function hide(){if(panel){panel.style.display='none';panel.innerHTML='';}owner=null;}
+function place(){if(!panel||!owner||panel.style.display==='none')return;
+ const r=owner.getBoundingClientRect(),vh=window.visualViewport?window.visualViewport.height:window.innerHeight,vw=window.innerWidth;
+ if(r.bottom<0||r.top>vh){hide();return;}
+ const w=Math.min(Math.max(r.width,270),vw-16),left=Math.min(Math.max(8,r.left),vw-w-8);
+ const below=vh-r.bottom-8,above=r.top-8,want=Math.min(264,panel.scrollHeight);
+ let top,max;
+ if(below>=Math.min(want,170)||below>=above){max=Math.max(80,Math.min(264,below));top=r.bottom+4;}
+ else{max=Math.max(80,Math.min(264,above));top=Math.max(8,r.top-4-Math.min(want,max));}
+ panel.style.left=left+'px';panel.style.width=w+'px';panel.style.top=top+'px';panel.style.maxHeight=max+'px';}
 function names(state,live){const seen={},out=[];
  (state&&state!=='all'?window.bqCitiesFor(state):[]).concat(live||[]).forEach(c=>{c=String(c||'').trim();const k=c.toLowerCase();if(c&&!seen[k]){seen[k]=1;out.push(c);}});return out;}
 function live(stateSel){const a=[];try{(currentListings||[]).forEach(l=>{if(l.city&&(stateSel==='all'||l.state===stateSel))a.push(l.city);});}catch(e){}return a;}
-function show(b,input,list){
+function open(input,list){
  const q=input.value.trim().toLowerCase();
  const f=list.filter(c=>!q||c.toLowerCase().includes(q)).filter(c=>c.toLowerCase()!==q);
- if(!f.length){b.style.display='none';b.innerHTML='';return;}
- b.innerHTML=f.map(c=>'<button type="button" data-c="'+esc(c)+'" style="'+CHIP+'">'+esc(c)+'</button>').join('');
- b.style.display='flex';
+ if(!f.length){hide();return;}
+ const p=ensure(),cs=getComputedStyle(input);
+ let bg=cs.backgroundColor;if(!bg||bg==='transparent'||/rgba\(0, 0, 0, 0\)/.test(bg))bg=getComputedStyle(document.body).backgroundColor;
+ if(!bg||/rgba\(0, 0, 0, 0\)/.test(bg))bg='#ffffff';
+ p.style.background=bg;p.style.color=cs.color;p.style.border='1px solid rgba(127,127,127,.55)';
+ p.innerHTML=f.map((c,i)=>'<div data-c="'+esc(c)+'" style="padding:13px 14px;font-size:15px;line-height:1.25;cursor:pointer;'+(i<f.length-1?'border-bottom:1px solid rgba(127,127,127,.28);':'')+'">'+esc(c)+'</div>').join('');
+ owner=input;p.style.display='block';place();
 }
-function hide(b){if(b){b.style.display='none';}}
-/* HOME city box */
-function homeBox(){const c=$('bqCity');if(!c)return null;c.removeAttribute('list');c.setAttribute('autocomplete','off');
- return box('bqCitySug',c.closest('.bq-filter2')||c);}
-function homeShow(){const c=$('bqCity'),s=$('bqState'),b=homeBox();if(!c||!s||!b)return;show(b,c,names(s.value,live(s.value)));}
-/* SELL city box */
-function sellBox(){const c=$('sellCity');if(!c)return null;c.removeAttribute('list');c.setAttribute('autocomplete','off');
- return box('bqSellCitySug',c);}
-function sellSync(){
- const c=$('sellCity'),s=$('sellState');if(!c||!s)return;
+function homeOpen(){const c=$('bqCity'),s=$('bqState');if(!c||!s)return;c.removeAttribute('list');c.setAttribute('autocomplete','off');open(c,names(s.value,live(s.value)));}
+function sellSync(){const c=$('sellCity'),s=$('sellState');if(!c||!s)return;
  const fct=s.value==='Abuja',lab=c.previousElementSibling;
  if(lab&&lab.tagName==='LABEL')lab.textContent=fct?'Area Council (FCT)':'City / area';
- c.placeholder=fct?'e.g. Bwari, Kuje, Municipal Area Council (AMAC)':'e.g. Owerri, Ikeja, Onitsha';
-}
-function sellShow(){const c=$('sellCity'),s=$('sellState'),b=sellBox();if(!c||!s||!b)return;sellSync();show(b,c,names(s.value,[]));}
+ c.placeholder=fct?'e.g. Bwari, Kuje, Municipal Area Council (AMAC)':'e.g. Owerri, Ikeja, Onitsha';}
+function sellOpen(){const c=$('sellCity'),s=$('sellState');if(!c||!s)return;c.removeAttribute('list');c.setAttribute('autocomplete','off');sellSync();open(c,names(s.value,[]));}
 document.addEventListener('focusin',e=>{const t=e.target;if(!t)return;
- if(t.id==='bqCity')homeShow();
- if(t.id==='sellCity')sellShow();
- if(t.id==='sellState')sellSync();});
-document.addEventListener('input',e=>{const t=e.target;if(!t)return;
- if(t.id==='bqCity'&&document.activeElement===t)homeShow();
- if(t.id==='sellCity'&&document.activeElement===t)sellShow();});
+ if(t.id==='bqCity')homeOpen();else if(t.id==='sellCity')sellOpen();else{if(t.id==='sellState')sellSync();if(panel&&panel.style.display!=='none'&&t!==owner)hide();}});
+document.addEventListener('input',e=>{const t=e.target;if(!t||document.activeElement!==t)return;
+ if(t.id==='bqCity')homeOpen();if(t.id==='sellCity')sellOpen();});
 document.addEventListener('change',e=>{const t=e.target;if(!t)return;
- if(t.id==='sellState'){sellSync();if(document.activeElement===$('sellCity'))sellShow();}
- if(t.id==='bqState'){const c=$('bqCity');if(c&&document.activeElement===c)homeShow();}
+ if(t.id==='sellState'){sellSync();if(document.activeElement===$('sellCity'))sellOpen();}
+ if(t.id==='bqState'&&document.activeElement===$('bqCity'))homeOpen();
  if(t.id==='sellCity'){const s=$('sellState');t.value=window.bqCanonCity?window.bqCanonCity(s?s.value:'',t.value):t.value;}});
-document.addEventListener('focusout',e=>{const t=e.target;if(!t)return;
- if(t.id==='bqCity')setTimeout(()=>hide($('bqCitySug')),250);
- if(t.id==='sellCity')setTimeout(()=>hide($('bqSellCitySug')),250);});
-/* tapping a button fills the box (hide is delayed 250 ms so the tap is never lost) */
-document.addEventListener('mousedown',e=>{if(e.target&&e.target.closest&&e.target.closest('#bqCitySug button,#bqSellCitySug button'))e.preventDefault();});
-document.addEventListener('click',e=>{const b=e.target&&e.target.closest?e.target.closest('#bqCitySug button,#bqSellCitySug button'):null;if(!b)return;
- e.preventDefault();const home=b.parentNode.id==='bqCitySug',inp=$(home?'bqCity':'sellCity');if(!inp)return;
- inp.value=b.dataset.c;inp.dispatchEvent(new Event('input',{bubbles:true}));inp.dispatchEvent(new Event('change',{bubbles:true}));
- hide(b.parentNode);try{inp.blur();}catch(x){}});
+document.addEventListener('focusout',e=>{const t=e.target;if(t&&(t.id==='bqCity'||t.id==='sellCity'))setTimeout(()=>{if(document.activeElement!==owner)hide();},250);});
+document.addEventListener('mousedown',e=>{if(e.target&&e.target.closest&&e.target.closest('#bqCityPanel'))e.preventDefault();});
+document.addEventListener('click',e=>{const it=e.target&&e.target.closest?e.target.closest('#bqCityPanel [data-c]'):null;if(!it||!owner)return;
+ const inp=owner;inp.value=it.dataset.c;
+ inp.dispatchEvent(new Event('input',{bubbles:true}));inp.dispatchEvent(new Event('change',{bubbles:true}));
+ hide();try{inp.blur();}catch(x){}});
+window.addEventListener('scroll',place,true);window.addEventListener('resize',place);
+if(window.visualViewport)window.visualViewport.addEventListener('resize',place);
 })();
