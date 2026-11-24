@@ -5015,3 +5015,56 @@ document.addEventListener('click',e=>{const it=e.target&&e.target.closest?e.targ
 window.addEventListener('scroll',place,true);window.addEventListener('resize',place);
 if(window.visualViewport)window.visualViewport.addEventListener('resize',place);
 })();
+
+/* ==== Business Advertising Network: public "Advertise Your Business" page (app piece 1) ==== */
+(function(){
+try{
+const $=id=>document.getElementById(id);
+if($('bizAdvOverlay'))return;
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const naira=n=>'₦'+Number(n||0).toLocaleString('en-NG');
+const EMAIL='support.buyqora@gmail.com';
+const LOADING='<p style="font-size:14px;color:#777">Loading…</p>';
+const priceCard=p=>'<div style="flex:1 1 200px;border:1px solid #cfe5d8;border-radius:12px;padding:14px;background:#f4faf6;text-align:center"><div style="font-weight:bold;color:#0b6b3a">'+esc(p.name)+'</div><div style="font-size:13px;color:#555;margin:2px 0 6px">'+esc(p.days)+' days</div><div style="font-size:22px;font-weight:bold;color:#222">'+naira(p.price_ngn)+'</div></div>';
+const pricesHtml=rows=>rows.length?'<div style="display:flex;flex-wrap:wrap;gap:10px">'+rows.map(priceCard).join('')+'</div>':'<p style="font-size:14px;color:#777">No packages are available right now.</p>';
+const catsHtml=rows=>rows.map(c=>'<span style="display:inline-block;margin:0 6px 6px 0;padding:5px 10px;border-radius:14px;background:#eef6f1;color:#0b6b3a;font-size:13px">'+esc(c.name)+'</span>').join('');
+document.body.insertAdjacentHTML('beforeend','<div class="modal-overlay" id="bizAdvOverlay"><div class="modal" id="bizAdvModal" style="color:#222;max-width:600px"><span class="close" id="bizAdvClose">✕</span>'+
+'<div style="font-size:12px;letter-spacing:1px;color:#ff6b00;font-weight:bold;margin-bottom:4px">ADVERTISE YOUR BUSINESS</div>'+
+'<h3 style="color:#0b6b3a;line-height:1.25;margin-top:0">GROW YOUR BUSINESS WITH BUYQORA.</h3>'+
+'<p style="font-size:14.5px;line-height:1.6">Promote your business, company, brand, website or app to a wider audience on BuyQora. Hotels, schools, real estate companies, fintech businesses, retail brands and international organisations are all welcome.</p>'+
+'<h4 style="margin:16px 0 8px">Packages and prices</h4><div id="bizAdvPrices">'+LOADING+'</div>'+
+'<p style="font-size:13px;color:#555;line-height:1.5;margin-top:8px">These are the full prices, with no hidden charges. Every advertisement is checked by BuyQora before it goes live, and payment alone does not publish an advertisement.</p>'+
+'<h4 style="margin:16px 0 8px">Who can advertise</h4><div id="bizAdvCats">'+LOADING+'</div>'+
+'<button class="button" id="bizAdvContact" style="margin-top:14px">CONTACT BUYQORA</button>'+
+'</div></div>');
+let loaded=false,busy=false;
+async function load(){
+ if(loaded||busy)return;
+ busy=true;
+ const pb=$('bizAdvPrices'),cb=$('bizAdvCats');
+ try{
+  const[a,b]=await Promise.all([
+   supabaseClient.from('biz_packages').select('code,name,days,price_ngn,sort_order').order('sort_order'),
+   supabaseClient.from('biz_categories').select('code,name,sort_order').order('sort_order')]);
+  if(a.error||b.error)throw(a.error||b.error);
+  pb.innerHTML=pricesHtml(a.data||[]);
+  cb.innerHTML=catsHtml(b.data||[]);
+  loaded=true;
+ }catch(e){
+  pb.innerHTML='<p style="font-size:14px;color:#b00020">The prices could not be loaded. Check your connection and try again.</p><button class="button" id="bizAdvRetry" style="margin-top:8px">Try again</button>';
+  cb.innerHTML='';
+ }
+ busy=false;
+}
+const open=()=>{$('bizAdvOverlay').classList.add('show');const m=$('bizAdvModal');if(m)m.scrollTop=0;load();};
+const close=()=>$('bizAdvOverlay').classList.remove('show');
+$('bizAdvClose').onclick=close;
+$('bizAdvPrices').onclick=e=>{if(e.target&&e.target.id==='bizAdvRetry'){$('bizAdvPrices').innerHTML=LOADING;$('bizAdvCats').innerHTML=LOADING;load();}};
+$('bizAdvContact').onclick=()=>{close();const a=document.querySelector('#legalLinks [data-l="contact"]');if(a)a.click();else window.location.href='mailto:'+EMAIL;};
+const links=$('legalLinks');
+if(links&&!$('bizAdvLink')){
+ links.insertAdjacentHTML('beforeend',' &nbsp;·&nbsp; <a id="bizAdvLink" style="color:#ff6b00;cursor:pointer">Advertise Your Business</a>');
+ $('bizAdvLink').onclick=open;
+}
+}catch(e){try{console.error('Business advertising page',e);}catch(x){}}
+})();
