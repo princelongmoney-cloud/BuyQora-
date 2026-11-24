@@ -5066,5 +5066,12 @@ if(links&&!$('bizAdvLink')){
  links.insertAdjacentHTML('beforeend',' &nbsp;·&nbsp; <a id="bizAdvLink" style="color:#ff6b00;cursor:pointer">Advertise Your Business</a>');
  $('bizAdvLink').onclick=open;
 }
+/* Home: the dashed "Advertise your business here" box and the "Advertise here" link now open this page.
+   Caught before the old handler runs; the old banner form is still reachable from Profile. */
+document.addEventListener('click',e=>{
+ const t=e.target&&e.target.closest?e.target.closest('#bqAdsEmpty,#bqAdsHere'):null;
+ if(!t)return;
+ e.preventDefault();e.stopPropagation();open();
+},true);
 }catch(e){try{console.error('Business advertising page',e);}catch(x){}}
 })();
