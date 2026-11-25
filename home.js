@@ -5075,3 +5075,213 @@ document.addEventListener('click',e=>{
 },true);
 }catch(e){try{console.error('Business advertising page',e);}catch(x){}}
 })();
+
+/* ==== Business Advertising Network: START ADVERTISING application form (app piece 2) ==== */
+(function(){
+try{
+const $=id=>document.getElementById(id);
+if($('bizApplyOverlay')||!$('bizAdvContact')||!$('bizAdvOverlay'))return;
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const naira=n=>'₦'+Number(n||0).toLocaleString('en-NG');
+const H4='<h4 style="margin:18px 0 8px">';
+document.body.insertAdjacentHTML('beforeend','<div class="modal-overlay" id="bizApplyOverlay"><div class="modal" id="bizApplyModal" style="max-width:600px"><span class="close" id="bizApplyClose">✕</span>'+
+'<div id="bzfBody">'+
+'<h3>Advertise Your Business</h3>'+
+'<p style="font-size:13.5px;line-height:1.5;margin-bottom:10px">Tell us about your business and your advertisement. You will get a reference number and the payment details. Your advertisement goes live only after BuyQora has received your payment and checked it.</p>'+
+'<p class="error" id="bzfError"></p>'+
+H4+'1. About your business</h4>'+
+'<label>Business or company name *</label><input id="bzfBiz" maxlength="150" autocomplete="organization">'+
+'<label>Your full name *</label><input id="bzfName" maxlength="120" autocomplete="name">'+
+'<label>Email address *</label><input id="bzfEmail" type="email" maxlength="254" autocomplete="email">'+
+'<label>Phone number (optional)</label><input id="bzfPhone" type="tel" maxlength="30" autocomplete="tel">'+
+'<label>WhatsApp number (optional)</label><input id="bzfWa" type="tel" maxlength="30">'+
+'<label>Country</label><input id="bzfCountry" maxlength="80" value="Nigeria">'+
+'<label>Business address (optional)</label><input id="bzfAddr" maxlength="300">'+
+'<label>Business website (optional)</label><input id="bzfSite" maxlength="500" placeholder="https://">'+
+'<label>Type of business *</label><select id="bzfCat"><option value="">Loading…</option></select>'+
+'<div id="bzfCatOtherWrap" style="display:none"><label>Describe your business *</label><input id="bzfCatOther" maxlength="200"></div>'+
+H4+'2. Your advertisement</h4>'+
+'<label>Advertisement title *</label><input id="bzfTitle" maxlength="120" placeholder="e.g. Grand Hotel - book your stay">'+
+'<label>Short description (optional)</label><textarea id="bzfDesc" maxlength="1000"></textarea>'+
+'<label>Button on your advertisement *</label><select id="bzfCta"><option value="">Loading…</option></select>'+
+'<p style="font-size:13px;line-height:1.5;margin:0 0 8px">Where should the button lead? Add at least one link or number.</p>'+
+'<label>Website link</label><input id="bzfDest" maxlength="500" placeholder="https://">'+
+'<label>App download link</label><input id="bzfApp" maxlength="500" placeholder="https://">'+
+'<label>WhatsApp number or link</label><input id="bzfWaDest" maxlength="500" placeholder="e.g. 08012345678">'+
+'<label>Image (JPG, PNG or WebP, up to 5 MB)</label><input type="file" id="bzfImg" accept="image/jpeg,image/png,image/webp">'+
+'<img id="bzfImgPrev" alt="" style="display:none;width:100%;max-height:200px;object-fit:cover;border-radius:10px;margin-bottom:12px">'+
+'<label>Video (MP4, up to 20 MB)</label><input type="file" id="bzfVid" accept="video/mp4">'+
+'<p style="font-size:13px;margin:0 0 10px">Add an image, a video, or both.</p>'+
+'<label>Anything else we should know? (optional)</label><textarea id="bzfExtra" maxlength="1500"></textarea>'+
+H4+'3. Package</h4>'+
+'<select id="bzfPkg"><option value="">Loading…</option></select>'+
+'<p style="font-size:15px;font-weight:bold;margin:0 0 12px" id="bzfTotal"></p>'+
+'<button class="button" id="bzfSubmit">SUBMIT APPLICATION</button>'+
+'<p style="font-size:13px;margin-top:8px;text-align:center" id="bzfStatus"></p>'+
+'</div>'+
+'<div id="bzfDone" style="display:none"></div>'+
+'</div></div>');
+
+let lists=null,listsBusy=false,busy=false,pkgs=[];
+const cache={};
+const sig=(k,f)=>k+'|'+f.name+'|'+f.size+'|'+f.lastModified;
+const opts=(rows,ph,label)=>'<option value="">'+esc(ph)+'</option>'+rows.map(r=>'<option value="'+esc(r.code)+'">'+esc(label(r))+'</option>').join('');
+const showError=m=>{$('bzfError').textContent=m||'';const md=$('bizApplyModal');if(m&&md)md.scrollTop=0;};
+const updateTotal=()=>{const p=pkgs.find(x=>x.code===$('bzfPkg').value);$('bzfTotal').textContent=p?('You will pay: '+naira(p.price_ngn)+' for '+p.days+' days'):'';};
+
+async function loadLists(){
+ if(lists||listsBusy)return;
+ listsBusy=true;
+ try{
+  const[a,b,c]=await Promise.all([
+   supabaseClient.from('biz_categories').select('code,name,sort_order').order('sort_order'),
+   supabaseClient.from('biz_cta_options').select('code,label,sort_order').order('sort_order'),
+   supabaseClient.from('biz_packages').select('code,name,days,price_ngn,sort_order').order('sort_order')]);
+  if(a.error||b.error||c.error)throw(a.error||b.error||c.error);
+  pkgs=c.data||[];
+  $('bzfCat').innerHTML=opts(a.data||[],'Choose…',r=>r.name);
+  $('bzfCta').innerHTML=opts(b.data||[],'Choose…',r=>r.label);
+  $('bzfPkg').innerHTML=opts(pkgs,'Choose a package…',r=>r.name+' - '+r.days+' days - '+naira(r.price_ngn));
+  if(pkgs.length)$('bzfPkg').value=pkgs[0].code;
+  updateTotal();
+  lists=true;
+ }catch(e){
+  showError('The form could not load. Check your connection, close this page and open it again.');
+ }
+ listsBusy=false;
+}
+
+const openForm=()=>{
+ $('bizAdvOverlay').classList.remove('show');
+ $('bizApplyOverlay').classList.add('show');
+ const md=$('bizApplyModal');if(md)md.scrollTop=0;
+ showError('');
+ loadLists();
+};
+const closeForm=()=>{
+ $('bizApplyOverlay').classList.remove('show');
+ $('bizAdvOverlay').classList.add('show');
+};
+const closeAll=()=>{
+ $('bizApplyOverlay').classList.remove('show');
+ $('bizAdvOverlay').classList.remove('show');
+};
+
+function resetForm(){
+ ['bzfBiz','bzfName','bzfEmail','bzfPhone','bzfWa','bzfAddr','bzfSite','bzfCatOther','bzfTitle','bzfDesc','bzfDest','bzfApp','bzfWaDest','bzfExtra'].forEach(id=>{$(id).value='';});
+ $('bzfCountry').value='Nigeria';
+ $('bzfCat').value='';$('bzfCta').value='';
+ $('bzfCatOtherWrap').style.display='none';
+ $('bzfImg').value='';$('bzfVid').value='';
+ $('bzfImgPrev').style.display='none';$('bzfImgPrev').removeAttribute('src');
+ if(pkgs.length)$('bzfPkg').value=pkgs[0].code;
+ updateTotal();
+ showError('');$('bzfStatus').textContent='';
+ $('bzfBody').style.display='';$('bzfDone').style.display='none';$('bzfDone').innerHTML='';
+}
+
+function validate(){
+ const v=id=>($(id).value||'').trim();
+ if(v('bzfBiz').length<2)return'Enter the business or company name';
+ if(v('bzfName').length<2)return'Enter your full name';
+ if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v('bzfEmail')))return'Enter a valid email address';
+ if(!v('bzfCat'))return'Choose the type of business';
+ if(v('bzfCat')==='other'&&v('bzfCatOther').length<3)return'Describe your business';
+ if(v('bzfTitle').length<3)return'The advertisement title must be at least 3 characters';
+ if(!v('bzfCta'))return'Choose a button for your advertisement';
+ if(!v('bzfDest')&&!v('bzfApp')&&!v('bzfWaDest'))return'Add at least one link or number for the button: website, app or WhatsApp';
+ if(v('bzfCta')==='download_app'&&!v('bzfApp'))return'Add the app download link';
+ if(v('bzfCta')==='whatsapp_us'&&!v('bzfWaDest'))return'Add the WhatsApp number for your button';
+ const img=$('bzfImg').files&&$('bzfImg').files[0],vid=$('bzfVid').files&&$('bzfVid').files[0];
+ if(!img&&!vid)return'Add an image, a video, or both';
+ if(img){if(!/^image\/(jpeg|png|webp)$/.test(img.type))return'Images must be JPG, PNG or WebP';if(img.size>5*1024*1024)return'Images must be 5 MB or smaller';}
+ if(vid){if(vid.type!=='video/mp4')return'Videos must be MP4';if(vid.size>20*1024*1024)return'Videos must be 20 MB or smaller';}
+ if(!v('bzfPkg'))return'Choose a package';
+ return'';
+}
+
+async function upload(file,kind){
+ const key=sig(kind,file);
+ if(cache[key])return cache[key];
+ const fd=new FormData();fd.append('file',file);fd.append('kind',kind);
+ let r,j=null;
+ try{
+  r=await fetch(SUPABASE_URL+'/functions/v1/biz-upload',{method:'POST',headers:{apikey:SUPABASE_ANON_KEY},body:fd});
+ }catch(e){throw new Error('Could not connect. Check your internet and try again.');}
+ try{j=await r.json();}catch(e){}
+ if(!r.ok||!j||!j.ok)throw new Error((j&&j.error)||'The file could not be uploaded. Please try again.');
+ const out={kind:j.kind,path:j.path,mime:j.mime,size:j.size};
+ cache[key]=out;
+ return out;
+}
+
+function showDone(d){
+ const instr=String(d.payment_instructions||'').trim();
+ $('bzfDone').innerHTML='<h3>Application received</h3>'+
+ '<p style="font-size:13.5px;margin-bottom:4px">Your reference number</p>'+
+ '<div id="bzfRef" style="font-size:26px;font-weight:bold;letter-spacing:1px;margin-bottom:10px">'+esc(d.ref)+'</div>'+
+ '<button class="button" id="bzfCopy">COPY REFERENCE</button>'+
+ '<p style="margin:14px 0 4px"><b>Package:</b> '+esc(d.package)+' ('+esc(d.days)+' days)</p>'+
+ '<p style="margin:0 0 10px"><b>Amount to pay:</b> '+naira(d.amount)+'</p>'+
+ H4+'How to pay</h4>'+
+ (instr?'<div style="white-space:pre-wrap;font-size:14px;line-height:1.5;margin-bottom:10px">'+esc(instr)+'</div>'
+       :'<p style="font-size:14px;line-height:1.5">The payment details are not shown here yet. Contact BuyQora with your reference number to get them.</p><button class="button" id="bzfContact" style="margin-bottom:10px">CONTACT BUYQORA</button>')+
+ '<p style="font-size:13.5px;line-height:1.5">Your advertisement is not live yet. It goes live only after BuyQora has received your payment and checked your advertisement. Please keep your reference number.</p>'+
+ '<button class="button" id="bzfDoneBtn" style="margin-top:10px">DONE</button>';
+ $('bzfBody').style.display='none';
+ $('bzfDone').style.display='';
+ const md=$('bizApplyModal');if(md)md.scrollTop=0;
+}
+
+async function submit(){
+ if(busy)return;
+ showError('');
+ const bad=validate();
+ if(bad){showError(bad);return;}
+ busy=true;
+ $('bzfSubmit').disabled=true;$('bzfSubmit').textContent='Please wait…';
+ try{
+  const creatives=[];
+  const img=$('bzfImg').files[0],vid=$('bzfVid').files[0];
+  if(img){$('bzfStatus').textContent='Uploading your image…';creatives.push(await upload(img,'image'));}
+  if(vid){$('bzfStatus').textContent='Uploading your video… this can take a minute';creatives.push(await upload(vid,'video'));}
+  $('bzfStatus').textContent='Sending your application…';
+  const v=id=>($(id).value||'').trim();
+  const{data,error}=await supabaseClient.rpc('biz_submit_application',{
+   p_business_name:v('bzfBiz'),p_contact_name:v('bzfName'),p_email:v('bzfEmail'),p_phone:v('bzfPhone'),p_whatsapp:v('bzfWa'),
+   p_country:v('bzfCountry'),p_address:v('bzfAddr'),p_website:v('bzfSite'),
+   p_category:v('bzfCat'),p_category_other:v('bzfCatOther'),
+   p_title:v('bzfTitle'),p_description:v('bzfDesc'),p_cta:v('bzfCta'),
+   p_destination_url:v('bzfDest'),p_app_url:v('bzfApp'),p_whatsapp_dest:v('bzfWaDest'),
+   p_package:v('bzfPkg'),p_extra:v('bzfExtra'),p_creatives:creatives});
+  if(error)throw error;
+  if(!data||!data.ref)throw new Error('Your application could not be saved. Please try again.');
+  showDone(data);
+ }catch(e){
+  showError((e&&e.message)||'Something went wrong. Please try again.');
+ }
+ $('bzfStatus').textContent='';
+ $('bzfSubmit').disabled=false;$('bzfSubmit').textContent='SUBMIT APPLICATION';
+ busy=false;
+}
+
+$('bizApplyClose').onclick=closeForm;
+$('bzfCat').onchange=()=>{$('bzfCatOtherWrap').style.display=$('bzfCat').value==='other'?'':'none';};
+$('bzfPkg').onchange=updateTotal;
+$('bzfImg').onchange=()=>{
+ const f=$('bzfImg').files&&$('bzfImg').files[0],p=$('bzfImgPrev');
+ if(f&&/^image\//.test(f.type)){try{p.src=URL.createObjectURL(f);p.style.display='block';}catch(e){p.style.display='none';}}
+ else{p.style.display='none';}
+};
+$('bzfSubmit').onclick=submit;
+$('bzfDone').onclick=e=>{
+ const t=e.target;if(!t||!t.id)return;
+ if(t.id==='bzfCopy'){try{navigator.clipboard.writeText($('bzfRef').textContent);t.textContent='COPIED';}catch(x){}}
+ else if(t.id==='bzfContact'){closeAll();resetForm();const a=document.querySelector('#legalLinks [data-l="contact"]');if(a)a.click();}
+ else if(t.id==='bzfDoneBtn'){closeAll();resetForm();}
+};
+
+$('bizAdvContact').insertAdjacentHTML('beforebegin','<p style="font-size:13.5px;margin:14px 0 0">You do not need a BuyQora account to advertise.</p><button class="button" id="bizAdvStart" style="margin-top:8px;margin-bottom:10px">START ADVERTISING</button>');
+$('bizAdvStart').onclick=openForm;
+}catch(e){try{console.error('Business advertising form',e);}catch(x){}}
+})();
