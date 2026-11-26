@@ -5088,7 +5088,6 @@ document.body.insertAdjacentHTML('beforeend','<div class="modal-overlay" id="biz
 '<div id="bzfBody">'+
 '<h3>Advertise Your Business</h3>'+
 '<p style="font-size:13.5px;line-height:1.5;margin-bottom:10px">Tell us about your business and your advertisement. You will get a reference number and the payment details. Your advertisement goes live only after BuyQora has received your payment and checked it.</p>'+
-'<p class="error" id="bzfError"></p>'+
 H4+'1. About your business</h4>'+
 '<label>Business or company name *</label><input id="bzfBiz" maxlength="150" autocomplete="organization">'+
 '<label>Your full name *</label><input id="bzfName" maxlength="120" autocomplete="name">'+
@@ -5116,6 +5115,7 @@ H4+'2. Your advertisement</h4>'+
 H4+'3. Package</h4>'+
 '<select id="bzfPkg"><option value="">Loading…</option></select>'+
 '<p style="font-size:15px;font-weight:bold;margin:0 0 12px" id="bzfTotal"></p>'+
+'<p class="error" id="bzfError" style="font-weight:bold;margin:8px 0"></p>'+
 '<button class="button" id="bzfSubmit">SUBMIT APPLICATION</button>'+
 '<p style="font-size:13px;margin-top:8px;text-align:center" id="bzfStatus"></p>'+
 '</div>'+
@@ -5126,7 +5126,22 @@ let lists=null,listsBusy=false,busy=false,pkgs=[];
 const cache={};
 const sig=(k,f)=>k+'|'+f.name+'|'+f.size+'|'+f.lastModified;
 const opts=(rows,ph,label)=>'<option value="">'+esc(ph)+'</option>'+rows.map(r=>'<option value="'+esc(r.code)+'">'+esc(label(r))+'</option>').join('');
-const showError=m=>{$('bzfError').textContent=m||'';const md=$('bizApplyModal');if(m&&md)md.scrollTop=0;};
+function showError(m,fieldId){
+ const e=$('bzfError');
+ e.textContent=m||'';
+ if(!m)return;
+ try{
+  const f=fieldId?$(fieldId):null;
+  if(f&&f.parentNode&&f.parentNode.insertBefore){
+   const lab=f.previousElementSibling;
+   f.parentNode.insertBefore(e,(lab&&lab.tagName==='LABEL')?lab:f);
+  }else{
+   const b=$('bzfSubmit');
+   if(b&&b.parentNode&&b.parentNode.insertBefore)b.parentNode.insertBefore(e,b);
+  }
+  if(e.scrollIntoView)e.scrollIntoView({block:'center',behavior:'smooth'});
+ }catch(x){}
+}
 const updateTotal=()=>{const p=pkgs.find(x=>x.code===$('bzfPkg').value);$('bzfTotal').textContent=p?('You will pay: '+naira(p.price_ngn)+' for '+p.days+' days'):'';};
 
 async function loadLists(){
@@ -5182,22 +5197,23 @@ function resetForm(){
 
 function validate(){
  const v=id=>($(id).value||'').trim();
- if(v('bzfBiz').length<2)return'Enter the business or company name';
- if(v('bzfName').length<2)return'Enter your full name';
- if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v('bzfEmail')))return'Enter a valid email address';
- if(!v('bzfCat'))return'Choose the type of business';
- if(v('bzfCat')==='other'&&v('bzfCatOther').length<3)return'Describe your business';
- if(v('bzfTitle').length<3)return'The advertisement title must be at least 3 characters';
- if(!v('bzfCta'))return'Choose a button for your advertisement';
- if(!v('bzfDest')&&!v('bzfApp')&&!v('bzfWaDest'))return'Add at least one link or number for the button: website, app or WhatsApp';
- if(v('bzfCta')==='download_app'&&!v('bzfApp'))return'Add the app download link';
- if(v('bzfCta')==='whatsapp_us'&&!v('bzfWaDest'))return'Add the WhatsApp number for your button';
+ const no=(m,id)=>[m,id];
+ if(v('bzfBiz').length<2)return no('Enter the business or company name','bzfBiz');
+ if(v('bzfName').length<2)return no('Enter your full name','bzfName');
+ if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v('bzfEmail')))return no('Enter a valid email address','bzfEmail');
+ if(!v('bzfCat'))return no('Choose the type of business','bzfCat');
+ if(v('bzfCat')==='other'&&v('bzfCatOther').length<3)return no('Describe your business','bzfCatOther');
+ if(v('bzfTitle').length<3)return no('Enter the advertisement title (at least 3 characters)','bzfTitle');
+ if(!v('bzfCta'))return no('Choose a button for your advertisement','bzfCta');
+ if(!v('bzfDest')&&!v('bzfApp')&&!v('bzfWaDest'))return no('Add at least one link or number for the button: website, app or WhatsApp','bzfDest');
+ if(v('bzfCta')==='download_app'&&!v('bzfApp'))return no('Add the app download link','bzfApp');
+ if(v('bzfCta')==='whatsapp_us'&&!v('bzfWaDest'))return no('Add the WhatsApp number for your button','bzfWaDest');
  const img=$('bzfImg').files&&$('bzfImg').files[0],vid=$('bzfVid').files&&$('bzfVid').files[0];
- if(!img&&!vid)return'Add an image, a video, or both';
- if(img){if(!/^image\/(jpeg|png|webp)$/.test(img.type))return'Images must be JPG, PNG or WebP';if(img.size>5*1024*1024)return'Images must be 5 MB or smaller';}
- if(vid){if(vid.type!=='video/mp4')return'Videos must be MP4';if(vid.size>20*1024*1024)return'Videos must be 20 MB or smaller';}
- if(!v('bzfPkg'))return'Choose a package';
- return'';
+ if(!img&&!vid)return no('Add an image, a video, or both','bzfImg');
+ if(img){if(!/^image\/(jpeg|png|webp)$/.test(img.type))return no('Images must be JPG, PNG or WebP','bzfImg');if(img.size>5*1024*1024)return no('Images must be 5 MB or smaller','bzfImg');}
+ if(vid){if(vid.type!=='video/mp4')return no('Videos must be MP4','bzfVid');if(vid.size>20*1024*1024)return no('Videos must be 20 MB or smaller','bzfVid');}
+ if(!v('bzfPkg'))return no('Choose a package','bzfPkg');
+ return null;
 }
 
 async function upload(file,kind){
@@ -5237,7 +5253,7 @@ async function submit(){
  if(busy)return;
  showError('');
  const bad=validate();
- if(bad){showError(bad);return;}
+ if(bad){showError(bad[0],bad[1]);return;}
  busy=true;
  $('bzfSubmit').disabled=true;$('bzfSubmit').textContent='Please wait…';
  try{
