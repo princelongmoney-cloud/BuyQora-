@@ -5318,10 +5318,15 @@ const sty=document.createElement('style');
 sty.textContent='.modal-overlay#bizAdmOverlay>.modal{position:fixed !important;inset:0 !important;width:100% !important;height:100% !important;max-width:none !important;max-height:none !important;margin:0 !important;border-radius:0 !important;box-sizing:border-box !important;overflow-y:auto !important;padding:calc(env(safe-area-inset-top,0px) + 12px) 16px calc(env(safe-area-inset-bottom,0px) + 12px) !important}';
 document.head.appendChild(sty);
 document.body.insertAdjacentHTML('beforeend','<div class="modal-overlay" id="bizAdmOverlay" style="z-index:10000"><div class="modal"><span class="close" id="bizAdmClose">✕</span><h3>Business ads</h3>'+
+'<details id="bizAdmSet" style="margin-bottom:12px"><summary style="cursor:pointer;font-weight:bold;padding:6px 0">⚙️ Payment details (shown to advertisers)</summary>'+
+'<p style="font-size:13px;line-height:1.5;margin:6px 0">Write your bank name, account number and account name. Advertisers see this right after they apply.</p>'+
+'<textarea id="bizAdmInstr" maxlength="1000" style="min-height:110px"></textarea>'+
+'<button class="button" id="bizAdmInstrSave" style="margin-top:8px">Save payment details</button>'+
+'<p id="bizAdmInstrMsg" style="font-size:13.5px;font-weight:bold;margin:8px 0 0"></p></details>'+
 '<div class="filter-row" id="bizAdmTabs" style="justify-content:flex-start"></div>'+
 '<button class="button" id="bizAdmRefresh" style="margin:8px 0 12px">Refresh</button>'+
 '<div id="bizAdmList"></div></div></div>');
-let tab='new',rows=[],cats={},ctas={},loaded=false,busy=false;
+let tab='new',rows=[],cats={},ctas={},loaded=false,busy=false,savingInstr=false;
 const url=p=>SUPABASE_URL+'/storage/v1/object/public/biz-ad-creatives/'+encodeURI(p);
 const link=v=>{const t=String(v||'').trim();if(!t)return '';return /^https?:\/\//i.test(t)?'<a href="'+esc(t)+'" target="_blank" rel="noopener noreferrer" style="word-break:break-all">'+esc(t)+'</a>':esc(t);};
 const line=(k,v)=>v?'<div style="margin:3px 0;font-size:14px;line-height:1.45"><b>'+k+':</b> '+v+'</div>':'';
@@ -5354,8 +5359,27 @@ function render(){
  const list=rows.filter(r=>cur[2].includes(r.status));
  $('bizAdmList').innerHTML=list.length?list.map(card).join(''):'<p style="font-size:14px;color:#888">Nothing here.</p>';
 }
+async function loadInstr(){
+ try{
+  const r=await supabaseClient.from('biz_settings').select('value').eq('key','payment_instructions').maybeSingle();
+  if(r&&!r.error&&r.data)$('bizAdmInstr').value=r.data.value||'';
+ }catch(e){}
+}
+async function saveInstr(){
+ if(savingInstr)return;
+ const msg=$('bizAdmInstrMsg'),v=($('bizAdmInstr').value||'').trim();
+ savingInstr=true;$('bizAdmInstrSave').disabled=true;msg.textContent='Saving…';
+ try{
+  let r=await supabaseClient.from('biz_settings').update({value:v}).eq('key','payment_instructions').select();
+  if(!r.error&&(!r.data||!r.data.length))r=await supabaseClient.from('biz_settings').insert({key:'payment_instructions',value:v}).select();
+  if(r.error)throw r.error;
+  msg.textContent='Saved. New applicants will see this.';
+ }catch(e){msg.textContent='Could not save: '+((e&&e.message)||'try again');}
+ $('bizAdmInstrSave').disabled=false;savingInstr=false;
+}
 async function load(){
  if(busy)return;busy=true;
+ loadInstr();
  $('bizAdmList').innerHTML='<p style="font-size:14px;color:#888">Loading…</p>';
  try{
   const[a,b,c]=await Promise.all([
@@ -5373,6 +5397,7 @@ async function load(){
 }
 $('bizAdmClose').onclick=()=>$('bizAdmOverlay').classList.remove('show');
 $('bizAdmRefresh').onclick=load;
+$('bizAdmInstrSave').onclick=saveInstr;
 $('bizAdmTabs').onclick=e=>{const t=e.target&&e.target.closest?e.target.closest('[data-t]'):null;if(!t)return;tab=t.getAttribute('data-t');render();};
 anc.insertAdjacentHTML('afterend','<button class="button" id="bizAdmBtn" style="margin-bottom:12px;background:#00897b">📣 Business ads</button>');
 $('bizAdmBtn').onclick=()=>{$('bizAdmOverlay').classList.add('show');load();};
