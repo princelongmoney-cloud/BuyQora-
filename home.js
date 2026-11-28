@@ -5302,7 +5302,7 @@ $('bizAdvStart').onclick=openForm;
 }catch(e){try{console.error('Business advertising form',e);}catch(x){}}
 })();
 
-/* ==== Business Advertising Network: ADMIN screen, part A (read-only list and details) ==== */
+/* ==== Business Advertising Network: Admin "Business ads" list (admin piece 1, read only) ==== */
 (function(){
 try{
 const $=id=>document.getElementById(id);
@@ -5311,120 +5311,70 @@ const anc=$('bqAdsAdmin')||$('bqLpAdmin')||$('bqPromoAdmin')||document.querySele
 if(!anc)return;
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 const naira=n=>'₦'+Number(n||0).toLocaleString('en-NG');
-const when=d=>{if(!d)return '';try{return new Date(d).toLocaleString('en-GB',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});}catch(e){return String(d);}};
-const one=x=>Array.isArray(x)?(x[0]||null):(x||null);
-const many=x=>Array.isArray(x)?x:(x?[x]:[]);
-const STATUS={awaiting_payment:'Awaiting payment',draft:'Draft',submitted:'Submitted',payment_confirmed:'Payment confirmed',pending_review:'Waiting for review',corrections_requested:'Corrections requested',approved:'Approved',scheduled:'Scheduled',active:'Live',paused:'Paused',suspended:'Suspended',rejected:'Rejected',expired:'Expired'};
-const GROUPS=[
- ['pay','Awaiting payment',['awaiting_payment','draft','submitted']],
- ['review','To review',['payment_confirmed','pending_review','corrections_requested']],
- ['live','Live',['approved','scheduled','active','paused','suspended']],
- ['closed','Closed',['rejected','expired']]];
-const groupOf=s=>{for(const g of GROUPS)if(g[2].includes(s))return g[0];return 'closed';};
-const fileUrl=p=>SUPABASE_URL+'/storage/v1/object/public/biz-ad-creatives/'+String(p).split('/').map(encodeURIComponent).join('/');
-
+const when=d=>{try{return d?new Date(d).toLocaleString('en-NG',{dateStyle:'medium',timeStyle:'short'}):'';}catch(e){return '';}};
+const ST={awaiting_payment:'Waiting for payment',payment_confirmed:'Payment confirmed',pending_review:'Ready to review',corrections_requested:'Corrections requested',approved:'Approved',scheduled:'Scheduled',active:'Live',paused:'Paused',suspended:'Suspended',rejected:'Rejected',expired:'Expired',draft:'Draft',submitted:'Submitted'};
+const TABS=[['new','New',['draft','submitted','awaiting_payment']],['review','To review',['payment_confirmed','pending_review','corrections_requested']],['live','Live',['approved','scheduled','active','paused']],['closed','Closed',['rejected','suspended','expired']]];
 const sty=document.createElement('style');
 sty.textContent='.modal-overlay#bizAdmOverlay>.modal{position:fixed !important;inset:0 !important;width:100% !important;height:100% !important;max-width:none !important;max-height:none !important;margin:0 !important;border-radius:0 !important;box-sizing:border-box !important;overflow-y:auto !important;padding:calc(env(safe-area-inset-top,0px) + 12px) 16px calc(env(safe-area-inset-bottom,0px) + 12px) !important}';
 document.head.appendChild(sty);
-document.body.insertAdjacentHTML('beforeend','<div class="modal-overlay" id="bizAdmOverlay" style="z-index:10000"><div class="modal"><span class="close" id="bizAdmClose">✕</span>'+
-'<div id="bizAdmMain"><h3>Business advertising</h3>'+
+document.body.insertAdjacentHTML('beforeend','<div class="modal-overlay" id="bizAdmOverlay" style="z-index:10000"><div class="modal"><span class="close" id="bizAdmClose">✕</span><h3>Business ads</h3>'+
 '<div class="filter-row" id="bizAdmTabs" style="justify-content:flex-start"></div>'+
-'<div id="bizAdmList"></div>'+
-'<button class="button" id="bizAdmRefresh" style="margin-top:8px">Refresh</button></div>'+
-'<div id="bizAdmDetail" style="display:none"></div>'+
-'</div></div>');
-
-let rows=[],tab='pay',busy=false,loadedOnce=false;
-
-function renderTabs(){
- const counts={};rows.forEach(r=>{const g=groupOf(r.status);counts[g]=(counts[g]||0)+1;});
- $('bizAdmTabs').innerHTML=GROUPS.map(g=>'<div class="filter-chip'+(g[0]===tab?' active':'')+'" data-t="'+g[0]+'">'+esc(g[1])+' ('+(counts[g[0]]||0)+')</div>').join('');
+'<button class="button" id="bizAdmRefresh" style="margin:8px 0 12px">Refresh</button>'+
+'<div id="bizAdmList"></div></div></div>');
+let tab='new',rows=[],cats={},ctas={},loaded=false,busy=false;
+const url=p=>SUPABASE_URL+'/storage/v1/object/public/biz-ad-creatives/'+encodeURI(p);
+const link=v=>{const t=String(v||'').trim();if(!t)return '';return /^https?:\/\//i.test(t)?'<a href="'+esc(t)+'" target="_blank" rel="noopener noreferrer" style="word-break:break-all">'+esc(t)+'</a>':esc(t);};
+const line=(k,v)=>v?'<div style="margin:3px 0;font-size:14px;line-height:1.45"><b>'+k+':</b> '+v+'</div>':'';
+function card(c){
+ const a=c.advertiser||{};
+ const files=(c.creatives||[]).filter(f=>f.is_current!==false).map(f=>f.kind==='video'
+  ?'<video controls preload="metadata" src="'+esc(url(f.storage_path))+'" style="width:100%;max-height:260px;border-radius:10px;margin-top:6px"></video>'
+  :'<img loading="lazy" src="'+esc(url(f.storage_path))+'" alt="" style="width:100%;max-height:260px;object-fit:cover;border-radius:10px;margin-top:6px">').join('');
+ const pays=(c.payments||[]).slice().sort((x,y)=>String(y.created_at).localeCompare(String(x.created_at))).map(p=>
+  '<div style="font-size:13.5px;margin:3px 0">'+naira(p.amount)+' · '+esc(String(p.method).replace('_',' '))+' · <b>'+esc(p.status)+'</b>'+(p.payer_reference?' · from: '+esc(p.payer_reference):'')+(p.failure_reason?' · '+esc(p.failure_reason):'')+'</div>').join('');
+ return '<div style="border:1px solid #3a4452;border-radius:12px;padding:12px;margin-bottom:14px">'+
+ '<div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><b style="font-size:16px">'+esc(c.ref)+'</b><span style="font-size:12.5px;font-weight:bold;padding:3px 9px;border-radius:12px;background:#2c3a4a">'+esc(ST[c.status]||c.status)+'</span></div>'+
+ line('Business',esc(a.business_name))+line('Contact',esc(a.contact_name))+
+ line('Email',esc(a.email))+line('Phone',esc(a.phone))+line('WhatsApp',esc(a.whatsapp))+line('Country',esc(a.country))+line('Address',esc(a.address))+line('Website',link(a.website))+
+ line('Type',esc(c.category_code==='other'?(c.category_other||'Other'):(cats[c.category_code]||c.category_code)))+
+ line('Package',esc(c.package_code)+' · '+esc(c.days)+' days · '+naira(c.amount))+
+ line('Submitted',esc(when(c.submitted_at)))+line('Paid',esc(when(c.paid_at)))+line('Live from',esc(when(c.start_at)))+line('Ends',esc(when(c.end_at)))+
+ '<div style="margin:8px 0 3px;font-size:15px"><b>'+esc(c.title)+'</b></div>'+
+ (c.description?'<div style="font-size:14px;line-height:1.45;white-space:pre-wrap">'+esc(c.description)+'</div>':'')+
+ line('Button',esc(ctas[c.cta_code]||c.cta_code))+line('Website link',link(c.destination_url))+line('App link',link(c.app_url))+line('WhatsApp link',link(c.whatsapp_dest))+
+ (c.extra_instructions?line('Notes',esc(c.extra_instructions)):'')+
+ (c.status_reason?line('Reason',esc(c.status_reason)):'')+
+ files+
+ '<div style="margin-top:8px"><b style="font-size:14px">Payments</b>'+(pays||'<div style="font-size:13.5px;margin:3px 0">No payment reported yet.</div>')+'</div></div>';
 }
-function renderList(){
- renderTabs();
- const list=rows.map((r,i)=>[r,i]).filter(x=>groupOf(x[0].status)===tab);
- if(!list.length){$('bizAdmList').innerHTML='<p style="font-size:14px;color:#888;margin:14px 0">Nothing here.</p>';return;}
- $('bizAdmList').innerHTML=list.map(([r,i])=>{
-  const a=one(r.biz_advertisers)||{};
-  return '<div data-i="'+i+'" style="border:1px solid #555;border-radius:12px;padding:12px;margin:10px 0;cursor:pointer">'+
-   '<div style="font-weight:bold;font-size:15px">'+esc(r.title)+'</div>'+
-   '<div style="font-size:13.5px;margin-top:2px">'+esc(a.business_name)+'</div>'+
-   '<div style="font-size:13px;margin-top:4px;opacity:.85">'+esc(r.ref)+' · '+esc(r.package_code)+' · '+naira(r.amount)+'</div>'+
-   '<div style="font-size:13px;margin-top:4px"><b>'+esc(STATUS[r.status]||r.status)+'</b> · '+esc(when(r.submitted_at))+'</div></div>';
- }).join('');
+function render(){
+ const counts={};TABS.forEach(t=>{counts[t[0]]=rows.filter(r=>t[2].includes(r.status)).length;});
+ $('bizAdmTabs').innerHTML=TABS.map(t=>'<div class="filter-chip'+(t[0]===tab?' active':'')+'" data-t="'+t[0]+'">'+t[1]+' ('+counts[t[0]]+')</div>').join('');
+ const cur=TABS.find(t=>t[0]===tab);
+ const list=rows.filter(r=>cur[2].includes(r.status));
+ $('bizAdmList').innerHTML=list.length?list.map(card).join(''):'<p style="font-size:14px;color:#888">Nothing here.</p>';
 }
 async function load(){
- if(busy)return;
- busy=true;
+ if(busy)return;busy=true;
  $('bizAdmList').innerHTML='<p style="font-size:14px;color:#888">Loading…</p>';
  try{
-  const{data,error}=await supabaseClient.from('biz_campaigns').select(
-   'id,ref,title,status,status_reason,package_code,days,amount,currency,category_other,description,destination_url,app_url,whatsapp_dest,extra_instructions,submitted_at,paid_at,approved_at,start_at,end_at,'+
-   'biz_advertisers(business_name,contact_name,email,phone,whatsapp,country,address,website,is_member),'+
-   'biz_categories(name),biz_cta_options(label),'+
-   'biz_creatives(kind,storage_path,mime,size_bytes,is_current),'+
-   'biz_payments(id,status,method,amount,payer_reference,failure_reason,created_at,verified_at),'+
-   'biz_moderation(decision,reason,created_at)'
-  ).order('submitted_at',{ascending:false}).limit(300);
-  if(error)throw error;
-  rows=data||[];loadedOnce=true;
-  renderList();
+  const[a,b,c]=await Promise.all([
+   supabaseClient.from('biz_campaigns').select('*, advertiser:biz_advertisers(*), creatives:biz_creatives(*), payments:biz_payments(*)').order('submitted_at',{ascending:false}).limit(200),
+   supabaseClient.from('biz_categories').select('code,name'),
+   supabaseClient.from('biz_cta_options').select('code,label')]);
+  if(a.error)throw a.error;
+  rows=a.data||[];cats={};ctas={};
+  (b.data||[]).forEach(x=>{cats[x.code]=x.name;});(c.data||[]).forEach(x=>{ctas[x.code]=x.label;});
+  loaded=true;render();
  }catch(e){
-  $('bizAdmTabs').innerHTML='';
-  $('bizAdmList').innerHTML='<p style="color:#e53935;font-size:14px">Could not load the applications: '+esc((e&&e.message)||'unknown error')+'</p>';
+  $('bizAdmList').innerHTML='<p style="font-size:14px;color:#ff6b6b">Could not load the applications: '+esc((e&&e.message)||'try again')+'</p>';
  }
  busy=false;
 }
-
-const line=(k,v)=>(v==null||v==='')?'':'<div style="margin:3px 0;font-size:14px"><span style="opacity:.7">'+esc(k)+':</span> '+esc(v)+'</div>';
-const H='<h4 style="margin:16px 0 6px">';
-function detailHtml(r){
- const a=one(r.biz_advertisers)||{},cat=one(r.biz_categories),cta=one(r.biz_cta_options);
- const files=many(r.biz_creatives).filter(f=>f.is_current!==false);
- const pays=many(r.biz_payments),mods=many(r.biz_moderation);
- const media=files.length?files.map(f=>{
-  const u=esc(fileUrl(f.storage_path));
-  const meta='<div style="font-size:12.5px;opacity:.8;margin-bottom:10px">'+esc(f.kind)+' · '+esc(f.mime||'')+' · '+(f.size_bytes!=null?esc((Number(f.size_bytes)/1048576).toFixed(2))+' MB':'')+'</div>';
-  return (f.kind==='video'?'<video src="'+u+'" controls preload="metadata" playsinline style="width:100%;border-radius:10px;margin:6px 0 2px"></video>':'<img src="'+u+'" alt="" loading="lazy" style="width:100%;max-height:360px;object-fit:contain;border-radius:10px;margin:6px 0 2px">')+meta;
- }).join(''):'<p style="font-size:14px;color:#e53935">No file found for this application.</p>';
- return '<button class="button" id="bizAdmBack" style="margin-bottom:10px">← Back to the list</button>'+
- '<h3 style="margin:6px 0 2px">'+esc(r.title)+'</h3>'+
- '<div style="font-size:15px;margin-bottom:6px"><b>'+esc(STATUS[r.status]||r.status)+'</b> · '+esc(r.ref)+'</div>'+
- (r.status_reason?line('Reason',r.status_reason):'')+
- H+'Package and dates</h4>'+
- line('Package',r.package_code+' ('+r.days+' days)')+line('Amount',naira(r.amount)+' '+(r.currency||''))+
- line('Submitted',when(r.submitted_at))+line('Paid',when(r.paid_at))+line('Approved',when(r.approved_at))+line('Starts',when(r.start_at))+line('Ends',when(r.end_at))+
- H+'Advertisement</h4>'+
- line('Type of business',cat?cat.name:'')+line('Business described as',r.category_other)+line('Description',r.description)+
- line('Button',cta?cta.label:'')+line('Website link',r.destination_url)+line('App link',r.app_url)+line('WhatsApp',r.whatsapp_dest)+line('Extra notes',r.extra_instructions)+
- H+'Image or video</h4>'+media+
- H+'Business</h4>'+
- line('Business name',a.business_name)+line('Contact person',a.contact_name)+line('Email',a.email)+line('Phone',a.phone)+line('WhatsApp',a.whatsapp)+line('Country',a.country)+line('Address',a.address)+line('Website',a.website)+line('BuyQora member',a.is_member?'yes':'no')+
- H+'Payments</h4>'+
- (pays.length?pays.map(p=>'<div style="margin:6px 0;font-size:14px"><b>'+esc(p.status)+'</b> · '+esc(p.method)+' · '+naira(p.amount)+(p.payer_reference?'<br>Payer reference: '+esc(p.payer_reference):'')+(p.failure_reason?'<br>Reason: '+esc(p.failure_reason):'')+'<br><span style="opacity:.7">'+esc(when(p.created_at))+(p.verified_at?' · verified '+esc(when(p.verified_at)):'')+'</span></div>').join(''):'<p style="font-size:14px;color:#888;margin:4px 0">No payment has been reported yet.</p>')+
- H+'Review history</h4>'+
- (mods.length?mods.map(m=>'<div style="margin:6px 0;font-size:14px"><b>'+esc(m.decision)+'</b>'+(m.reason?' · '+esc(m.reason):'')+'<br><span style="opacity:.7">'+esc(when(m.created_at))+'</span></div>').join(''):'<p style="font-size:14px;color:#888;margin:4px 0">No review decisions yet.</p>');
-}
-function showDetail(i){
- const r=rows[i];if(!r)return;
- $('bizAdmDetail').innerHTML=detailHtml(r);
- $('bizAdmMain').style.display='none';
- $('bizAdmDetail').style.display='';
- const m=$('bizAdmOverlay').firstChild;if(m&&m.scrollTop!==undefined)m.scrollTop=0;
-}
-function showList(){
- $('bizAdmDetail').style.display='none';
- $('bizAdmDetail').innerHTML='';
- $('bizAdmMain').style.display='';
-}
-
-$('bizAdmClose').onclick=()=>{showList();$('bizAdmOverlay').classList.remove('show');};
-$('bizAdmTabs').onclick=e=>{const c=e.target&&e.target.closest?e.target.closest('[data-t]'):null;if(!c)return;tab=c.getAttribute('data-t');renderList();};
-$('bizAdmList').onclick=e=>{const c=e.target&&e.target.closest?e.target.closest('[data-i]'):null;if(!c)return;showDetail(Number(c.getAttribute('data-i')));};
-$('bizAdmDetail').onclick=e=>{if(e.target&&e.target.id==='bizAdmBack')showList();};
+$('bizAdmClose').onclick=()=>$('bizAdmOverlay').classList.remove('show');
 $('bizAdmRefresh').onclick=load;
-
-anc.insertAdjacentHTML('afterend','<button class="button" id="bizAdmBtn" style="margin-bottom:12px;background:#00897b">🏢 Business advertising</button>');
-$('bizAdmBtn').onclick=()=>{$('bizAdmOverlay').classList.add('show');showList();load();};
-}catch(e){try{console.error('Business advertising admin',e);}catch(x){}}
+$('bizAdmTabs').onclick=e=>{const t=e.target&&e.target.closest?e.target.closest('[data-t]'):null;if(!t)return;tab=t.getAttribute('data-t');render();};
+anc.insertAdjacentHTML('afterend','<button class="button" id="bizAdmBtn" style="margin-bottom:12px;background:#00897b">📣 Business ads</button>');
+$('bizAdmBtn').onclick=()=>{$('bizAdmOverlay').classList.add('show');load();};
+}catch(e){try{console.error('Business ads admin',e);}catch(x){}}
 })();
